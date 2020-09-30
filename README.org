@@ -1,0 +1,6 @@
+* Statistical analysis of Grid firing using Poisson point processes
+
+** Covariance functions
+*** Oscillating covariance functions
+*** Periodic covariance functions
+*** Separable covariance

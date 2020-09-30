@@ -1,7 +1,11 @@
-* Statistical analysis of Grid firing using Poisson point processes
+* Grid-Fields
 
+** Background
+*** History
+*** Literature review
+** Point process models
+*** Preliminaries and notation
 ** Covariance functions
 *** Oscillating covariance functions
 *** Periodic covariance functions
 *** Separable covariance
-** Point process likelihoods

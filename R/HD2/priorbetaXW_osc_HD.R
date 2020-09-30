@@ -1,0 +1,24 @@
+prior.betaX_osc_HD <- function(beta, X, theta, mesh, order.HD)
+{
+    ## ---------------------------------------
+    ## input:
+    ##       X: vector of parameters X
+    ##       beta: vector of parameters X
+    ##       spde: model object for oscillating Gaussian field created with inla.spde2
+    ##       theta: hyperprior parameters
+    ##       mesh: Delaunay triangulation of spatial domain constructed using inla.mesh.2d from INLA package
+    ##             
+    ## output:
+    ##        prior log density of X, beta given theta
+    ## ---------------------------------------
+    theta.Omega <- theta[1:3]
+    theta.HD    <- theta[4:5]    
+    Q.Omega     <- osc.precision(theta=theta.Omega, mesh=mesh)
+    Q.HD        <- hd.precision(theta=theta.HD, order=order.HD)
+    Q           <- kronecker(Q.HD, Q.Omega)
+    lpbeta <- dnorm(as.numeric(beta), mean=0, sd=1/sqrt(1e-6), log=TRUE)
+    lpX    <- ldmvnorm(X, matrix(rep(0, length(X)), ncol=1), Q)
+    ## print(paste("lpX is:", lpX))
+    out    <- (lpbeta + lpX)
+    return(out)
+}

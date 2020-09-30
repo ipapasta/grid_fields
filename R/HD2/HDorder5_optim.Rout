@@ -1,0 +1,1047 @@
+nohup: ignoring input
+── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
+✔ ggplot2 3.1.0     ✔ purrr   0.3.0
+✔ tibble  2.0.1     ✔ dplyr   0.7.8
+✔ tidyr   0.8.2     ✔ stringr 1.3.1
+✔ readr   1.3.1     ✔ forcats 0.3.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+Loading required package: Matrix
+
+Attaching package: ‘Matrix’
+
+The following object is masked from ‘package:tidyr’:
+
+    expand
+
+Loading required package: sp
+This is INLA_18.07.12 built 2019-02-05 12:40:27 UTC.
+See www.r-inla.org/contact-us for how to get help.
+To enable PARDISO sparse library; see inla.pardiso()
+
+Attaching package: ‘pryr’
+
+The following object is masked from ‘package:INLA’:
+
+    f
+
+The following objects are masked from ‘package:purrr’:
+
+    compose, partial
+
+Loading required package: spam
+Loading required package: dotCall64
+Loading required package: grid
+Spam version 2.2-1 (2018-12-20) is loaded.
+Type 'help( Spam)' or 'demo( spam)' for a short introduction 
+and overview of this package.
+Help for individual functions is also obtained by adding the
+suffix '.spam' to the function name, e.g. 'help( chol.spam)'.
+
+Attaching package: ‘spam’
+
+The following object is masked from ‘package:INLA’:
+
+    Oral
+
+The following object is masked from ‘package:Matrix’:
+
+    det
+
+The following objects are masked from ‘package:base’:
+
+    backsolve, forwardsolve
+
+Loading required package: maps
+
+Attaching package: ‘maps’
+
+The following object is masked from ‘package:purrr’:
+
+    map
+
+See www.image.ucar.edu/~nychka/Fields for
+ a vignette and other supplements. 
+Joining, by = "origin"
+  Nelder-Mead direct search function minimizer
+[1] "rho is: 20  sigma is: 0.3 phi is:  -0.905148253644866"
+[1] "rhoHD is: 0.5 sigmaHD is: 0.01"
+[1] "halflogdetQ is: 1116320.3997008"
+[1] "lpX is: 1006705.73570601"
+[1] "tol.test is : Inf scaled.acc is: 1.00642387087119"
+[1] "halflogdetQ is: 1116320.3997008"
+[1] "lpX is: 1006703.57274294"
+[1] "fval.c is: -1001234.44629887"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1116320.3997008"
+[1] "lpX is: 1006705.19496524"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3383.11"
+[1] "fval.c is: -1009806.98274207"
+[1] "f eval is: -1009806.98274207"
+[1] "TT is: 4394.818 SA is: 1.01"
+[1] "Fp is: -1006423.871 Fc is: -1009807 3"
+[1] "halflogdetQ is: 1116320.3997008"
+[1] "lpX is: 1006703.57222594"
+[1] "fval.c is: -1009808.55209275"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1009808.55209275"
+[1] "TT is: 402.958 SA is: 1.01"
+[1] "Fp is: -1009806.983 Fc is: -1009809 3"
+[1] "halflogdetQ is: 1116320.3997008"
+[1] "lpX is: 1006703.5722324"
+[1] "fval.c is: -1009808.55217789"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1009808.55217789"
+[1] "TT is: 1.023 SA is: 1.01"
+[1] "Fp is: -1009808.552 Fc is: -1009809 3"
+[1] "halflogdetQ is: 1116320.3997008"
+[1] "lpX is: 1006703.5722324"
+[1] "fval.c is: -1009808.55217789"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1009808.55217789"
+[1] "TT is: 0 SA is: 1.01"
+[1] "Fp is: -1009808.552 Fc is: -1009809 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1116320.3997008"
+[1] "lpX is: 1006703.5722324"
+[1] "prior.theta:  -4.353 prior.Xbeta:  1006695.746 llik:  3112.807 Xbeta.y:  1116402.21 val:  106598.011"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 1"
+function value for initial parameters = 106598.011348
+  Scaled convergence tolerance is 0.00158843
+Stepsize computed as 0.460517
+[1] "rho is: 31.6978638492223  sigma is: 0.3 phi is:  -0.905148253644866"
+[1] "rhoHD is: 0.5 sigmaHD is: 0.01"
+[1] "halflogdetQ is: 1170223.85429834"
+[1] "lpX is: 1060609.19030355"
+[1] "tol.test is : Inf scaled.acc is: 1.06032732546873"
+[1] "halflogdetQ is: 1170223.85429834"
+[1] "lpX is: 1060607.19840291"
+[1] "fval.c is: -1055137.73003477"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1170223.85429834"
+[1] "lpX is: 1060608.69232839"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3382.98"
+[1] "fval.c is: -1063710.30904131"
+[1] "f eval is: -1063710.30904131"
+[1] "TT is: 4394.818 SA is: 1.064"
+[1] "Fp is: -1060327.325 Fc is: -1063710 3"
+[1] "halflogdetQ is: 1170223.85429834"
+[1] "lpX is: 1060607.19779318"
+[1] "fval.c is: -1063711.83565601"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1063711.83565601"
+[1] "TT is: 402.959 SA is: 1.064"
+[1] "Fp is: -1063710.309 Fc is: -1063712 3"
+[1] "halflogdetQ is: 1170223.85429834"
+[1] "lpX is: 1060607.19780079"
+[1] "fval.c is: -1063711.83574116"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1063711.83574116"
+[1] "TT is: 1.023 SA is: 1.064"
+[1] "Fp is: -1063711.836 Fc is: -1063712 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1170223.85429834"
+[1] "lpX is: 1060607.19780079"
+[1] "prior.theta:  -2.797 prior.Xbeta:  1060599.371 llik:  3112.465 Xbeta.y:  1170296.673 val:  106587.634"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 2"
+[1] "rho is: 20  sigma is: 0.475467957738334 phi is:  -0.905148253644866"
+[1] "rhoHD is: 0.5 sigmaHD is: 0.01"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951773.423659472"
+[1] "tol.test is : Inf scaled.acc is: 0.951491558824652"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.989796187"
+[1] "fval.c is: -946305.41111436"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951772.065193651"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3385.57"
+[1] "fval.c is: -954877.123827089"
+[1] "f eval is: -954877.123827089"
+[1] "TT is: 4394.818 SA is: 0.955"
+[1] "Fp is: -951491.559 Fc is: -954877 3"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986521678"
+[1] "fval.c is: -954879.511783716"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -954879.511783716"
+[1] "TT is: 403.092 SA is: 0.955"
+[1] "Fp is: -954877.124 Fc is: -954880 3"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986561719"
+[1] "fval.c is: -954879.511868783"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -954879.511868783"
+[1] "TT is: 1.022 SA is: 0.955"
+[1] "Fp is: -954879.512 Fc is: -954880 3"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986561719"
+[1] "fval.c is: -954879.511868783"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -954879.511868783"
+[1] "TT is: 0 SA is: 0.955"
+[1] "Fp is: -954879.512 Fc is: -954880 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986561719"
+[1] "prior.theta:  -4.757 prior.Xbeta:  951760.16 llik:  3119.352 Xbeta.y:  1061558.251 val:  106683.496"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 3"
+[1] "rho is: 20  sigma is: 0.3 phi is:  -0.853727574025712"
+[1] "rhoHD is: 0.5 sigmaHD is: 0.01"
+[1] "halflogdetQ is: 1102060.11639275"
+[1] "lpX is: 992445.452397959"
+[1] "tol.test is : Inf scaled.acc is: 0.992163587563139"
+[1] "halflogdetQ is: 1102060.11639275"
+[1] "lpX is: 992443.320211149"
+[1] "fval.c is: -986974.132285846"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1102060.11639275"
+[1] "lpX is: 992444.919351256"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3383.09"
+[1] "fval.c is: -995546.676351292"
+[1] "f eval is: -995546.676351292"
+[1] "TT is: 4394.818 SA is: 0.996"
+[1] "Fp is: -992163.588 Fc is: -995547 3"
+[1] "halflogdetQ is: 1102060.11639275"
+[1] "lpX is: 992443.319661281"
+[1] "fval.c is: -995548.23801841"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -995548.23801841"
+[1] "TT is: 402.959 SA is: 0.996"
+[1] "Fp is: -995546.676 Fc is: -995548 3"
+[1] "halflogdetQ is: 1102060.11639275"
+[1] "lpX is: 992443.319668151"
+[1] "fval.c is: -995548.238103556"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -995548.238103556"
+[1] "TT is: 1.023 SA is: 0.996"
+[1] "Fp is: -995548.238 Fc is: -995548 3"
+[1] "halflogdetQ is: 1102060.11639275"
+[1] "lpX is: 992443.319668151"
+[1] "fval.c is: -995548.238103556"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -995548.238103556"
+[1] "TT is: 0 SA is: 0.996"
+[1] "Fp is: -995548.238 Fc is: -995548 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1102060.11639275"
+[1] "lpX is: 992443.319668151"
+[1] "prior.theta:  -5.22 prior.Xbeta:  992435.493 llik:  3112.745 Xbeta.y:  1102143.004 val:  106599.987"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 4"
+[1] "rho is: 20  sigma is: 0.3 phi is:  -0.905148253644866"
+[1] "rhoHD is: 0.792446596230557 sigmaHD is: 0.01"
+[1] "halflogdetQ is: 1092149.5601855"
+[1] "lpX is: 982534.896190719"
+[1] "tol.test is : Inf scaled.acc is: 0.982253031355899"
+[1] "halflogdetQ is: 1092149.5601855"
+[1] "lpX is: 982531.630232167"
+[1] "fval.c is: -977064.711114621"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1092149.5601855"
+[1] "lpX is: 982534.079701081"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3383.94"
+[1] "fval.c is: -985636.970463594"
+[1] "f eval is: -985636.970463594"
+[1] "TT is: 4394.818 SA is: 0.986"
+[1] "Fp is: -982253.031 Fc is: -985637 3"
+[1] "halflogdetQ is: 1092149.5601855"
+[1] "lpX is: 982531.62909819"
+[1] "fval.c is: -985638.815760259"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -985638.815760259"
+[1] "TT is: 403.002 SA is: 0.986"
+[1] "Fp is: -985636.97 Fc is: -985639 3"
+[1] "halflogdetQ is: 1092149.5601855"
+[1] "lpX is: 982531.629112262"
+[1] "fval.c is: -985638.815845388"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -985638.815845388"
+[1] "TT is: 1.022 SA is: 0.986"
+[1] "Fp is: -985638.816 Fc is: -985639 3"
+[1] "halflogdetQ is: 1092149.5601855"
+[1] "lpX is: 982531.629112262"
+[1] "fval.c is: -985638.815845388"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -985638.815845388"
+[1] "TT is: 0 SA is: 0.986"
+[1] "Fp is: -985638.816 Fc is: -985639 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1092149.5601855"
+[1] "lpX is: 982531.629112262"
+[1] "prior.theta:  -6.191 prior.Xbeta:  982523.802 llik:  3115.013 Xbeta.y:  1092263.155 val:  106630.53"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 5"
+[1] "rho is: 20  sigma is: 0.3 phi is:  -0.905148253644866"
+[1] "rhoHD is: 0.5 sigmaHD is: 0.0158489319246111"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951773.423659472"
+[1] "tol.test is : Inf scaled.acc is: 0.951491558824652"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.989796187"
+[1] "fval.c is: -946305.41111436"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951772.065193651"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3385.57"
+[1] "fval.c is: -954877.123827089"
+[1] "f eval is: -954877.123827089"
+[1] "TT is: 4394.818 SA is: 0.955"
+[1] "Fp is: -951491.559 Fc is: -954877 3"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986521678"
+[1] "fval.c is: -954879.511783716"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -954879.511783716"
+[1] "TT is: 403.092 SA is: 0.955"
+[1] "Fp is: -954877.124 Fc is: -954880 3"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986561719"
+[1] "fval.c is: -954879.511868783"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -954879.511868783"
+[1] "TT is: 1.022 SA is: 0.955"
+[1] "Fp is: -954879.512 Fc is: -954880 3"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986561719"
+[1] "fval.c is: -954879.511868783"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -954879.511868783"
+[1] "TT is: 0 SA is: 0.955"
+[1] "Fp is: -954879.512 Fc is: -954880 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1061388.08765426"
+[1] "lpX is: 951767.986561719"
+[1] "prior.theta:  -4.356 prior.Xbeta:  951760.16 llik:  3119.352 Xbeta.y:  1061558.251 val:  106683.095"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 6"
+BUILD              6 106683.496354 106587.633982
+[1] "rho is: 24.0452886923483  sigma is: 0.189287203344058 phi is:  -0.88704663159809"
+[1] "rhoHD is: 0.601132217308707 sigmaHD is: 0.0120226443461741"
+[1] "halflogdetQ is: 1155074.57234268"
+[1] "lpX is: 1045459.90834789"
+[1] "tol.test is : Inf scaled.acc is: 1.04517804351307"
+[1] "halflogdetQ is: 1155074.57234268"
+[1] "lpX is: 1045458.43693331"
+[1] "fval.c is: -1039987.92688372"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1155074.57234268"
+[1] "lpX is: 1045459.54049424"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3382.59"
+[1] "fval.c is: -1048560.63672631"
+[1] "f eval is: -1048560.63672631"
+[1] "TT is: 4394.818 SA is: 1.049"
+[1] "Fp is: -1045178.044 Fc is: -1048561 3"
+[1] "halflogdetQ is: 1155074.57234268"
+[1] "lpX is: 1045458.43665101"
+[1] "fval.c is: -1048562.03311487"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1048562.03311487"
+[1] "TT is: 402.931 SA is: 1.049"
+[1] "Fp is: -1048560.637 Fc is: -1048562 3"
+[1] "halflogdetQ is: 1155074.57234268"
+[1] "lpX is: 1045458.43665456"
+[1] "fval.c is: -1048562.03320003"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1048562.03320003"
+[1] "TT is: 1.023 SA is: 1.049"
+[1] "Fp is: -1048562.033 Fc is: -1048562 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1155074.57234268"
+[1] "lpX is: 1045458.43665456"
+[1] "prior.theta:  -3.75 prior.Xbeta:  1045450.61 llik:  3111.423 Xbeta.y:  1155132.512 val:  106574.229"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 7"
+[1] "rho is: 26.3651347711281  sigma is: 0.119432151166049 phi is:  -0.876820272201317"
+[1] "rhoHD is: 0.659128369278204 sigmaHD is: 0.0131825673855641"
+[1] "halflogdetQ is: 1202075.82850727"
+[1] "lpX is: 1092461.16451248"
+[1] "tol.test is : Inf scaled.acc is: 1.09217929967766"
+[1] "halflogdetQ is: 1202075.82850727"
+[1] "lpX is: 1092460.41152135"
+[1] "fval.c is: -1086988.46418615"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1202075.82850727"
+[1] "lpX is: 1092460.9762647"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3382.05"
+[1] "fval.c is: -1095561.35407654"
+[1] "f eval is: -1095561.35407654"
+[1] "TT is: 4394.818 SA is: 1.096"
+[1] "Fp is: -1092179.3 Fc is: -1095561 3"
+[1] "halflogdetQ is: 1202075.82850727"
+[1] "lpX is: 1092460.41144137"
+[1] "fval.c is: -1095562.57079459"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1095562.57079459"
+[1] "TT is: 402.902 SA is: 1.096"
+[1] "Fp is: -1095561.354 Fc is: -1095563 3"
+[1] "halflogdetQ is: 1202075.82850727"
+[1] "lpX is: 1092460.41144237"
+[1] "fval.c is: -1095562.57087975"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1095562.57087975"
+[1] "TT is: 1.023 SA is: 1.096"
+[1] "Fp is: -1095562.571 Fc is: -1095563 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1202075.82850727"
+[1] "lpX is: 1092460.41144237"
+[1] "prior.theta:  -3.815 prior.Xbeta:  1092452.585 llik:  3109.986 Xbeta.y:  1202109.561 val:  106550.805"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 8"
+EXTENSION          8 106683.095249 106550.804762
+[1] "rho is: 26.8552992227572  sigma is: 0.207549291275681 phi is:  -0.874673693847848"
+[1] "rhoHD is: 0.671382480568932 sigmaHD is: 0.00704693068967147"
+[1] "halflogdetQ is: 1211494.12898225"
+[1] "lpX is: 1101879.46498746"
+[1] "tol.test is : Inf scaled.acc is: 1.10159760015264"
+[1] "halflogdetQ is: 1211494.12898225"
+[1] "lpX is: 1101878.80771119"
+[1] "fval.c is: -1096406.66890622"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1211494.12898225"
+[1] "lpX is: 1101879.30066839"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.98"
+[1] "fval.c is: -1104979.58276566"
+[1] "f eval is: -1104979.58276566"
+[1] "TT is: 4394.818 SA is: 1.105"
+[1] "Fp is: -1101597.6 Fc is: -1104980 3"
+[1] "halflogdetQ is: 1211494.12898225"
+[1] "lpX is: 1101878.80764966"
+[1] "fval.c is: -1104980.7755491"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1104980.7755491"
+[1] "TT is: 402.898 SA is: 1.105"
+[1] "Fp is: -1104979.583 Fc is: -1104981 3"
+[1] "halflogdetQ is: 1211494.12898225"
+[1] "lpX is: 1101878.80765044"
+[1] "fval.c is: -1104980.77563426"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1104980.77563426"
+[1] "TT is: 1.023 SA is: 1.105"
+[1] "Fp is: -1104980.776 Fc is: -1104981 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1211494.12898225"
+[1] "lpX is: 1101878.80765044"
+[1] "prior.theta:  -4.092 prior.Xbeta:  1101870.981 llik:  3109.795 Xbeta.y:  1211524.471 val:  106547.788"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 9"
+[1] "rho is: 31.1193126321014  sigma is: 0.172631981201147 phi is:  -0.856205397230102"
+[1] "rhoHD is: 0.777982815802537 sigmaHD is: 0.00469894108605216"
+[1] "halflogdetQ is: 1287108.93317443"
+[1] "lpX is: 1177494.26917964"
+[1] "tol.test is : Inf scaled.acc is: 1.17721240434482"
+[1] "halflogdetQ is: 1287108.93317443"
+[1] "lpX is: 1177494.05097211"
+[1] "fval.c is: -1172021.03391099"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1287108.93317443"
+[1] "lpX is: 1177494.21462776"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.65"
+[1] "fval.c is: -1180594.05765716"
+[1] "f eval is: -1180594.05765716"
+[1] "TT is: 4394.818 SA is: 1.181"
+[1] "Fp is: -1177212.404 Fc is: -1180594 3"
+[1] "halflogdetQ is: 1287108.93317443"
+[1] "lpX is: 1177494.05096527"
+[1] "fval.c is: -1180595.14065594"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1180595.14065594"
+[1] "TT is: 402.879 SA is: 1.181"
+[1] "Fp is: -1180594.058 Fc is: -1180595 3"
+[1] "halflogdetQ is: 1287108.93317443"
+[1] "lpX is: 1177494.05096536"
+[1] "fval.c is: -1180595.14074111"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1180595.14074111"
+[1] "TT is: 1.023 SA is: 1.181"
+[1] "Fp is: -1180595.141 Fc is: -1180595 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1287108.93317443"
+[1] "lpX is: 1177494.05096536"
+[1] "prior.theta:  -5.028 prior.Xbeta:  1177486.224 llik:  3108.916 Xbeta.y:  1287122.817 val:  106532.704"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 10"
+EXTENSION         10 106630.530334 106532.703925
+[1] "rho is: 32.0501447776283  sigma is: 0.166387713887373 phi is:  -0.852222060513498"
+[1] "rhoHD is: 0.420503877034617 sigmaHD is: 0.00825657632621326"
+[1] "halflogdetQ is: 1259778.20200941"
+[1] "lpX is: 1150163.53801462"
+[1] "tol.test is : Inf scaled.acc is: 1.1498816731798"
+[1] "halflogdetQ is: 1259778.20200941"
+[1] "lpX is: 1150163.18270952"
+[1] "fval.c is: -1144690.43986947"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1259778.20200941"
+[1] "lpX is: 1150163.44918834"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.76"
+[1] "fval.c is: -1153263.42931513"
+[1] "f eval is: -1153263.42931513"
+[1] "TT is: 4394.818 SA is: 1.153"
+[1] "Fp is: -1149881.673 Fc is: -1153263 3"
+[1] "halflogdetQ is: 1259778.20200941"
+[1] "lpX is: 1150163.18269073"
+[1] "fval.c is: -1153264.54659212"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1153264.54659212"
+[1] "TT is: 402.885 SA is: 1.153"
+[1] "Fp is: -1153263.429 Fc is: -1153265 3"
+[1] "halflogdetQ is: 1259778.20200941"
+[1] "lpX is: 1150163.18269097"
+[1] "fval.c is: -1153264.54667728"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1153264.54667728"
+[1] "TT is: 1.023 SA is: 1.153"
+[1] "Fp is: -1153264.547 Fc is: -1153265 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1259778.20200941"
+[1] "lpX is: 1150163.18269097"
+[1] "prior.theta:  -2.912 prior.Xbeta:  1150155.356 llik:  3109.191 Xbeta.y:  1259797.878 val:  106536.244"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 11"
+[1] "rho is: 28.4859032994658  sigma is: 0.192806315195106 phi is:  -0.867567988523981"
+[1] "rhoHD is: 0.492685753429309 sigmaHD is: 0.00866163741972303"
+[1] "halflogdetQ is: 1217389.72795728"
+[1] "lpX is: 1107775.0639625"
+[1] "tol.test is : Inf scaled.acc is: 1.10749319912768"
+[1] "halflogdetQ is: 1217389.72795728"
+[1] "lpX is: 1107774.42858937"
+[1] "fval.c is: -1102302.24597433"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1217389.72795728"
+[1] "lpX is: 1107774.90511922"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.97"
+[1] "fval.c is: -1110875.16531337"
+[1] "f eval is: -1110875.16531337"
+[1] "TT is: 4394.818 SA is: 1.111"
+[1] "Fp is: -1107493.199 Fc is: -1110875 3"
+[1] "halflogdetQ is: 1217389.72795728"
+[1] "lpX is: 1107774.42852959"
+[1] "fval.c is: -1110876.35262047"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1110876.35262047"
+[1] "TT is: 402.897 SA is: 1.111"
+[1] "Fp is: -1110875.165 Fc is: -1110876 3"
+[1] "halflogdetQ is: 1217389.72795728"
+[1] "lpX is: 1107774.42853034"
+[1] "fval.c is: -1110876.35270563"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1110876.35270563"
+[1] "TT is: 1.023 SA is: 1.111"
+[1] "Fp is: -1110876.353 Fc is: -1110876 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1217389.72795728"
+[1] "lpX is: 1107774.42853034"
+[1] "prior.theta:  -3.002 prior.Xbeta:  1107766.602 llik:  3109.751 Xbeta.y:  1217419.624 val:  106546.273"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 12"
+LO-REDUCTION      12 106599.986606 106532.703925
+[1] "rho is: 38.7034781787563  sigma is: 0.131438094606748 phi is:  -0.903740351906194"
+[1] "rhoHD is: 0.62185625107335 sigmaHD is: 0.00764750905708627"
+[1] "halflogdetQ is: 1312059.8746365"
+[1] "lpX is: 1202445.21064172"
+[1] "tol.test is : Inf scaled.acc is: 1.2021633458069"
+[1] "halflogdetQ is: 1312059.8746365"
+[1] "lpX is: 1202444.95266623"
+[1] "fval.c is: -1196972.01514607"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1312059.8746365"
+[1] "lpX is: 1202445.14614784"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.68"
+[1] "fval.c is: -1205545.02894517"
+[1] "f eval is: -1205545.02894517"
+[1] "TT is: 4394.818 SA is: 1.206"
+[1] "Fp is: -1202163.346 Fc is: -1205545 3"
+[1] "halflogdetQ is: 1312059.8746365"
+[1] "lpX is: 1202444.95265706"
+[1] "fval.c is: -1205546.12188668"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1205546.12188668"
+[1] "TT is: 402.88 SA is: 1.206"
+[1] "Fp is: -1205545.029 Fc is: -1205546 3"
+[1] "halflogdetQ is: 1312059.8746365"
+[1] "lpX is: 1202444.95265718"
+[1] "fval.c is: -1205546.12197184"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1205546.12197184"
+[1] "TT is: 1.023 SA is: 1.206"
+[1] "Fp is: -1205546.122 Fc is: -1205546 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1312059.8746365"
+[1] "lpX is: 1202444.95265718"
+[1] "prior.theta:  -4.166 prior.Xbeta:  1202437.126 llik:  3108.996 Xbeta.y:  1312075.896 val:  106533.939"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 13"
+[1] "rho is: 32.8148176812112  sigma is: 0.161555316599258 phi is:  -0.893017863564255"
+[1] "rhoHD is: 0.5888572200171 sigmaHD is: 0.00817786618716016"
+[1] "halflogdetQ is: 1259296.80446322"
+[1] "lpX is: 1149682.14046843"
+[1] "tol.test is : Inf scaled.acc is: 1.14940027563361"
+[1] "halflogdetQ is: 1259296.80446322"
+[1] "lpX is: 1149681.69747035"
+[1] "fval.c is: -1144209.13003948"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1259296.80446322"
+[1] "lpX is: 1149682.02971891"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.82"
+[1] "fval.c is: -1152782.0975385"
+[1] "f eval is: -1152782.0975385"
+[1] "TT is: 4394.818 SA is: 1.153"
+[1] "Fp is: -1149400.276 Fc is: -1152782 3"
+[1] "halflogdetQ is: 1259296.80446322"
+[1] "lpX is: 1149681.69744086"
+[1] "fval.c is: -1152783.23674216"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1152783.23674216"
+[1] "TT is: 402.889 SA is: 1.153"
+[1] "Fp is: -1152782.098 Fc is: -1152783 3"
+[1] "halflogdetQ is: 1259296.80446322"
+[1] "lpX is: 1149681.69744123"
+[1] "fval.c is: -1152783.23682732"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1152783.23682732"
+[1] "TT is: 1.023 SA is: 1.153"
+[1] "Fp is: -1152783.237 Fc is: -1152783 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1259296.80446322"
+[1] "lpX is: 1149681.69744123"
+[1] "prior.theta:  -3.312 prior.Xbeta:  1149673.871 llik:  3109.366 Xbeta.y:  1259320.051 val:  106540.126"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 14"
+LO-REDUCTION      14 106598.011348 106532.703925
+[1] "rho is: 50.400865651889  sigma is: 0.094484649145108 phi is:  -0.850763364817268"
+[1] "rhoHD is: 0.67854398393897 sigmaHD is: 0.00686954543040318"
+[1] "halflogdetQ is: 1376761.41368274"
+[1] "lpX is: 1267146.74968795"
+[1] "tol.test is : Inf scaled.acc is: 1.26686488485313"
+[1] "halflogdetQ is: 1376761.41368274"
+[1] "lpX is: 1267146.6260912"
+[1] "fval.c is: -1261673.41979632"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1376761.41368274"
+[1] "lpX is: 1267146.71878876"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.58"
+[1] "fval.c is: -1270246.46720747"
+[1] "f eval is: -1270246.46720747"
+[1] "TT is: 4394.818 SA is: 1.27"
+[1] "Fp is: -1266864.885 Fc is: -1270246 3"
+[1] "halflogdetQ is: 1376761.41368274"
+[1] "lpX is: 1267146.62608998"
+[1] "fval.c is: -1270247.52655176"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1270247.52655176"
+[1] "TT is: 402.873 SA is: 1.27"
+[1] "Fp is: -1270246.467 Fc is: -1270248 3"
+[1] "halflogdetQ is: 1376761.41368274"
+[1] "lpX is: 1267146.62609"
+[1] "fval.c is: -1270247.52663692"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1270247.52663692"
+[1] "TT is: 1.023 SA is: 1.27"
+[1] "Fp is: -1270247.527 Fc is: -1270248 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1376761.41368274"
+[1] "lpX is: 1267146.62609"
+[1] "prior.theta:  -8.158 prior.Xbeta:  1267138.799 llik:  3108.727 Xbeta.y:  1376771.143 val:  106531.775"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 15"
+[1] "rho is: 80.0095809251024  sigma is: 0.0530250705134563 phi is:  -0.813862873200316"
+[1] "rhoHD is: 0.79046383370558 sigmaHD is: 0.00569366616892148"
+[1] "halflogdetQ is: 1508302.33990891"
+[1] "lpX is: 1398687.67591412"
+[1] "tol.test is : Inf scaled.acc is: 1.3984058110793"
+[1] "halflogdetQ is: 1508302.33990891"
+[1] "lpX is: 1398687.64224415"
+[1] "fval.c is: -1393214.25609308"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1508302.33990891"
+[1] "lpX is: 1398687.66749663"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.51"
+[1] "fval.c is: -1401787.32598859"
+[1] "f eval is: -1401787.32598859"
+[1] "TT is: 4394.818 SA is: 1.402"
+[1] "Fp is: -1398405.811 Fc is: -1401787 3"
+[1] "halflogdetQ is: 1508302.33990891"
+[1] "lpX is: 1398687.64224414"
+[1] "fval.c is: -1401788.36285079"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1401788.36285079"
+[1] "TT is: 402.87 SA is: 1.402"
+[1] "Fp is: -1401787.326 Fc is: -1401788 3"
+[1] "halflogdetQ is: 1508302.33990891"
+[1] "lpX is: 1398687.64224414"
+[1] "fval.c is: -1401788.36293596"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1401788.36293596"
+[1] "TT is: 1.023 SA is: 1.402"
+[1] "Fp is: -1401788.363 Fc is: -1401788 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1508302.33990891"
+[1] "lpX is: 1398687.64224414"
+[1] "prior.theta:  -18.643 prior.Xbeta:  1398679.816 llik:  3108.547 Xbeta.y:  1508308.089 val:  106538.368"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 16"
+REFLECTION        16 106587.633982 106531.774764
+[1] "rho is: 38.2825797279987  sigma is: 0.0595192232313565 phi is:  -0.821844565111683"
+[1] "rhoHD is: 0.766692481373228 sigmaHD is: 0.00591152050037506"
+[1] "halflogdetQ is: 1404836.34493483"
+[1] "lpX is: 1295221.68094005"
+[1] "tol.test is : Inf scaled.acc is: 1.29493981610523"
+[1] "halflogdetQ is: 1404836.34493483"
+[1] "lpX is: 1295221.64200313"
+[1] "fval.c is: -1289748.26638635"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1404836.34493483"
+[1] "lpX is: 1295221.67120582"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.52"
+[1] "fval.c is: -1298321.33496472"
+[1] "f eval is: -1298321.33496472"
+[1] "TT is: 4394.818 SA is: 1.298"
+[1] "Fp is: -1294939.816 Fc is: -1298321 3"
+[1] "halflogdetQ is: 1404836.34493483"
+[1] "lpX is: 1295221.64200294"
+[1] "fval.c is: -1298322.37314372"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1298322.37314372"
+[1] "TT is: 402.871 SA is: 1.298"
+[1] "Fp is: -1298321.335 Fc is: -1298322 3"
+[1] "halflogdetQ is: 1404836.34493483"
+[1] "lpX is: 1295221.64200294"
+[1] "fval.c is: -1298322.37322888"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1298322.37322888"
+[1] "TT is: 1.023 SA is: 1.298"
+[1] "Fp is: -1298322.373 Fc is: -1298322 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1404836.34493483"
+[1] "lpX is: 1295221.64200294"
+[1] "prior.theta:  -6.317 prior.Xbeta:  1295213.815 llik:  3108.558 Xbeta.y:  1404842.581 val:  106526.525"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 17"
+[1] "rho is: 42.0713836761357  sigma is: 0.0265109478079722 phi is:  -0.758940377171884"
+[1] "rhoHD is: 0.949394703055514 sigmaHD is: 0.00454515606510196"
+[1] "halflogdetQ is: 1523575.83329243"
+[1] "lpX is: 1413961.16929764"
+[1] "tol.test is : Inf scaled.acc is: 1.41367930446282"
+[1] "halflogdetQ is: 1523575.83329243"
+[1] "lpX is: 1413961.16380134"
+[1] "fval.c is: -1408487.72130293"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1523575.83329243"
+[1] "lpX is: 1413961.16792357"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.49"
+[1] "fval.c is: -1417060.79824186"
+[1] "f eval is: -1417060.79824186"
+[1] "TT is: 4394.818 SA is: 1.417"
+[1] "Fp is: -1413679.304 Fc is: -1417061 3"
+[1] "halflogdetQ is: 1523575.83329243"
+[1] "lpX is: 1413961.16380133"
+[1] "fval.c is: -1417061.82806065"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1417061.82806065"
+[1] "TT is: 402.869 SA is: 1.417"
+[1] "Fp is: -1417060.798 Fc is: -1417062 3"
+[1] "halflogdetQ is: 1523575.83329243"
+[1] "lpX is: 1413961.16380133"
+[1] "fval.c is: -1417061.82814581"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1417061.82814581"
+[1] "TT is: 1.023 SA is: 1.417"
+[1] "Fp is: -1417061.828 Fc is: -1417062 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1523575.83329243"
+[1] "lpX is: 1413961.16380133"
+[1] "prior.theta:  -9.573 prior.Xbeta:  1413953.337 llik:  3108.491 Xbeta.y:  1523580.516 val:  106528.261"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 18"
+REFLECTION        18 106550.804762 106526.525002
+[1] "rho is: 53.4305538071291  sigma is: 0.113154454348579 phi is:  -0.839913862644125"
+[1] "rhoHD is: 0.617848055698328 sigmaHD is: 0.00325371028407949"
+[1] "halflogdetQ is: 1453935.99024105"
+[1] "lpX is: 1344321.32624627"
+[1] "tol.test is : Inf scaled.acc is: 1.34403946141145"
+[1] "halflogdetQ is: 1453935.99024105"
+[1] "lpX is: 1344321.28894604"
+[1] "fval.c is: -1338847.91005569"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1453935.99024105"
+[1] "lpX is: 1344321.31692121"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.52"
+[1] "fval.c is: -1347420.97904342"
+[1] "f eval is: -1347420.97904342"
+[1] "TT is: 4394.818 SA is: 1.347"
+[1] "Fp is: -1344039.461 Fc is: -1347421 3"
+[1] "halflogdetQ is: 1453935.99024105"
+[1] "lpX is: 1344321.28894594"
+[1] "fval.c is: -1347422.01681322"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1347422.01681322"
+[1] "TT is: 402.87 SA is: 1.347"
+[1] "Fp is: -1347420.979 Fc is: -1347422 3"
+[1] "halflogdetQ is: 1453935.99024105"
+[1] "lpX is: 1344321.28894594"
+[1] "fval.c is: -1347422.01689839"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1347422.01689839"
+[1] "TT is: 1.023 SA is: 1.347"
+[1] "Fp is: -1347422.017 Fc is: -1347422 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1453935.99024105"
+[1] "lpX is: 1344321.28894594"
+[1] "prior.theta:  -8.889 prior.Xbeta:  1344313.462 llik:  3108.555 Xbeta.y:  1453942.043 val:  106528.915"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 19"
+[1] "rho is: 44.7816153900494  sigma is: 0.114692245254736 phi is:  -0.849991442840575"
+[1] "rhoHD is: 0.627919202274289 sigmaHD is: 0.00461619514608929"
+[1] "halflogdetQ is: 1390779.44678582"
+[1] "lpX is: 1281164.78279103"
+[1] "tol.test is : Inf scaled.acc is: 1.28088291795621"
+[1] "halflogdetQ is: 1390779.44678582"
+[1] "lpX is: 1281164.70831942"
+[1] "fval.c is: -1275691.40377287"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1390779.44678582"
+[1] "lpX is: 1281164.76417313"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.55"
+[1] "fval.c is: -1284264.46346671"
+[1] "f eval is: -1284264.46346671"
+[1] "TT is: 4394.818 SA is: 1.284"
+[1] "Fp is: -1280882.918 Fc is: -1284264 3"
+[1] "halflogdetQ is: 1390779.44678582"
+[1] "lpX is: 1281164.70831884"
+[1] "fval.c is: -1284265.51052951"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1284265.51052951"
+[1] "TT is: 402.872 SA is: 1.284"
+[1] "Fp is: -1284264.463 Fc is: -1284266 3"
+[1] "halflogdetQ is: 1390779.44678582"
+[1] "lpX is: 1281164.70831885"
+[1] "fval.c is: -1284265.51061467"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1284265.51061467"
+[1] "TT is: 1.023 SA is: 1.284"
+[1] "Fp is: -1284265.511 Fc is: -1284266 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1390779.44678582"
+[1] "lpX is: 1281164.70831885"
+[1] "prior.theta:  -6.423 prior.Xbeta:  1281156.882 llik:  3108.629 Xbeta.y:  1390787.259 val:  106528.171"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 20"
+LO-REDUCTION      20 106536.243928 106526.525002
+[1] "rho is: 50.2455471289039  sigma is: 0.0699901258976955 phi is:  -0.865603636446409"
+[1] "rhoHD is: 1.13693382744476 sigmaHD is: 0.00411692110088031"
+[1] "halflogdetQ is: 1452988.68015417"
+[1] "lpX is: 1343374.01615938"
+[1] "tol.test is : Inf scaled.acc is: 1.34309215132456"
+[1] "halflogdetQ is: 1452988.68015417"
+[1] "lpX is: 1343373.97963399"
+[1] "fval.c is: -1337900.59919391"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1452988.68015417"
+[1] "lpX is: 1343374.00702803"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.52"
+[1] "fval.c is: -1346473.6683754"
+[1] "f eval is: -1346473.6683754"
+[1] "TT is: 4394.818 SA is: 1.346"
+[1] "Fp is: -1343092.151 Fc is: -1346474 3"
+[1] "halflogdetQ is: 1452988.68015417"
+[1] "lpX is: 1343373.97963392"
+[1] "fval.c is: -1346474.70595148"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1346474.70595148"
+[1] "TT is: 402.87 SA is: 1.346"
+[1] "Fp is: -1346473.668 Fc is: -1346475 3"
+[1] "halflogdetQ is: 1452988.68015417"
+[1] "lpX is: 1343373.97963392"
+[1] "fval.c is: -1346474.70603664"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1346474.70603664"
+[1] "TT is: 1.023 SA is: 1.346"
+[1] "Fp is: -1346474.706 Fc is: -1346475 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1452988.68015417"
+[1] "lpX is: 1343373.97963392"
+[1] "prior.theta:  -10.659 prior.Xbeta:  1343366.153 llik:  3108.553 Xbeta.y:  1452994.712 val:  106530.665"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 21"
+[1] "rho is: 44.9035506931289  sigma is: 0.0869076275966213 phi is:  -0.862367609811861"
+[1] "rhoHD is: 0.886633001769023 sigmaHD is: 0.00489924781944513"
+[1] "halflogdetQ is: 1402766.93197562"
+[1] "lpX is: 1293152.26798083"
+[1] "tol.test is : Inf scaled.acc is: 1.29287040314601"
+[1] "halflogdetQ is: 1402766.93197562"
+[1] "lpX is: 1293152.20359975"
+[1] "fval.c is: -1287678.87887175"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1402766.93197562"
+[1] "lpX is: 1293152.25188556"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.54"
+[1] "fval.c is: -1296251.94108862"
+[1] "f eval is: -1296251.94108862"
+[1] "TT is: 4394.818 SA is: 1.296"
+[1] "Fp is: -1292870.403 Fc is: -1296252 3"
+[1] "halflogdetQ is: 1402766.93197562"
+[1] "lpX is: 1293152.20359935"
+[1] "fval.c is: -1296252.98562873"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1296252.98562873"
+[1] "TT is: 402.871 SA is: 1.296"
+[1] "Fp is: -1296251.941 Fc is: -1296253 3"
+[1] "halflogdetQ is: 1402766.93197562"
+[1] "lpX is: 1293152.20359936"
+[1] "fval.c is: -1296252.98571389"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1296252.98571389"
+[1] "TT is: 1.023 SA is: 1.296"
+[1] "Fp is: -1296252.986 Fc is: -1296253 3"
+[1] "EXIT while loop"
+[1] "halflogdetQ is: 1402766.93197562"
+[1] "lpX is: 1293152.20359936"
+[1] "prior.theta:  -7.781 prior.Xbeta:  1293144.377 llik:  3108.609 Xbeta.y:  1402774.282 val:  106529.078"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 22"
+LO-REDUCTION      22 106533.939316 106526.525002
+[1] "rho is: 44.1560132370935  sigma is: 0.0750881545439189 phi is:  -0.766308853475931"
+[1] "rhoHD is: 0.886006164458474 sigmaHD is: 0.00371960058377255"
+[1] "halflogdetQ is: 1433255.23423251"
+[1] "lpX is: 1323640.57023772"
+[1] "tol.test is : Inf scaled.acc is: 1.3233587054029"
+[1] "halflogdetQ is: 1433255.23423251"
+[1] "lpX is: 1323640.54214368"
+[1] "fval.c is: -1318167.14484089"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "halflogdetQ is: 1433255.23423251"
+[1] "lpX is: 1323640.56321421"
+[1] "alpha is: 0.5 ,  Fc-Fp is: -3381.51"
+[1] "fval.c is: -1326740.21613023"
+[1] "f eval is: -1326740.21613023"
+[1] "TT is: 4394.818 SA is: 1.327"
+[1] "Fp is: -1323358.705 Fc is: -1326740 3"
+[1] "halflogdetQ is: 1433255.23423251"
+[1] "lpX is: 1323640.54214361"
+[1] "fval.c is: -1326741.25159848"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1326741.25159848"
+[1] "TT is: 402.87 SA is: 1.327"
+[1] "Fp is: -1326740.216 Fc is: -1326741 3"
+[1] "halflogdetQ is: 1433255.23423251"
+[1] "lpX is: 1323640.54214361"
+[1] "fval.c is: -1326741.25168364"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -1326741.25168364"
+[1] "TT is: 1.023 SA is: 1.327"
+[1] "Fp is: -1326741.252 Fc is: -1326741 3"
+[1] "EXIT while loop"

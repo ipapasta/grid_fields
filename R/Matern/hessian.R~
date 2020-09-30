@@ -1,0 +1,53 @@
+    hessian.objective <- function(par, theta, spde, data, mesh, L, A, Aobs)
+        ## input:
+        ##        par: named list containing vector of parameters X and scalar parameter beta
+        ##        theta: fixed hyperprior parameters!! (revisit selection)
+        ##        spde: a model object for a Matern Gaussian model created with inla.spde2
+        ##              using a PC prior for the parameters.        
+        ##        data: list of Y and Ypos (list(Y, Ypos))
+        ##              - Y: data matrix of firing events
+        ##              - Ypos: data matrix of positional data
+        ##        mesh: Delaunay triangulation of spatial domain
+        ##              constructed using inla.mesh.2d from INLA package
+        ##        L: vector of areas of line segments used for 
+        ##           the approximation of the integral of the
+        ##           void probability. 
+        ##        A: matrix of basis functions (psi_k(s_i))_{ik} evaluated        
+        ##          at midpoints of line segments overline{s}_i
+        ##        Aobs: matrix of basis functions (psi_k(s_i))_{ik}
+        ##              evaluated at observed points s_i
+        ## output:
+        ##         hessian matrix of posterior log density of X,beta | mid theta, Y. 
+    {
+        X         <- Matrix(par$X, ncol=1)
+        n         <- nrow(data$Y)
+        p         <- nrow(X)
+        one.n     <- Matrix(rep(1, n), ncol=1)
+        one.p     <- Matrix(rep(1, p), ncol=1)        
+        expAx     <- exp(A%*%X)
+        beta      <- Matrix(par$beta, ncol=1)
+        Q.X       <- inla.spde.precision(spde, theta=log(theta)) #!!!!!!!!!!
+        Q.beta    <- Diagonal(length(beta), 1e-5) 
+        hess.X    <- Matrix(0, nrow=p, ncol=p)
+        ## QU: is it possible to compute the hessian faster?
+        ## matrix algebra?
+        for(i in 1:(p-1))
+            for(j in i:p){
+                hess.X[i,j] <- -as.numeric(exp(beta))*(t(A[,i]*A[,j]*L)) %*% expAx
+            }
+        hess.X       <- hess.X + t(hess.X) - diag(hess.X)
+        ## --------------------------------------------
+        hess.beta  <- Matrix(0,nrow=length(beta),
+                             ncol=length(beta))
+        hess.Xbeta <- Matrix(0,nrow=length(X),
+                             ncol=length(beta))
+        ## --------------------------------------------------
+        hess.beta  <- Matrix(-as.numeric(exp(beta))*(t(L)%*%expAx))
+        ## 
+        hess.Xbeta <- Matrix(-as.numeric(exp(beta))*(t((L%*%t(one.p))*A) %*% expAx))
+        ## 
+        ## 
+        out <- rBind(cBind(-hess.X + Q.X, -hess.Xbeta),
+                     cBind(-t(hess.Xbeta), -hess.beta + Q.beta))
+        return(out)
+    }

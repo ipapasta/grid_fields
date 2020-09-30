@@ -1,0 +1,21 @@
+##
+## ##
+## ##
+## -----
+##
+
+## load() ; # load Xbeta data from cluster here
+locs    <- as.matrix(expand.grid(0:100, 0:100))
+Apred   <- inla.spde.make.A(mesh=mesh, loc=locs)
+counter <- 1:66
+field   <- vector('list', length(counter))
+df      <- vector('list', length(counter))
+## X       <-  vector('list', length(counter))
+beta    <-  vector('list', length(counter));
+for(i in counter){
+    rm(list=ls())
+    load(paste0("Xbeta", counter, ".RData"))
+    field[[i]]   <- Apred%*%Xest
+    beta[[i]]    <- betaest
+    df[[i]]      <- data.frame(x=locs[,1], y=locs[,2], data=as.numeric(field[[i]]))
+}

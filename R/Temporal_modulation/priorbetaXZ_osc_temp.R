@@ -1,0 +1,45 @@
+prior.betaXZ_osc_temp <- function(beta, X, Z, theta, mesh, mesh1d)
+{
+    ## ---------------------------------------
+    ## input:
+    ##       X: vector of parameters X
+    ##       beta: vector of parameters X
+    ##       spde: model object for oscillating Gaussian field created with inla.spde2
+    ##       theta: hyperprior parameters
+    ##       mesh: Delaunay triangulation of spatial domain constructed using inla.mesh.2d from INLA package
+    ##             
+    ## output:
+    ##        prior log density of X, beta given theta
+    ## ---------------------------------------
+    theta.X <- theta[1:3]
+    theta.Z <- theta[4:5]    
+    QX     <- osc.precision(theta=theta.X, mesh=mesh)
+    QZ     <- temp.precision(theta=theta.Z, mesh=mesh1d) 
+    lpbeta <- dnorm(as.numeric(beta), mean=0, sd=1/sqrt(1e-6), log=TRUE)
+    lpX    <- ldmvnorm(X, matrix(rep(0, length(X)), ncol=1), QX)
+    lpZ    <- ldmvnorm(Z, matrix(rep(0, length(Z)), ncol=1), QZ)
+    out    <- (lpbeta + lpX + lpZ )
+    return(out)
+}
+
+## y    <- seq(0.01, 1000, len=100)
+## theta.Z <- c(1,2)
+## QZ      <- temp.precision(theta=theta.Z, mesh=mesh1d) 
+
+## image(QZ[1:20, 1:20], asp=1, lwd=1)
+## ldmvnorm(rep(0,1000), matrix(rep(0, 1000), ncol=1), QZ[1:1000, 1:1000])
+
+
+## ## logpar    <- c(log(200), log(1))
+## logpar    <- theta.Z
+## mesh1d    <- inla.mesh.1d (y)
+## ## Q         <- temp.precision(theta=logpar, mesh=mesh1d, o=2)
+## x         <- inla.qsample(Q=QZ[1:100,1:100])
+## tmp2[i,]  <- x
+## A         <- inla.spde.make.A(mesh=mesh1d, loc=y)
+## sim[i,]   <- as.numeric(A %*% x)
+## tmp[i]    <- var(sim[i,])
+
+
+
+

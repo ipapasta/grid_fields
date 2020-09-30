@@ -7,3 +7,6 @@
 *.png
 *.eps
 /.DS_Store
+/R/HD/
+/R/data/
+/R/.DS_Store

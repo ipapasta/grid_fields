@@ -1,0 +1,21 @@
+    prior.Xbeta <- function(X, beta, spde,
+                            theta, mesh)
+    {
+        ## ---------------------------------------
+        ## input:
+        ##       X: vector of parameters X
+        ##       beta: vector of parameters X
+        ##       spde: a model object for a Matern Gaussian model created with inla.spde2
+        ##             using a PC prior for the parameters.
+        ##       theta: fixed hyperprior parameters!! (revisit selection)
+        ##       mesh: Delaunay triangulation of spatial domain
+        ##             constructed using inla.mesh.2d from INLA package
+        ## output:
+        ##        prior log density of X, beta given theta
+        ## ---------------------------------------
+        QX     <- inla.spde.precision(spde, theta=log(theta)) 
+        lpbeta <- dnorm(as.numeric(beta), mean=0, sd=10^5, log=TRUE)
+        lpX    <- ldmvnorm(X, matrix(rep(0, length(X)), ncol=1), QX)
+        out    <- (lpX + lpbeta)
+        return(out)
+    }

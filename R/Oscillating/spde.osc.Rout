@@ -1,0 +1,857 @@
+nohup: ignoring input
+── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
+✔ ggplot2 3.1.0     ✔ purrr   0.3.0
+✔ tibble  2.0.1     ✔ dplyr   0.7.8
+✔ tidyr   0.8.2     ✔ stringr 1.3.1
+✔ readr   1.3.1     ✔ forcats 0.3.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+Loading required package: Matrix
+
+Attaching package: ‘Matrix’
+
+The following object is masked from ‘package:tidyr’:
+
+    expand
+
+Loading required package: sp
+This is INLA_18.07.12 built 2019-02-05 12:40:27 UTC.
+See www.r-inla.org/contact-us for how to get help.
+To enable PARDISO sparse library; see inla.pardiso()
+
+Attaching package: ‘pryr’
+
+The following object is masked from ‘package:INLA’:
+
+    f
+
+The following objects are masked from ‘package:purrr’:
+
+    compose, partial
+
+Loading required package: spam
+Loading required package: dotCall64
+Loading required package: grid
+Spam version 2.2-1 (2018-12-20) is loaded.
+Type 'help( Spam)' or 'demo( spam)' for a short introduction 
+and overview of this package.
+Help for individual functions is also obtained by adding the
+suffix '.spam' to the function name, e.g. 'help( chol.spam)'.
+
+Attaching package: ‘spam’
+
+The following object is masked from ‘package:INLA’:
+
+    Oral
+
+The following object is masked from ‘package:Matrix’:
+
+    det
+
+The following objects are masked from ‘package:base’:
+
+    backsolve, forwardsolve
+
+Loading required package: maps
+
+Attaching package: ‘maps’
+
+The following object is masked from ‘package:purrr’:
+
+    map
+
+See www.image.ucar.edu/~nychka/Fields for
+ a vignette and other supplements. 
+[1] "rho is: 20.0855369231877  sigma is: 0.606530659712633 phi is:  -0.956237458127739"
+[1] "prior.theta:  -4.6 prior.Xbeta:  36801.88 llik:  -4594.583 Xbeta.y:  50112.46 val:  17909.763"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 1"
+[1] "rho is: 29.3707711132894  sigma is: 0.606530659712633 phi is:  -0.956237458127739"
+[1] "prior.theta:  -6.826 prior.Xbeta:  42145.598 llik:  -4642.193 Xbeta.y:  55423.607 val:  17927.027"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 2"
+[1] "rho is: 20.0855369231877  sigma is: 0.886920436717157 phi is:  -0.956237458127739"
+[1] "prior.theta:  -7.829 prior.Xbeta:  31399.959 llik:  -4519.044 Xbeta.y:  44718.325 val:  17845.239"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 3"
+[1] "rho is: 20.0855369231877  sigma is: 0.606530659712633 phi is:  -0.936647543241887"
+[1] "prior.theta:  -4.709 prior.Xbeta:  35380.879 llik:  -4579.334 Xbeta.y:  48695.918 val:  17899.083"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 4"
+[1] "rho is: 13.7357235850779  sigma is: 0.781401117164081 phi is:  -0.943973614714501"
+[1] "prior.theta:  -8.049 prior.Xbeta:  26859.462 llik:  -4463.841 Xbeta.y:  40272.084 val:  17884.512"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 5"
+[1] "rho is: 16.6099182187867  sigma is: 0.733446956224289 phi is:  -0.947321360749433"
+[1] "prior.theta:  -6.333 prior.Xbeta:  30709.607 llik:  -4520.605 Xbeta.y:  44066.542 val:  17883.874"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 6"
+[1] "rho is: 17.6959063528992  sigma is: 0.886920436717157 phi is:  -0.936647543241887"
+[1] "prior.theta:  -7.997 prior.Xbeta:  28193.42 llik:  -4476.09 Xbeta.y:  41546.75 val:  17837.418"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 7"
+[1] "rho is: 16.6099182187867  sigma is: 1.07250818125422 phi is:  -0.923895505858016"
+[1] "prior.theta:  -10.45 prior.Xbeta:  23881.335 llik:  -4402.624 Xbeta.y:  37270.57 val:  17802.308"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 8"
+[1] "rho is: 15.590576584939  sigma is: 1.29693008666577 phi is:  -0.95047416511641"
+[1] "prior.theta:  -13.086 prior.Xbeta:  21937.239 llik:  -4364.285 Xbeta.y:  35353.322 val:  17793.454"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 9"
+[1] "rho is: 13.7357235850779  sigma is: 1.89648087930495 phi is:  -0.956237458127739"
+[1] "prior.theta:  -20.836 prior.Xbeta:  15190.015 llik:  -4225.084 Xbeta.y:  28705.056 val:  17760.961"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 10"
+[1] "rho is: 16.6099182187867  sigma is: 2.02047641645136 phi is:  -0.947321360749433"
+[1] "prior.theta:  -21.15 prior.Xbeta:  16270.668 llik:  -4253.286 Xbeta.y:  29748.156 val:  17751.924"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 11"
+[1] "rho is: 16.6099182187867  sigma is: 3.35348465254902 phi is:  -0.947321360749433"
+[1] "prior.theta:  -36.497 prior.Xbeta:  9026.279 llik:  -4086.869 Xbeta.y:  22648.133 val:  17745.221"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 12"
+[1] "rho is: 12.1015474557835  sigma is: 4.05519996684467 phi is:  -0.928398790796033"
+[1] "prior.theta:  -47.144 prior.Xbeta:  607.989 llik:  -3826.875 Xbeta.y:  14528.263 val:  17794.293"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 13"
+[1] "rho is: 13.735723585078  sigma is: 2.7731947639643 phi is:  -0.936647543241887"
+[1] "prior.theta:  -31.038 prior.Xbeta:  8338.338 llik:  -4062.631 Xbeta.y:  21988.991 val:  17744.323"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 14"
+[1] "rho is: 12.8927697103588  sigma is: 6.31756174156479 phi is:  -0.963672617943135"
+[1] "prior.theta:  -72.327 prior.Xbeta:  -2229.019 llik:  -3730.383 Xbeta.y:  11831.41 val:  17863.139"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 15"
+[1] "rho is: 15.590576584939  sigma is: 1.6708514275016 phi is:  -0.936647543241887"
+[1] "prior.theta:  -17.484 prior.Xbeta:  17375.997 llik:  -4275.202 Xbeta.y:  30841.483 val:  17758.172"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 16"
+[1] "rho is: 16.9642995783823  sigma is: 3.28343092324165 phi is:  -0.919120870363993"
+[1] "prior.theta:  -35.892 prior.Xbeta:  7961.275 llik:  -4060.21 Xbeta.y:  21603.619 val:  17738.446"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 17"
+[1] "rho is: 18.8528984625821  sigma is: 4.32033667537257 phi is:  -0.890637365568118"
+[1] "prior.theta:  -48.064 prior.Xbeta:  4327.594 llik:  -3961.33 Xbeta.y:  18070.048 val:  17751.848"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 18"
+[1] "rho is: 15.811550871362  sigma is: 5.84698372625695 phi is:  -0.934005542319649"
+[1] "prior.theta:  -65.517 prior.Xbeta:  -510.974 llik:  -3799.326 Xbeta.y:  13439.836 val:  17815.654"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 19"
+[1] "rho is: 15.6455289361077  sigma is: 2.2852638347847 phi is:  -0.935996794523895"
+[1] "prior.theta:  -24.546 prior.Xbeta:  12914.342 llik:  -4178.976 Xbeta.y:  26451.87 val:  17741.05"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 20"
+[1] "rho is: 14.2610331631798  sigma is: 2.25597047654783 phi is:  -0.909916180778961"
+[1] "prior.theta:  -25.105 prior.Xbeta:  10454.564 llik:  -4118.625 Xbeta.y:  24044.859 val:  17734.026"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 21"
+[1] "rho is: 13.2142566538997  sigma is: 1.85034178443642 phi is:  -0.882742357919304"
+[1] "prior.theta:  -21.51 prior.Xbeta:  11167.05 llik:  -4135.076 Xbeta.y:  24743.523 val:  17733.058"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 22"
+[1] "rho is: 16.8058727715948  sigma is: 2.08303749061921 phi is:  -0.88694231657705"
+[1] "prior.theta:  -22.588 prior.Xbeta:  13023.105 llik:  -4184.764 Xbeta.y:  26546.147 val:  17730.394"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 23"
+[1] "rho is: 18.5894198311267  sigma is: 1.80532519815657 phi is:  -0.849988427596461"
+[1] "prior.theta:  -19.862 prior.Xbeta:  15363.382 llik:  -4239.548 Xbeta.y:  28836.666 val:  17732.695"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 24"
+[1] "rho is: 15.4751990802988  sigma is: 2.37637479648153 phi is:  -0.83801691911956"
+[1] "prior.theta:  -27.249 prior.Xbeta:  8546.607 llik:  -4074.2 Xbeta.y:  22166.845 val:  17721.687"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 25"
+[1] "rho is: 15.3907307999271  sigma is: 2.42328354382686 phi is:  -0.748419325277824"
+[1] "prior.theta:  -29.823 prior.Xbeta:  6413.866 llik:  -4017.558 Xbeta.y:  20083.206 val:  17716.722"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 26"
+[1] "rho is: 13.3753791207916  sigma is: 1.35074789617063 phi is:  -0.728978153853703"
+[1] "prior.theta:  -18.973 prior.Xbeta:  12484.329 llik:  -4173.788 Xbeta.y:  26019.912 val:  17728.344"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 27"
+[1] "rho is: 14.1942862400845  sigma is: 1.68660232957454 phi is:  -0.797148344086351"
+[1] "prior.theta:  -20.743 prior.Xbeta:  11324.873 llik:  -4143.603 Xbeta.y:  24882.625 val:  17722.098"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 28"
+[1] "rho is: 18.0099777889663  sigma is: 2.25332613624468 phi is:  -0.727601260121048"
+[1] "prior.theta:  -27.81 prior.Xbeta:  9339.571 llik:  -4100.279 Xbeta.y:  22924.936 val:  17713.454"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 29"
+[1] "rho is: 21.0255999544483  sigma is: 2.48662389730869 phi is:  -0.59887350606847"
+[1] "prior.theta:  -33.95 prior.Xbeta:  8504.14 llik:  -4082.731 Xbeta.y:  22100.502 val:  17713.043"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 30"
+[1] "rho is: 16.4419400561381  sigma is: 2.25244537844953 phi is:  -0.402738719930217"
+[1] "prior.theta:  -37.469 prior.Xbeta:  4810.287 llik:  -3976.919 Xbeta.y:  18505.618 val:  17709.719"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 31"
+[1] "rho is: 16.2629398260777  sigma is: 2.34224790430075 phi is:  0.0632487899635383"
+[1] "prior.theta:  -57.754 prior.Xbeta:  1648.556 llik:  -3881.247 Xbeta.y:  15435.934 val:  17726.379"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 32"
+[1] "rho is: 21.4713939734176  sigma is: 3.37364753294647 phi is:  -0.292253828964767"
+[1] "prior.theta:  -54.077 prior.Xbeta:  2029.436 llik:  -3894.205 Xbeta.y:  15817.482 val:  17736.328"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 33"
+[1] "rho is: 15.7416491776527  sigma is: 2.00578532085304 phi is:  -0.713026112443623"
+[1] "prior.theta:  -25.768 prior.Xbeta:  8900.157 llik:  -4086.393 Xbeta.y:  22499.731 val:  17711.735"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 34"
+[1] "rho is: 20.1021209923282  sigma is: 2.06995853972986 phi is:  -0.355499600254869"
+[1] "prior.theta:  -36.692 prior.Xbeta:  8504.423 llik:  -4084.36 Xbeta.y:  22093.477 val:  17710.107"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 35"
+[1] "rho is: 18.8038259414117  sigma is: 2.15314012026177 phi is:  -0.478572979131471"
+[1] "prior.theta:  -33.584 prior.Xbeta:  7902.799 llik:  -4066.182 Xbeta.y:  21511.493 val:  17708.461"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 36"
+[1] "rho is: 13.6589697924687  sigma is: 1.83258405602904 phi is:  -0.490093303237307"
+[1] "prior.theta:  -30.987 prior.Xbeta:  5832.304 llik:  -4003.731 Xbeta.y:  19503.832 val:  17706.246"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 37"
+[1] "rho is: 11.0091228583417  sigma is: 1.57322487318232 phi is:  -0.42892636727522"
+[1] "prior.theta:  -32.363 prior.Xbeta:  4531.425 llik:  -3965.561 Xbeta.y:  18244.566 val:  17711.064"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 38"
+[1] "rho is: 16.5969361159018  sigma is: 2.13915635064308 phi is:  -0.0958774246418332"
+[1] "prior.theta:  -47.81 prior.Xbeta:  3922.414 llik:  -3953.346 Xbeta.y:  17634.775 val:  17713.517"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 39"
+[1] "rho is: 15.9512474632888  sigma is: 2.03832752237658 phi is:  -0.600563284457777"
+[1] "prior.theta:  -29.073 prior.Xbeta:  7495.47 llik:  -4050.968 Xbeta.y:  21123.304 val:  17707.875"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 40"
+[1] "rho is: 15.5723020594338  sigma is: 1.78218387112085 phi is:  -0.629536597532379"
+[1] "prior.theta:  -25.44 prior.Xbeta:  9389.929 llik:  -4100.725 Xbeta.y:  22973.244 val:  17709.48"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 41"
+[1] "rho is: 15.78530143477  sigma is: 1.88963510606131 phi is:  -0.579835269973762"
+[1] "prior.theta:  -27.999 prior.Xbeta:  8222.812 llik:  -4070.994 Xbeta.y:  21831.091 val:  17707.272"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 42"
+[1] "rho is: 12.1170647514907  sigma is: 1.70898501225305 phi is:  -0.629438250772963"
+[1] "prior.theta:  -26.705 prior.Xbeta:  6459.773 llik:  -4017.334 Xbeta.y:  20127.547 val:  17711.813"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 43"
+[1] "rho is: 16.8474440988074  sigma is: 2.03230452225345 phi is:  -0.519730232476256"
+[1] "prior.theta:  -31.141 prior.Xbeta:  7537.016 llik:  -4054.204 Xbeta.y:  21158.552 val:  17706.88"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 44"
+[1] "rho is: 14.8140991197937  sigma is: 1.80168884159408 phi is:  -0.45333025299372"
+[1] "prior.theta:  -31.175 prior.Xbeta:  6921.006 llik:  -4036.666 Xbeta.y:  20558.442 val:  17705.276"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 45"
+[1] "rho is: 14.2762959679285  sigma is: 1.69388022909698 phi is:  -0.368176623958216"
+[1] "prior.theta:  -33.004 prior.Xbeta:  6682.755 llik:  -4031.348 Xbeta.y:  20323.616 val:  17705.214"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 46"
+[1] "rho is: 13.9999170167862  sigma is: 1.8068092645204 phi is:  -0.324583944597492"
+[1] "prior.theta:  -35.974 prior.Xbeta:  5208.464 llik:  -3988.678 Xbeta.y:  18889.507 val:  17705.695"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 47"
+[1] "rho is: 14.4263782851796  sigma is: 1.82716900183685 phi is:  -0.395350032366987"
+[1] "prior.theta:  -33.543 prior.Xbeta:  5929.009 llik:  -4008.938 Xbeta.y:  19591.771 val:  17705.243"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 48"
+[1] "rho is: 11.8284138634658  sigma is: 1.56492945226501 phi is:  -0.307495549184892"
+[1] "prior.theta:  -35.49 prior.Xbeta:  4816.446 llik:  -3977.417 Xbeta.y:  18511.68 val:  17708.141"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 49"
+[1] "rho is: 15.421696286631  sigma is: 1.90377350624461 phi is:  -0.471052275547558"
+[1] "prior.theta:  -31.548 prior.Xbeta:  6831.917 llik:  -4034.199 Xbeta.y:  20471.765 val:  17705.595"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 50"
+[1] "rho is: 15.8192318780151  sigma is: 1.78013891337225 phi is:  -0.328420249436353"
+[1] "prior.theta:  -34.75 prior.Xbeta:  7145.87 llik:  -4045.692 Xbeta.y:  20771.095 val:  17705.668"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 51"
+[1] "rho is: 15.249076042593  sigma is: 1.79310778596767 phi is:  -0.371220682704631"
+[1] "prior.theta:  -33.607 prior.Xbeta:  6807.561 llik:  -4035.163 Xbeta.y:  20443.965 val:  17705.175"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 52"
+[1] "rho is: 13.906316626894  sigma is: 1.64650579669342 phi is:  -0.277306660498795"
+[1] "prior.theta:  -35.895 prior.Xbeta:  6160.716 llik:  -4017.999 Xbeta.y:  19812.586 val:  17705.764"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 53"
+[1] "rho is: 15.0280329217437  sigma is: 1.83591375230766 phi is:  -0.425801294803161"
+[1] "prior.theta:  -32.366 prior.Xbeta:  6646.868 llik:  -4029.489 Xbeta.y:  20290.195 val:  17705.183"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 54"
+[1] "rho is: 15.2762523735926  sigma is: 1.72100524854566 phi is:  -0.382068388060127"
+[1] "prior.theta:  -32.398 prior.Xbeta:  7492.337 llik:  -4054.309 Xbeta.y:  21111.139 val:  17705.509"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 55"
+[1] "rho is: 14.6343080668246  sigma is: 1.80002935544841 phi is:  -0.392044794916924"
+[1] "prior.theta:  -33.241 prior.Xbeta:  6319.847 llik:  -4020.501 Xbeta.y:  19971.184 val:  17705.08"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 56"
+[1] "rho is: 15.6938572425563  sigma is: 1.93319712431373 phi is:  -0.424274795145555"
+[1] "prior.theta:  -33.293 prior.Xbeta:  6502.284 llik:  -4025.771 Xbeta.y:  20148.822 val:  17705.602"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 57"
+[1] "rho is: 14.6182061332372  sigma is: 1.75077791391829 phi is:  -0.382476721484602"
+[1] "prior.theta:  -33.004 prior.Xbeta:  6635.945 llik:  -4029.808 Xbeta.y:  20278.201 val:  17705.068"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 58"
+[1] "rho is: 14.6365166841119  sigma is: 1.72806107324232 phi is:  -0.336301232577305"
+[1] "prior.theta:  -34.326 prior.Xbeta:  6538.079 llik:  -4027.879 Xbeta.y:  20181.065 val:  17705.191"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 59"
+[1] "rho is: 14.9291828206565  sigma is: 1.80833537481534 phi is:  -0.404106051851407"
+[1] "prior.theta:  -32.803 prior.Xbeta:  6616.103 llik:  -4028.955 Xbeta.y:  20259.438 val:  17705.094"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 60"
+[1] "rho is: 14.2219127721379  sigma is: 1.77931710522044 phi is:  -0.414175328849115"
+[1] "prior.theta:  -32.472 prior.Xbeta:  6241.508 llik:  -4017.616 Xbeta.y:  19896.584 val:  17705.163"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 61"
+[1] "rho is: 14.4720278799292  sigma is: 1.78275479997283 phi is:  -0.403598314750656"
+[1] "prior.theta:  -32.734 prior.Xbeta:  6382.448 llik:  -4022.025 Xbeta.y:  20032.77 val:  17705.082"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 62"
+[1] "rho is: 14.2285640698155  sigma is: 1.7476556403426 phi is:  -0.381255297684328"
+[1] "prior.theta:  -33.203 prior.Xbeta:  6276.584 llik:  -4019.304 Xbeta.y:  19929.169 val:  17705.091"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 63"
+[1] "rho is: 14.4005743725087  sigma is: 1.76263196510909 phi is:  -0.387013307533428"
+[1] "prior.theta:  -33.093 prior.Xbeta:  6361.151 llik:  -4021.705 Xbeta.y:  20011.417 val:  17705.064"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 64"
+[1] "rho is: 14.6296746845291  sigma is: 1.7593675524561 phi is:  -0.370523031648448"
+[1] "prior.theta:  -33.504 prior.Xbeta:  6496.632 llik:  -4026.026 Xbeta.y:  20142.164 val:  17705.062"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 65"
+[1] "rho is: 14.7091409021774  sigma is: 1.74778923448055 phi is:  -0.353618892167833"
+[1] "prior.theta:  -33.916 prior.Xbeta:  6555.519 llik:  -4028.072 Xbeta.y:  20198.646 val:  17705.113"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 66"
+[1] "rho is: 14.464392014892  sigma is: 1.7161421773757 phi is:  -0.367876961731625"
+[1] "prior.theta:  -33.176 prior.Xbeta:  6676.467 llik:  -4031.215 Xbeta.y:  20317.217 val:  17705.141"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 67"
+[1] "rho is: 14.5916428352777  sigma is: 1.77868075903447 phi is:  -0.386051648686618"
+[1] "prior.theta:  -33.217 prior.Xbeta:  6408.745 llik:  -4023.174 Xbeta.y:  20057.408 val:  17705.053"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 68"
+[1] "rho is: 14.4627773734639  sigma is: 1.7831166636986 phi is:  -0.379964416801826"
+[1] "prior.theta:  -33.536 prior.Xbeta:  6208.18 llik:  -4017.416 Xbeta.y:  19862.308 val:  17705.08"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 69"
+[1] "rho is: 14.5791930436951  sigma is: 1.75880719736731 phi is:  -0.38184917337174"
+[1] "prior.theta:  -33.136 prior.Xbeta:  6529.002 llik:  -4026.726 Xbeta.y:  20174.194 val:  17705.054"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 70"
+[1] "rho is: 14.8025004524019  sigma is: 1.76856179025898 phi is:  -0.371923407348257"
+[1] "prior.theta:  -33.484 prior.Xbeta:  6595.096 llik:  -4028.897 Xbeta.y:  20237.789 val:  17705.073"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 71"
+[1] "rho is: 14.5000210126141  sigma is: 1.76411255483523 phi is:  -0.383259802039545"
+[1] "prior.theta:  -33.187 prior.Xbeta:  6419.57 llik:  -4023.508 Xbeta.y:  20067.928 val:  17705.053"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 72"
+[1] "rho is: 14.4844787268993  sigma is: 1.77502759823476 phi is:  -0.396765198138501"
+[1] "prior.theta:  -32.867 prior.Xbeta:  6408.967 llik:  -4022.932 Xbeta.y:  20058.233 val:  17705.065"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 73"
+[1] "rho is: 14.5932398106234  sigma is: 1.7632695635909 phi is:  -0.377141454671061"
+[1] "prior.theta:  -33.34 prior.Xbeta:  6474.439 llik:  -4025.246 Xbeta.y:  20120.906 val:  17705.053"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 74"
+[1] "rho is: 14.5439668022856  sigma is: 1.77859515573192 phi is:  -0.382465043469362"
+[1] "prior.theta:  -33.36 prior.Xbeta:  6339.438 llik:  -4021.216 Xbeta.y:  19989.92 val:  17705.058"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 75"
+[1] "rho is: 14.5703784926743  sigma is: 1.76373345132183 phi is:  -0.382003172719625"
+[1] "prior.theta:  -33.192 prior.Xbeta:  6481.612 llik:  -4025.352 Xbeta.y:  20128.12 val:  17705.051"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 76"
+[1] "rho is: 14.6706446375601  sigma is: 1.77299219026059 phi is:  -0.38021416090406"
+[1] "prior.theta:  -33.312 prior.Xbeta:  6490.24 llik:  -4025.671 Xbeta.y:  20136.309 val:  17705.052"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 77"
+[1] "rho is: 14.6278014215412  sigma is: 1.77076809996265 phi is:  -0.380976348034473"
+[1] "prior.theta:  -33.281 prior.Xbeta:  6472.571 llik:  -4025.131 Xbeta.y:  20119.21 val:  17705.051"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 78"
+[1] "rho is: 14.6026008779283  sigma is: 1.7532515357622 phi is:  -0.37400062895453"
+[1] "prior.theta:  -33.328 prior.Xbeta:  6543.81 llik:  -4027.313 Xbeta.y:  20188.233 val:  17705.063"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 79"
+[1] "rho is: 14.5943815747832  sigma is: 1.77228908301918 phi is:  -0.383051010328816"
+[1] "prior.theta:  -33.244 prior.Xbeta:  6442.451 llik:  -4024.208 Xbeta.y:  20090.051 val:  17705.051"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 80"
+[1] "rho is: 14.601764449271  sigma is: 1.77460114817885 phi is:  -0.386858425107594"
+[1] "prior.theta:  -33.138 prior.Xbeta:  6456.756 llik:  -4024.551 Xbeta.y:  20104.118 val:  17705.051"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 81"
+[1] "rho is: 14.5996328228789  sigma is: 1.77176144318469 phi is:  -0.384437112031041"
+[1] "prior.theta:  -33.188 prior.Xbeta:  6461.136 llik:  -4024.724 Xbeta.y:  20108.275 val:  17705.05"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 82"
+[1] "rho is: 14.6442440321708  sigma is: 1.77951388220455 phi is:  -0.383641019418218"
+[1] "prior.theta:  -33.283 prior.Xbeta:  6435.822 llik:  -4024.024 Xbeta.y:  20083.568 val:  17705.053"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 83"
+[1] "rho is: 14.5888098747761  sigma is: 1.76766539111696 phi is:  -0.382412859956702"
+[1] "prior.theta:  -33.214 prior.Xbeta:  6470.163 llik:  -4025.019 Xbeta.y:  20116.98 val:  17705.05"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 84"
+[1] "rho is: 14.5608236009134  sigma is: 1.77037345370764 phi is:  -0.385620104207243"
+[1] "prior.theta:  -33.151 prior.Xbeta:  6443.28 llik:  -4024.17 Xbeta.y:  20091.011 val:  17705.051"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 85"
+[1] "rho is: 14.611028138263  sigma is: 1.77066943015216 phi is:  -0.382139102598119"
+[1] "prior.theta:  -33.248 prior.Xbeta:  6465.24 llik:  -4024.89 Xbeta.y:  20112.152 val:  17705.05"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 86"
+[1] "rho is: 14.6052620397889  sigma is: 1.76777627461799 phi is:  -0.38294264726836"
+[1] "prior.theta:  -33.19 prior.Xbeta:  6488.57 llik:  -4025.547 Xbeta.y:  20134.884 val:  17705.05"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 87"
+[1] "rho is: 14.6025411633064  sigma is: 1.76890339828895 phi is:  -0.382969739021671"
+[1] "prior.theta:  -33.203 prior.Xbeta:  6477.041 llik:  -4025.212 Xbeta.y:  20123.675 val:  17705.05"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 88"

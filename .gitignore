@@ -1,3 +1,8 @@
 /readme.docx
 /analysis_code/
 /R/images/*.png
+*.RData
+*.pdf
+*.js
+*.png
+*.eps

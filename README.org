@@ -4,3 +4,4 @@
 *** Oscillating covariance functions
 *** Periodic covariance functions
 *** Separable covariance
+** Point process likelihoods

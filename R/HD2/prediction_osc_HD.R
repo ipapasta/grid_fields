@@ -91,6 +91,7 @@ miny  <- min(pos.coords[,"y"]-slack)
 
 N      <- 10000
 coords  <- expand.grid(seq(minx, maxx, seq=N), seq(miny, maxy, seq=N))
+
 ## coords  <- matrix(rep(c(33, 64), 100), byrow = TRUE, ncol=2)
 one.vec <- matrix(rep(1, nrow(coords)), ncol=1)
 order.HD <- 5

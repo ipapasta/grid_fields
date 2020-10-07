@@ -168,7 +168,7 @@ zero.entries <- data.frame(expand.grid(c(1,2), setdiff(1:p, unique(do.call("rbin
 names(zero.entries) <- c("knot", "v", "value")
 W.input.to.sparse.matrix <- rbind(do.call("rbind", df.W$jkx), zero.entries) %>%arrange(v)
 W  <- sparseMatrix(i=W.input.to.sparse.matrix$knot, j=W.input.to.sparse.matrix$v, x=W.input.to.sparse.matrix$value)
-object_size(W)
+object_size(W) #needs pryr
 
 
 ## W <- W[c(line.segments$split.origin[1], line.segments$split.origin), ]
@@ -187,7 +187,7 @@ object_size(W)
 ## plot(mesh, asp=1, xlim=c(0,100), ylim=c(0,100))
 ## plot(SpatialPolygons(list(o)) , add=TRUE, col=2, lwd=2)
 
-dim(W)
+dim(W) 
 data <- list(Ypos=Ypos, Y=Y)
 
 ## df.W %>% dplyr::select(v1, v2)

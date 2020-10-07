@@ -1,7 +1,0 @@
-library(GeneralizedHyperbolic)
-
-
-eps <- rnig(1000, )
-delta <- 
-
-rnig(1000)

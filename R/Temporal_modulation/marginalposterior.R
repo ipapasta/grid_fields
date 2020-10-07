@@ -105,7 +105,9 @@ pthetapc.prop.marg.post_osc_temp<- function(par.theta, hyperpar, data, X, Z, bet
                 if(alpha <= 2^(-8))
                 {
                     betaXZ  <- betaXZ.p 
-                    par     <- list(beta=betaXZ.p[1], X=betaXZ.p[2:(1+n.X)], Z=betaXZ.p[((1+n.X)+1):length(betaXZ.p)] )
+                    par     <- list(beta=betaXZ.p[1],
+                                    X=betaXZ.p[2:(1+n.X)],
+                                    Z=betaXZ.p[((1+n.X)+1):length(betaXZ.p)] )
                     ## 
                     fval.c  <- as.numeric(objective_osc_temp(par=par,theta=par.theta,data=data,mesh=mesh,mesh1d=mesh1d,A=A,Atilde=Atilde,Aobs=Aobs,Atildeobs=Atildeobs,W=W))
                     ## uncomment to track progress of Newton algo

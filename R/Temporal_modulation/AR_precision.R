@@ -1,21 +1,22 @@
-##
-## Input: 
-##      - theta1: correlation length parameter. Note that
-##                this parameter does not have the same interpretation
-##                as in the usual Matern covariance family due to the oscillation
-##                of the process. However, it can still be used to describe
-##                the length scale beyond which correlation decays (e.g., as with dampened sinusoids)
-##                exp(theta1) = rho = sqrt(8 nu)/kappa, nu = alpha - d/2 = 2-(2/2) = 1
-##      - theta2: scale parameter that controls the variance of the field.
-##                exp(theta2) = sigma. Similar to theta1, sigma here does not equal the marginal
-##                standard deviation of the process but is related to.
-##      - theta3: oscillation parameter phi = 1-exp(-theta3)/(1+exp(-theta3))
-##                -1 < phi < 0: oscillating 
-##                 0 < phi < 1: overdampened oscillating 
-## Output:
-##      - precision matrix for the weights at the mesh vertices 
-##        
-## 
+#' 
+
+#' Input: 
+#'      - theta1: correlation length parameter. Note that
+#'                this parameter does not have the same interpretation
+#'                as in the usual Matern covariance family due to the oscillation
+#'                of the process. However, it can still be used to describe
+#'                the length scale beyond which correlation decays (e.g., as with dampened sinusoids)
+#'                exp(theta1) = rho = sqrt(8 nu)/kappa, nu = alpha - d/2 = 2-(2/2) = 1
+#'      - theta2: scale parameter that controls the variance of the field.
+#'                exp(theta2) = sigma. Similar to theta1, sigma here does not equal the marginal
+#'                standard deviation of the process but is related to.
+#'      - theta3: oscillation parameter phi = 1-exp(-theta3)/(1+exp(-theta3))
+#'                -1 < phi < 0: oscillating 
+#'                 0 < phi < 1: overdampened oscillating 
+#' Output:
+#'      - precision matrix for the weights at the mesh vertices 
+#'        
+#' 
 
 temp.precision <- function(theta, mesh, o=2){
     theta1 <- theta[1]

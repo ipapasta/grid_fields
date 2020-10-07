@@ -97,6 +97,47 @@ split.lines <- function(mesh, sp, ep, filter.zero.length = TRUE, tol= 1e-8, retu
 }
 
 
+split.lines <- function(mesh, sp, ep, filter.zero.length = TRUE, tol= 1e-8, return.filter.index=TRUE) {
+    ## locations for splitting
+    loc = as.matrix(rbind(sp,ep))
+    idx = 1:dim(sp)[1]
+    ## Filter out segments not on the mesh
+    t1 = INLA::inla.fmesher.smorg(loc=mesh$loc,tv=mesh$graph$tv,points2mesh=as.matrix(data.frame(sp,z=0)))$p2m.t
+    t2 = INLA::inla.fmesher.smorg(loc=mesh$loc,tv=mesh$graph$tv,points2mesh=as.matrix(data.frame(ep,z=0)))$p2m.t
+    ## if (any(t1==0) | any(t2==0)) { warning("points outside boundary! filtering...")}
+    sp = matrix(sp[!((t1==0) | (t2==0)),], ncol=2)
+    ep = matrix(ep[!((t1==0) | (t2==0)),], ncol=2)
+    idx = idx[!((t1==0) | (t2==0))]
+    loc = as.matrix(rbind(sp,ep))
+    ## Split them segments into parts
+    if ( dim(loc)[2] == 2 ) {loc = cbind(loc,rep(0,dim(loc)[1]))}
+    np = dim(sp)[1]
+    sp.idx = t(rbind(1:np,np+1:np))
+    splt = INLA::inla.fmesher.smorg(mesh$loc,mesh$graph$tv, splitlines=list(loc=loc, idx=sp.idx))
+    ##plot(data$mesh)
+    ##points(loc)
+    ##points(splt$split.loc,col="blue)
+    sp = matrix(splt$split.loc[splt$split.idx[,1],1:dim(sp)[2]], ncol=2) # Start point of new segments
+    ep = matrix(splt$split.loc[splt$split.idx[,2],1:dim(ep)[2]], ncol=2) # End points of new segments
+    idx = idx[splt$split.idx[,1]]
+    origin = splt$split.origin
+    sl = apply((ep-sp)^2,MARGIN=1,sum)
+    filter.index <- !(sl < tol^2)
+    ## Filter out zero length segments
+    if ( filter.zero.length ) {
+        ## sl = apply((ep-sp)^2,MARGIN=1,sum)
+        sp = sp[!(sl<tol^2),]
+        ep = ep[!(sl<tol^2),]
+        origin = origin[!(sl<tol^2)]
+        idx = idx[!(sl<tol^2)]
+        filter.index = filter.index[!(sl<tol^2)]
+        ## drop filter.index
+        return(list(sp=sp,ep=ep,split.origin=origin,idx=idx,split.loc=splt$split.loc))
+    }
+    return(list(sp=sp,ep=ep,split.origin=origin,idx=idx,split.loc=splt$split.loc, filter.index=filter.index))
+}
+
+
 
 do.rbind <- function(x) do.call("rbind", x)
 do.cbind <- function(x) do.call("cbind", x)

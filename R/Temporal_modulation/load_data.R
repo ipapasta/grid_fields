@@ -4,38 +4,38 @@ library(sp)
 ##
 ## load data
 ##
-if(getwd()=="/home/ipapasta/Software/R/grid_fields/R/Temporal_modulation"){
-X <- read.csv("/home/ipapasta/Software/R/grid_fields/mouse_5_cell_6/mouse5_spatial_data_whole_session.csv", stringsAsFactors=FALSE)
-Y <- read_excel("/home/ipapasta/Software/R/grid_fields/mouse_5_cell_6/mouse5_spatial_data_firing_events.xlsx")
+if(getwd()=="/Users/ipapasta/Documents/Research/Software/R/grid_fields/R/Temporal_modulation"){
+X <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields_old/mouse_5_cell_6/mouse5_spatial_data_whole_session.csv", stringsAsFactors=FALSE)
+Y <- read_excel("/Users/ipapasta/Documents/Research/Software/R/grid_fields_old/mouse_5_cell_6/mouse5_spatial_data_firing_events.xlsx")
 ## X <- read.csv("/home/ipapasta/Software/R/grid_fields/mouse_14_0516_cell_13/position.pkl.csv", stringsAsFactors=FALSE)
 ## Y <- read.csv("/home/ipapasta/Software/R/grid_fields/mouse_14_0516_cell_13/spatial_firing.pkl.csv")
 }
 
 ## mouse 5 cell 6
-if(getwd()=="/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/R/Oscillating"){
-X <- read.csv("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse_5_cell_6/mouse5_spatial_data_whole_session.csv", stringsAsFactors=FALSE)
-Y <- read_excel("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse_5_cell_6/mouse5_spatial_data_firing_events.xlsx")
+if(getwd()=="/Users/ipapasta/Documents/Research/Software/R/grid_fields/R/Oscillating"){
+X <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse_5_cell_6/mouse5_spatial_data_whole_session.csv", stringsAsFactors=FALSE)
+Y <- read_excel("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse_5_cell_6/mouse5_spatial_data_firing_events.xlsx")
 }
 
 
 if(FALSE){
     ## mouse 12_0410 cell 1
-    if(getwd()=="/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/R/Oscillating"){
-        X <- read.csv("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse12_0410_cell1/position.pkl.csv", stringsAsFactors=FALSE)
-        Y <- read.csv("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse12_0410_cell1/spatial_firing.pkl.csv")
+    if(getwd()=="/Users/ipapasta/Documents/Research/Software/R/grid_fields/R/Oscillating"){
+        X <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse12_0410_cell1/position.pkl.csv", stringsAsFactors=FALSE)
+        Y <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse12_0410_cell1/spatial_firing.pkl.csv")
     }
 
 
     ## mouse_14_0516_cell_13
-    if(getwd()=="/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/R/Oscillating"){
-        X <- read.csv("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse_14_0516_cell_13/position.pkl.csv", stringsAsFactors=FALSE)
-        Y <- read.csv("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse_14_0516_cell_13/spatial_firing.pkl.csv")
+    if(getwd()=="/Users/ipapasta/Documents/Research/Software/R/grid_fields/R/Oscillating"){
+        X <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse_14_0516_cell_13/position.pkl.csv", stringsAsFactors=FALSE)
+        Y <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse_14_0516_cell_13/spatial_firing.pkl.csv")
     }
 
     ## mouse12_0410_cell1
-    if(getwd()=="/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/R/Oscillating"){
-        X <- read.csv("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse12_0410_cell1/position.pkl.csv", stringsAsFactors=FALSE)
-        Y <- read.csv("/home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/mouse12_0410_cell1/spatial_firing.pkl.csv")
+    if(getwd()=="/Users/ipapasta/Documents/Research/Software/R/grid_fields/R/Oscillating"){
+        X <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse12_0410_cell1/position.pkl.csv", stringsAsFactors=FALSE)
+        Y <- read.csv("/Users/ipapasta/Documents/Research/Software/R/grid_fields/mouse12_0410_cell1/spatial_firing.pkl.csv")
     }
 }
 ## y <- Y$firing_times

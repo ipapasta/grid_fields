@@ -1,0 +1,378 @@
+
+R version 3.5.2 (2018-12-20) -- "Eggshell Igloo"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-redhat-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## 
+> ## seed for reproducibility
+> ##
+> ## set.seed(111086) 
+> ## !! quilt.plot
+> ## 
+> ## load packages
+> ##
+> counter <- 0
+> ## sim     <- FALSE
+> library(Rcpp)
+> library(tidyverse)
+── Attaching packages ─────────────────────────────────────── tidyverse 1.2.1 ──
+✔ ggplot2 3.1.0     ✔ purrr   0.3.0
+✔ tibble  2.0.1     ✔ dplyr   0.7.8
+✔ tidyr   0.8.2     ✔ stringr 1.3.1
+✔ readr   1.3.1     ✔ forcats 0.3.0
+── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+> library(purrr)
+> library(INLA)   #install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+Loading required package: Matrix
+
+Attaching package: ‘Matrix’
+
+The following object is masked from ‘package:tidyr’:
+
+    expand
+
+Loading required package: sp
+This is INLA_18.07.12 built 2019-02-05 12:40:27 UTC.
+See www.r-inla.org/contact-us for how to get help.
+To enable PARDISO sparse library; see inla.pardiso()
+> library(inlabru)
+> library(sp)
+> library(pryr)
+
+Attaching package: ‘pryr’
+
+The following object is masked from ‘package:INLA’:
+
+    f
+
+The following objects are masked from ‘package:purrr’:
+
+    compose, partial
+
+> library(fields)
+Loading required package: spam
+Loading required package: dotCall64
+Loading required package: grid
+Spam version 2.2-1 (2018-12-20) is loaded.
+Type 'help( Spam)' or 'demo( spam)' for a short introduction 
+and overview of this package.
+Help for individual functions is also obtained by adding the
+suffix '.spam' to the function name, e.g. 'help( chol.spam)'.
+
+Attaching package: ‘spam’
+
+The following object is masked from ‘package:INLA’:
+
+    Oral
+
+The following object is masked from ‘package:Matrix’:
+
+    det
+
+The following objects are masked from ‘package:base’:
+
+    backsolve, forwardsolve
+
+Loading required package: maps
+
+Attaching package: ‘maps’
+
+The following object is masked from ‘package:purrr’:
+
+    map
+
+See www.image.ucar.edu/~nychka/Fields for
+ a vignette and other supplements. 
+> library(nloptr)
+> ## require(rgdal, quietly=TRUE)
+> ## scp -r /home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/R/* ipapasta@xserver2.maths.ed.ac.uk:/home/ipapasta/Software/R/grid_fields/R/
+> ## 
+> ## source R and cpp functions.
+> ## 
+> source("load_data.R")
+> source("Functions.R")
+> source("osc_precision.R")
+> source("objective.R")
+> source("temp_precision.R")
+> source("priorbetaXZ_osc_temp.R")
+> source("priortheta_osc_temp.R")              
+> source("gradient_osc_temp.R")
+> source("hessian_osc_temp.R")
+> source("llik.R")
+> source("marginalposterior.R")
+> 
+> ##
+> ## load mesh object:
+> ##
+> ## if(!sim)
+> load("mesh.RData")                     # ! rgdal missing from
+>                                            # maths computing server so
+>                                            # currently saved locally
+>                                            # and uploaded for
+>                                            # practical
+>                                            # reasons. Request to be
+>                                         # installed.
+> 
+> if(FALSE){
++     k <- 1.6
++     mesh <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
++ }
+> 
+> ## if(sim)
+>     ## load("simmesh.RData");     load("/home/ipapasta/Desktop/simmesh.RData")
+> 
+> p <- mesh$n
+> options(warn=-1)                        #suppress warnings
+> ##
+> ## create a regular mesh of points between all line segments defined
+> ## by the trajectory of the mouse (positional data)
+> ##
+> Ypos.tmp <- data.frame(speed=X$speed, time=X$synced_time, coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
++     mutate(coords.lead = lead(coords)) %>%
++     mutate(time.lead = lead(time)) %>% head(-1)
+> ## need to alter code to split lines with inlabru:::split.lines
+> ## line.segments <- inlabru:::split_lines(mesh, sp=do.call("rbind", Ypos.tmp$coords), ep=do.call("rbind",Ypos.tmp$coords.lead))
+> line.segments <- split.lines(mesh, sp=do.call("rbind", Ypos.tmp$coords), ep=do.call("rbind",Ypos.tmp$coords.lead), tol=.5)
+> ## line.segments.full <- split.lines(mesh, sp=do.call("rbind", Ypos.tmp$coords), ep=do.call("rbind",Ypos.tmp$coords.lead), tol=1e-5)
+> 
+> ## ----------------------
+> ## fix issue on tolerance
+> ## ----------------------
+> df <- data.frame(origin=line.segments$split.origin,
++                  sp=I(lapply(as.list(apply(line.segments$sp, 1, as.list)), unlist)),
++                  ep=I(lapply(as.list(apply(line.segments$ep, 1, as.list)), unlist))) %>%
++     group_by(origin) %>%
++     summarize(sp=list(sp), ep=list(ep)) %>%
++     mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
++     mutate(ep = lapply(ep, function(x) do.call("rbind", x)))
+> 
+> ## df.full <- data.frame(origin=line.segments.full$split.origin,
+> ##                  sp=I(lapply(as.list(apply(line.segments.full$sp, 1, as.list)), unlist)),
+> ##                  ep=I(lapply(as.list(apply(line.segments.full$ep, 1, as.list)), unlist))) %>%
+> ##     group_by(origin) %>%
+> ##     summarize(sp=list(sp), ep=list(ep)) %>%
+> ##     mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
+> ##     mutate(ep = lapply(ep, function(x) do.call("rbind", x)))
+> 
+> 
+> 
+> o <- inner_join(Ypos.tmp %>% mutate(origin=1:nrow(Ypos.tmp)), df)
+Joining, by = "origin"
+> ## o.full <- inner_join(Ypos.tmp %>% mutate(origin=1:nrow(Ypos.tmp)), df.full)
+> 
+> ## Ypos.tmp %>% mutate(origin=1:nrow(Ypos.tmp), df)
+> 
+> Ypos <- o %>%
++     ## length of line segments
++     mutate(Li = map2(sp, ep, function(x, y) apply(y-x, 1, function(z) as.numeric(sqrt(sum(z^2)))))) %>%
++     ## times at the nodes of 1d mesh
++     mutate(Ti = pmap(list(time, time.lead, Li), function(x, y, z){
++         o <- as.numeric(x) + (cumsum(as.numeric(z)/sum(as.numeric(z))))*(as.numeric(y) - as.numeric(x))
++         return(matrix(c(x, o), ncol=1))
++     })) %>%
++     mutate(s.midpoints = map2(sp, ep, function(x, y) (x+y)/2 )) %>%
++     mutate(t.midpoints = lapply(Ti, function(x){
++         as.vector((na.omit(lag(x)) + na.omit(lead(x)))/2)
++     }))
+> 
+> ## Ypos.full <- o.full %>%
+> ##     ## length of line segments
+> ##     mutate(Li = map2(sp, ep, function(x, y) apply(y-x, 1, function(z) as.numeric(sqrt(sum(z^2)))))) %>%
+> ##     ## times at the nodes of 1d mesh
+> ##     mutate(Ti = pmap(list(time, time.lead, Li), function(x, y, z){
+> ##         o <- as.numeric(x) + (cumsum(as.numeric(z)/sum(as.numeric(z))))*(as.numeric(y) - as.numeric(x))
+> ##         return(matrix(c(x, o), ncol=1))
+> ##     })) %>%
+> ##     mutate(s.midpoints = map2(sp, ep, function(x, y) (x+y)/2 )) %>%
+> ##     mutate(t.midpoints = lapply(Ti, function(x){
+> ##         as.vector((na.omit(lag(x)) + na.omit(lead(x)))/2)
+> ##     })) 
+> 
+> ## Creation of 1D mesh 
+> t.nodes <- c(Ypos$time[[1]], do.call("c", (Ypos %>% mutate(t.nodes = pmap(list(time, time.lead, Li), function(x, y, z){
++     o <- as.numeric(x) + (cumsum(as.numeric(z)/sum(as.numeric(z))))*(as.numeric(y) - as.numeric(x))
++     return(o)
++ })))$t.nodes))
+> 
+> ## t.nodes.full <- c(Ypos.full$time[[1]], do.call("c", (Ypos.full %>%
+> ##                          mutate(t.nodes = pmap(list(time, time.lead, Li), function(x, y, z){
+> ##                              o <- as.numeric(x) + (cumsum(as.numeric(z)/sum(as.numeric(z))))*(as.numeric(y) - as.numeric(x))
+> ##                              return(o)
+> ##                          })))$t.nodes))
+> 
+> 
+> 
+> ## Creation of W matrix
+> mesh1d  <- inla.mesh.1d(loc=t.nodes, order=2)
+> proj.t  <- inla.mesh.projector(mesh1d, loc=do.call("c", Ypos$t.midpoints))
+> proj.s  <- inla.mesh.projector(mesh, loc=do.call("rbind", Ypos$s.midpoints))
+> s.tv    <- data.frame(mesh$graph$tv[ proj.s$proj$t, , drop=FALSE ])
+> names(s.tv)  <- c("v1", "v2", "v3")
+> s.psi  <- data.frame(proj.s$proj$bary)
+> names(s.psi) <- c("psi.1", "psi.2", "psi.3")
+> 
+> df.W <- cbind(data.frame(line.id=1:nrow(s.psi)),
++               data.frame(origin=line.segments$split.origin),
++               data.frame(Li=do.call("c", Ypos$Li)),
++               s.tv,
++               data.frame(knot1=1:length(do.call("c", Ypos$Li)),
++                          knot2=2:(1+length(do.call("c", Ypos$Li)))),
++               s.psi,
++               data.frame(psi.tilde.1 = rep(1/2, length(do.call("c", Ypos$Li)))),
++               data.frame(psi.tilde.2 = rep(1/2, length(do.call("c", Ypos$Li))))) %>%
++     mutate(jk = pmap(list(knot1, knot2, v1, v2, v3), function(x, y, z, w, k) expand.grid(c(x, y), c(z, w, k)))) %>%
++     mutate(x  = pmap(list(psi.tilde.1, psi.tilde.2, psi.1, psi.2, psi.3, Li), function(x, y, z, w, k, L){
++         matrix(apply(expand.grid(c(x, y), c(z, w, k)), 1, prod)*L, ncol=1) 
++     })) %>%
++     mutate(jkx = map2(jk, x, function(x1, x2) {
++         df <- cbind(x1, x2)
++         names(df) <- c("knot", "v", "value")
++         df
++     })) %>%
++     as_tibble
+> 
+> zero.entries <- data.frame(expand.grid(c(1,2), setdiff(1:p, unique(do.call("rbind", df.W$jkx)$v))),
++                           rep(0, dim(expand.grid(c(1,2), setdiff(1:p, unique(do.call("rbind", df.W$jkx)$v))))[1]))
+> names(zero.entries) <- c("knot", "v", "value")
+> W.input.to.sparse.matrix <- rbind(do.call("rbind", df.W$jkx), zero.entries) %>%arrange(v)
+> W  <- sparseMatrix(i=W.input.to.sparse.matrix$knot, j=W.input.to.sparse.matrix$v, x=W.input.to.sparse.matrix$value)
+> object_size(W)
+699 kB
+> 
+> 
+> ## W <- W[c(line.segments$split.origin[1], line.segments$split.origin), ]
+> ## rownames(W) <- c(line.segments$split.origin[1], line.segments$split.origin)
+> 
+> 
+> ## W.input.to.sparse.matrix <- W.input.to.sparse.matrix %>% mutate(bool.filter.rows = knot %in% line.segments$split.origin)
+> ## W.input.to.sparse.matrix.CHECK <- W.input.to.sparse.matrix %>% mutate(bool.filter.rows = knot %in% unique(c(line.segments$split.origin[1], line.segments$split.origin)))
+> 
+> ## W <- sparseMatrix(i=W.input.to.sparse.matrix[W.input.to.sparse.matrix.CHECK$bool.filter.rows==TRUE,]$knot,
+> ##                   j=W.input.to.sparse.matrix[W.input.to.sparse.matrix.CHECK$bool.filter.rows==TRUE,]$v,
+> ##                   x=W.input.to.sparse.matrix[W.input.to.sparse.matrix.CHECK$bool.filter.rows==TRUE,]$value)
+> 
+> ## mutate(v.ordered = plyr::mapvalues(W.input.to.sparse.matrix$v, from=unique(W.input.to.sparse.matrix$v), to=1:length(unique( W.input.to.sparse.matrix$v)))) %>%
+>     ## o <- SPL.xyz((mesh$loc[mesh$graph$tv[15,],-3])[1,], (mesh$loc[mesh$graph$tv[15,],-3])[2,], (mesh$loc[mesh$graph$tv[15,],-3])[3,], ID="1")
+> ## plot(mesh, asp=1, xlim=c(0,100), ylim=c(0,100))
+> ## plot(SpatialPolygons(list(o)) , add=TRUE, col=2, lwd=2)
+> 
+> dim(W)
+[1]  9511 10844
+> data <- list(Ypos=Ypos, Y=Y)
+> 
+> ## df.W %>% dplyr::select(v1, v2)
+> ## o <- df.W %>% gather(v1, v2, v3, knot1, knot2, -origin)
+> ## o <- df.W %>% dplyr::select(v1, v2, v3, knot1, knot2, psi.1, psi.2, psi.3, psi.tilde.1, psi.tilde.2, Li) %>%
+> ##     gather(value, psi, -v1,-v2,-v3,-knot1,-knot2, -Li) %>% as_tibble
+> 
+> if(FALSE){
++     ## points(mycoords, col=2, pch=16, add=TRUE)
++     plot(line.segments.xp$sp[,1], line.segments.xp$sp[,2], col=4, pch=16, asp=1)
++     points(line.segments.xp$ep[,1], line.segments.xp$ep[,2], col=4, pch=16)
++     plot(mesh, asp=1, add=TRUE)
++     arrows(do.call("rbind",Ypos$coords)[10:20,1],
++            do.call("rbind",Ypos$coords)[10:20,2],
++            do.call("rbind",Ypos$lead)[10:20,1],
++            do.call("rbind",Ypos$lead)[10:20,2], add=TRUE, lty=3)   
++ }
+> 
+> ##
+> Aobs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(data$Y %>% dplyr:: select(position_x, position_y)))
+> A     <- proj.s$proj$A
+> Atildeobs  <- inla.spde.make.A(mesh=mesh1d, loc=as.matrix(data$Y$firing_times))
+> Atilde     <- proj.t$proj$A
+> 
+> 
+> ## 
+> ## ## hyperparameters for priors
+> ##
+> logrhoL    <- log(10)
+> logsigmaU  <- log(1) #
+> alpha1     <- .001
+> alpha2     <- 1e-6
+> logrho.tempL    <- log(10)
+> logsigma.tempU  <- log(1) #
+> alphaT1     <- .001
+> alphaT2     <- 1e-6
+> hyperpar   <- list(alpha1=alpha1, alpha2=alpha2, rhoL=exp(logrhoL), sigmaU=exp(logsigmaU),
++                    alphaT1=alphaT1, alphaT2=alphaT2, rho.tempL=exp(logrho.tempL), sigma.tempU=exp(logsigma.tempU))        
+> par.theta  <- c(3, -1/1.5, -3.8, log(.7), log(.3))
+> Xest       <-   Xinit    <- Matrix(rep(0, mesh$n), ncol=1)
+> Zest       <-   Zinit    <- Matrix(rep(0, mesh1d$n), ncol=1)
+> 
+> betaest       <-   betainit <- nrow(Y)/sum((Ypos %>% mutate(speed.lead = lead(speed), dt=c(diff(time)[1], diff(time) ))  %>%
++                                             head(-1) %>%
++                                             mutate(val=dt*((speed + speed.lead)/2)))$val)
+>                                         #(number of firing events)/
+>                                         #(\int_\Gamma ds)
+> gradest       <- NULL
+> Hessianest    <- NULL
+> 
+> 
+> 
+> opt.theta <- optim(par=par.theta, fn = pthetapc.prop.marg.post_osc_temp, hyperpar=hyperpar, data=data, 
++                    X=Xinit, Z=Zinit, beta=betaest, mesh=mesh, mesh1d=mesh1d, A=A, Atilde=Atilde, Aobs=Aobs, Atildeobs=Atildeobs,
++                    W=W, W.input.to.sparseMatrix=W.input.to.sparse.matrix,
++                    acc=1e-6, print.verbose=TRUE, control=list(maxit=500))
+[1] "tol.test is : Inf scaled.acc is: 0.0398350499144919"
+[1] "fval.c is: -42808.0031002758"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -42808.0031002758"
+[1] "TT is: 4687.381 SA is: 0.043"
+[1] "Fp is: -39835.05 Fc is: -42808 3"
+[1] "fval.c is: -43726.6329278675"
+[1] "fval.c is larger than fval.p FALSE"
+[1] "f eval is: -43726.6329278675"
+[1] "TT is: 2490.764 SA is: 0.044"
+[1] "Fp is: -42808.003 Fc is: -43727 3"
+[1] "fval.c is: -43347.8268585824"
+[1] "fval.c is larger than fval.p TRUE"
+[1] "alpha is: 0.5 ,  Fc-Fp is: 101.46"
+[1] "fval.c is: -43625.1778022462"
+[1] "alpha is: 0.25 ,  Fc-Fp is: 26.26"
+[1] "fval.c is: -43700.3762723048"
+[1] "alpha is: 0.125 ,  Fc-Fp is: 6.63"
+[1] "fval.c is: -43719.9998024403"
+[1] "alpha is: 0.0625 ,  Fc-Fp is: 1.64"
+[1] "fval.c is: -43724.9923566314"
+[1] "alpha is: 0.03125 ,  Fc-Fp is: 0.39"
+[1] "fval.c is: -43726.2385070417"
+[1] "alpha is: 0.015625 ,  Fc-Fp is: 0.09"
+[1] "fval.c is: -43726.5430644841"
+[1] "alpha is: 0.0078125 ,  Fc-Fp is: 0.02"
+[1] "fval.c is: -43726.6149444747"
+[1] "alpha is: 0.00390625 ,  Fc-Fp is: 0"
+[1] "fval.c is: -43726.6306872794"
+[1] "STOP MOVING"
+[1] "f eval is: -43726.6329278675"
+[1] "TT is: 648.159 SA is: 0.044"
+[1] "Fp is: -43726.633 Fc is: -43727 3"
+[1] "EXIT while loop"
+[1] "rho is: 20.0855369231877  sigma is: 0.513417119032592 phi is:  -0.956237458127739 rho_temporal is:  0.7 sigma_temporal is:  0.3"
+[1] "prior.theta:  -4.528 prior.betaXZ:  45831.341 llik:  -2104.709 betaXZ.y:  NaN val:  NaN"
+
+ 
+ 
+
+ 
+ 
+ [1] "counter is equal to: 1"
+Error in optim(par = par.theta, fn = pthetapc.prop.marg.post_osc_temp,  : 
+  function cannot be evaluated at initial parameters
+Execution halted

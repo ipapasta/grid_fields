@@ -23,14 +23,18 @@
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
         param = interpret.theta()
-        sigmaLN  <- 0.5
+        prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
+            if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
+            if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
+        }
+        sigmaLN  <- 1
         murho    <- 25
         rho      <- sqrt(8)/param$kappa
         sigma    <- sqrt(param$tausq)
         phi      <- param$phi
         lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)    
         lsigma.sp  <- dexp(sigma, 1/2, log = TRUE)
-        lpphi.sp   <- 0 ## prior.phi_osc(phi, a=1, b=20, lg=TRUE)
+        lpphi.sp   <- prior.phi_osc(phi, a=1, b=20, lg=TRUE)
         res        <- lpphi.sp + lrho.sp + lsigma.sp
         return(res)
     }
@@ -80,5 +84,5 @@
     return(res)
 }
 
-circular1D <- inla.rgeneric.define(circular1D.model, M0=NULL, M1=NULL, M2=NULL) 
+## circular1D <- inla.rgeneric.define(circular1D.model, M0=NULL, M1=NULL, M2=NULL) 
 

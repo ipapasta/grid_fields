@@ -150,8 +150,27 @@ HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(
 T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
 
 
-## mesh1d$loc
-data <- list(Ypos=Ypos, Y=Y)
+
+## ---------------------------------------
+## SpatialPointsDataFrame and SpatialLines
+## ---------------------------------------
+
+Y.spdf    <- SpatialPointsDataFrame(SpatialPoints(cbind(Y$position_x, Y$position_y)), as.data.frame(Y%>%select(-c(position_x, position_y))))
+Ypos.sldf <- SpatialLinesDataFrame(SpatialLines(lapply(as.list(1:nrow(Ypos)),function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
+                                                                                    Ypos$coords.lead[k,1]),
+                                                                                  c(Ypos$coords[k,2],
+                                                                                    Ypos$coords.lead[k,2])))),
+                                                                                  ID=k))),
+                                   Ypos %>% select(-c(coords, coords.lead)))
+
+data <- list(Ypos=Ypos, Y=Y, Yspdf=Yspdf, Ypos.sldf = Ypos.sldf)
+
+
+
+## SpatialPointsDataFrame and SpatialLines
+
+
+
 ## dim(coords.trap)
 ## length(functions.multiplicity)
       
@@ -315,6 +334,65 @@ opt.theta <- optim(par=par.theta, fn = pthetapc.prop.marg.post_osc_temp, data=da
 ##                    print.verbose=TRUE,method="BFGS")
 
 save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
+
+
+
+## 
+## inlabru
+##
+
+if(FALSE){
+    B.phi0.matern = matrix(c(0,1,0), nrow=1)
+    B.phi1.matern = matrix(c(0,0,1), nrow=1)
+    B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
+    B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
+    B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
+    M0 = fem.mesh.spatial$c0
+    M1 = fem.mesh.spatial$g1
+    M2 = fem.mesh.spatial$g2
+    matern.spde2 = inla.spde2.generic(M0 = M0, M1 = M1, M2 = M2, 
+                                      B0 = B.phi0.matern, B1 = B.phi1.matern, B2 = 1, theta.mu = c(0, 0), 
+                                      theta.Q = diag(c(10, 10)))
+
+    matern.spde2 <- inla.spde2.pcmatern(mesh,
+                                        prior.sigma = c(2, 0.01),
+                                        prior.range = c(20, 0.01))
+
+    oscillating.spde2 = inla.spde2.generic(M0 = M0, M1 = M1, M2 = M2, 
+                                           B0 = B.phi0.oscillating, B1 = B.phi1.oscillating, B2 = B.phi2.oscillating, theta.mu = c(0, 0, 0), 
+                                           theta.Q = diag(c(10, 10, 10)), transform = "log")
+    ## 
+    cmp.matern <- coordinates ~ mySPDE(coordinates, model = matern.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+    fit.matern <- lgcp(cmp.matern, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+
+    spde.range <- spde.posterior(fit.matern, "mySPDE", what = "range")
+    plot(spde.range)
+    pxl <- pixels(mesh, nx=50, ny=50)
+    pr.int <- predict(fit.matern, pxl, ~ exp(mySPDE + Intercept))
+    library(pals)
+    ggplot() +
+        gg(pr.int) +
+        scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar")+
+        ## gg(mexdolphin$ppoly) +
+        ## gg(mexdolphin$samplers, color = "grey") +
+        ## gg(mexdolphin$points, size = 0.2, alpha = 1) +
+        ## noyticks +
+        ## noxticks +
+        ## theme(legend.key.width = unit(x = 0.2, "cm"), legend.key.height = unit(x = 0.3, "cm")) +
+        ## theme(legend.text = element_text(size = 6)) +
+        ## guides(fill = FALSE) +
+        coord_equal()
+    
+    ## 
+    cmp.oscillating <- coordinates ~ mySPDE(coordinates, model = oscillating.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+    fit.oscillating <- lgcp(cmp.oscillating, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+
+
+}
+
+
+
+
 
 ## opt.theta.copyla <- cobyla(x0=opt.theta$par, fn = pthetapc.prop.marg.post_osc_temp, data=data, 
 ##                            X=Xest, Z=Zest, beta=betaest,

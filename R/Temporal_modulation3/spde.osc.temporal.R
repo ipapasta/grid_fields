@@ -35,7 +35,7 @@ source("hessian_osc_temp.R")
 source("llik.R")
 source("marginalposterior.R")
 
-k    <- 8
+k    <- 3
 mesh      <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 ## 
 fem.mesh  <- inla.mesh.fem(mesh, order = 2)
@@ -164,6 +164,8 @@ Ypos.sldf <- SpatialLinesDataFrame(SpatialLines(lapply(as.list(1:nrow(Ypos)),fun
                                    Ypos %>% select(-c(coords, coords.lead)))
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Yspdf, Ypos.sldf = Ypos.sldf)
+
+Ypos.sldf
 
 
 
@@ -338,7 +340,7 @@ save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
 
 
 ## 
-## inlabru
+## inlabru implementation
 ##
 
 if(FALSE){
@@ -347,32 +349,43 @@ if(FALSE){
     B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
     B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
     B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
-    M0 = fem.mesh.spatial$c0
-    M1 = fem.mesh.spatial$g1
-    M2 = fem.mesh.spatial$g2
-    matern.spde2 = inla.spde2.generic(M0 = M0, M1 = M1, M2 = M2, 
-                                      B0 = B.phi0.matern, B1 = B.phi1.matern, B2 = 1, theta.mu = c(0, 0), 
-                                      theta.Q = diag(c(10, 10)))
-
-    matern.spde2 <- inla.spde2.pcmatern(mesh,
-                                        prior.sigma = c(2, 0.01),
-                                        prior.range = c(20, 0.01))
+    fem.mesh <- inla.mesh.fem(mesh, order = 2)
+    M0 = fem.mesh$c0
+    M1 = fem.mesh$g1
+    M2 = fem.mesh$g2
 
     oscillating.spde2 = inla.spde2.generic(M0 = M0, M1 = M1, M2 = M2, 
-                                           B0 = B.phi0.oscillating, B1 = B.phi1.oscillating, B2 = B.phi2.oscillating, theta.mu = c(0, 0, 0), 
+                                           B0 = B.phi0.oscillating, B1 = B.phi1.oscillating, B2 = B.phi2.oscillating, theta.mu = c(0, log(20), -5), 
                                            theta.Q = diag(c(10, 10, 10)), transform = "log")
-    ## 
-    cmp.matern <- coordinates ~ mySPDE(coordinates, model = matern.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
-    fit.matern <- lgcp(cmp.matern, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+    
+    source("rgeneric_models.R")
 
-    spde.range <- spde.posterior(fit.matern, "mySPDE", what = "range")
-    plot(spde.range)
-    pxl <- pixels(mesh, nx=50, ny=50)
-    pr.int <- predict(fit.matern, pxl, ~ exp(mySPDE + Intercept))
+    ## 
+    ## spde2
+    ## 
+    cmp.oscillating.spde2 <- coordinates ~ mySPDE(coordinates, model = oscillating.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+    fit.oscillating.spde2 <- lgcp(cmp.oscillating.spde2, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+
+    ## 
+    ## rgeneric
+    oscillating.rgeneric <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2)) 
+    cmp.oscillating.rgeneric <- coordinates ~ mySPDE(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+    fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+
+    plot(fit.oscillating.spde2$marginals.hyperpar[[1]], type="l", xlim=c(-5,5))
+    lines(fit.oscillating.spde2$marginals.hyperpar[[2]], lty=2)
+    lines(fit.oscillating.spde2$marginals.hyperpar[[3]], lty=2)
+    
+    pxl <- pixels(mesh, nx=1000, ny=1000)
+    pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ mySPDE + Intercept)
+
     library(pals)
     ggplot() +
         gg(pr.int) +
+        gg(mycoords, color="red", size=0.2)+
         scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar")+
+        xlim(0,100)+
+        ylim(0,100)+
         ## gg(mexdolphin$ppoly) +
         ## gg(mexdolphin$samplers, color = "grey") +
         ## gg(mexdolphin$points, size = 0.2, alpha = 1) +
@@ -381,12 +394,16 @@ if(FALSE){
         ## theme(legend.key.width = unit(x = 0.2, "cm"), legend.key.height = unit(x = 0.3, "cm")) +
         ## theme(legend.text = element_text(size = 6)) +
         ## guides(fill = FALSE) +
-        coord_equal()
+        coord_equal() + theme_classic()
+    ## 
+    
+    matern.spde2 <- inla.spde2.pcmatern(mesh,
+                                        prior.sigma = c(2, 0.01),
+                                        prior.range = c(20, 0.01))
     
     ## 
-    cmp.oscillating <- coordinates ~ mySPDE(coordinates, model = oscillating.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
-    fit.oscillating <- lgcp(cmp.oscillating, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
-
+    ## cmp.matern <- coordinates ~ mySPDE(coordinates, model = matern.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+    ## fit.matern <- lgcp(cmp.matern, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))    
 
 }
 

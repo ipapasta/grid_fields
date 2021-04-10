@@ -1,66 +1,122 @@
-reprex({
-    library(INLA)
-    library(inlabru)
-    data("gorillas")
-    mesh   <- gorillas$mesh
-    nests  <- gorillas$nests
-    boundary <- gorillas$boundary
-    fem.mesh.spatial <- inla.mesh.fem(mesh, order = 2)
-    B.phi0.spatial = matrix(c(0,1,0,0), nrow=1)
-    B.phi1.spatial = matrix(c(0,0,1,0), nrow=1)
-    B.phi2.spatial = matrix(c(0,0,0,1), nrow=1)
-    M0 = fem.mesh.spatial$c0
-    M1 = fem.mesh.spatial$g1
-    M2 = fem.mesh.spatial$g2
-    'oscillating.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
-        envir <- parent.env(environment())
-        interpret.theta <- function() {
-            rho     <- exp(theta[1L])
-            kappa   <- sqrt(8)/rho
-            sigma   <- exp(theta[2L])
-            phi     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
-            sincpth <- sqrt(1-phi^2)/acos(phi)
-            tausq   <- 1/(4*pi*(sigma^2)*(kappa^2)*sincpth)
-            z       <- list(tausq = tausq, kappa  = kappa, phi = phi)
-            return(z)
-        }
-        graph <- function(){
-            return(M$M2)
-        }
-        Q <- function() {
-            require(Matrix)
-            param <- interpret.theta()
-            precision <- param$tausq*(param$kappa^2 * M$M0 + 2*param$phi * param$kappa^2 * M$M1 + M$M2)
-            return(precision)
-        }
-        mu <- function() return(numeric(0))
-        log.norm.const <- function() return(numeric(0))
-        log.prior <- function() {        
-            param = interpret.theta()
-            sigmaLN  <- 0.5
-            murho    <- 25
-            rho      <- sqrt(8)/param$kappa
-            sigma    <- sqrt(param$tausq)
-            phi      <- param$phi
-            lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)    
-            lsigma.sp  <- dexp(sigma, 1/2, log = TRUE)
-            lpphi.sp   <- 0 ## prior.phi_osc(phi, a=1, b=20, lg=TRUE)
-            res        <- lpphi.sp + lrho.sp + lsigma.sp
-            return(res)
-        }
-        initial <- function()  return(c(0, 0, 0))
-        quit <- function()  return(invisible())
-        res <- do.call(match.arg(cmd), args = list())
+options("rgdal_show_exportToProj4_warnings"="none")
+## -----------------
+## GORILLAS examples
+## -----------------
+## reprex({
+library(INLA)
+library(inlabru)
+data("gorillas")
+mesh   <- gorillas$mesh
+nests  <- gorillas$nests
+boundary <- gorillas$boundary
+fem.mesh.spatial <- inla.mesh.fem(mesh, order = 2)
+B.phi0.spatial = matrix(c(0,1,0,0), nrow=1)
+B.phi1.spatial = matrix(c(0,0,1,0), nrow=1)
+B.phi2.spatial = matrix(c(0,0,0,1), nrow=1)
+M0 = fem.mesh.spatial$c0
+M1 = fem.mesh.spatial$g1
+M2 = fem.mesh.spatial$g2
+'oscillating.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
+    envir <- parent.env(environment())
+    interpret.theta <- function() {
+        rho     <- exp(theta[1L])
+        kappa   <- sqrt(8)/rho
+        sigma   <- exp(theta[2L])
+        phi     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
+        sincpth <- sqrt(1-phi^2)/acos(phi)
+        tausq   <- 1/(4*pi*(sigma^2)*(kappa^2)*sincpth)
+        z       <- list(tausq = tausq, kappa  = kappa, phi = phi)
+        return(z)
+    }
+    graph <- function(){
+        return(M$M2)
+    }
+    Q <- function() {
+        require(Matrix)
+        param <- interpret.theta()
+        precision <- param$tausq*(param$kappa^2 * M$M0 + 2*param$phi * param$kappa^2 * M$M1 + M$M2)
+        return(precision)
+    }
+    mu <- function() return(numeric(0))
+    log.norm.const <- function() return(numeric(0))
+    log.prior <- function() {        
+        param = interpret.theta()
+        sigmaLN  <- 0.5
+        murho    <- 25
+        rho      <- sqrt(8)/param$kappa
+        sigma    <- sqrt(param$tausq)
+        phi      <- param$phi
+        lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)    
+        lsigma.sp  <- dexp(sigma, 1/2, log = TRUE)
+        lpphi.sp   <- 0 ## prior.phi_osc(phi, a=1, b=20, lg=TRUE)
+        res        <- lpphi.sp + lrho.sp + lsigma.sp
         return(res)
     }
-    oscillating.rgeneric <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2)) #arguments that need to be passed are M0, M1 and M2
-    cmp.rgeneric <- coordinates ~ mySmooth(coordinates, model = f(coordinates, model = oscillating.rgeneric),
-                                           mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
-    fit <- lgcp(cmp.rgeneric, nests, samplers = boundary, domain = list(coordinates = mesh), options=list(verbose = TRUE))
-    traceback()
-},style=TRUE,session_info=TRUE, advertise = FALSE, html_preview    = TRUE,
-comment         = "#;-)", tidyverse_quiet = FALSE, std_out_err     = TRUE
-)
+    initial <- function()  return(c(0, 0, 0))
+    quit <- function()  return(invisible())
+    res <- do.call(match.arg(cmd), args = list())
+    return(res)
+}
+
+
+oscillating.rgeneric <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2)) #arguments that need to be passed are M0, M1 and M2
+cmp.rgeneric <- coordinates ~ mySmooth(coordinates, model = oscillating.rgeneric,
+                                       mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+
+fit <- lgcp(cmp.rgeneric, nests, samplers = boundary, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+
+
+lambda <- predict(fit,
+                  pixels(gorillas$mesh, mask = gorillas$boundary),
+                  ~ exp(mySmooth + Intercept))
+
+
+library(pals)
+ggplot() + 
+    gg(lambda) +
+    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar")+
+    gg(gorillas$nests, color = "red", size = 0.2) +
+    coord_equal() +
+    ggtitle("Nest intensity per km squared")
+
+    ## traceback()
+## }
+
+
+
+## ,style=TRUE,session_info=TRUE, advertise = FALSE, html_preview    = TRUE,
+## comment         = "#;-)", tidyverse_quiet = FALSE, std_out_err     = TRUE
+## )
+
+
+
+## -----------------
+## MRSEA examples
+## -----------------
+
+str(mrsea$points) # this contains the data
+dim(mrsea$points@data)
+head(mrsea$points@data)
+str(mrsea$samplers) #this contains line transects
+dim(mrsea$samplers@data)
+head(mrsea$samplers@data)
+
+mrsea$points@coords %>% dim
+mrsea$samplers@lines
+
+ips <- ipoints(mrsea$samplers, mrsea$mesh, group = "season")
+
+
+ggplot() +
+  ## gg(mrsea$mesh) +
+  ## gg(mrsea$boundary) +
+  ## gg(mrsea$samplers) +
+  gg(mrsea$points, size = 0.5) +
+  coord_fixed() +
+  facet_wrap(~season) +
+  ggtitle("MRSea observation seasons")
+
+
 
 
 

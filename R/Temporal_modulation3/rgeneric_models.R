@@ -1,3 +1,25 @@
+space <- function(time){
+    f <- function(time.scalar){
+        dat <<- data$Ypos
+        wh.start <- max(which(dat$time <= time.scalar))
+        bary <- (dat$time.lead[wh.start] - time.scalar)/(dat$time.lead[wh.start]- dat$time[wh.start])
+        ## bary*dat$time[wh.start]+(1-bary)*dat$time.lead[wh.start]
+        bary*dat$coords[wh.start,] + (1-bary)*dat$coords.lead[wh.start,]
+    }
+    t((Vectorize(f, vectorize.args="time.scalar"))(time))
+}
+
+direction <- function(time){
+    f <- function(time.scalar){
+        dat <<- data$Ypos
+        wh.start <- max(which(dat$time <= time.scalar))
+        bary <- (dat$time.lead[wh.start] - time.scalar)/(dat$time.lead[wh.start]- dat$time[wh.start])
+        ## bary*dat$time[wh.start]+(1-bary)*dat$time.lead[wh.start]
+        bary*dat$hd[wh.start] + (1-bary)*dat$hd.lead[wh.start,]
+    }
+    (Vectorize(f, vectorize.args="time.scalar"))(time)
+}
+
 'oscillating.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
     envir <- parent.env(environment())
     interpret.theta <- function() {
@@ -10,13 +32,11 @@
         z       <- list(tausq = tausq, kappa  = kappa, phi = phi)
         return(z)
     }
-    graph <- function(){
-        return(M$M2)
-    }
+    graph <- function() return(M$M2)
     Q <- function() {
         require(Matrix)
         param <- interpret.theta()
-        precision <- param$tausq*(param$kappa^2 * M$M0 + 2*param$phi * param$kappa^2 * M$M1 + M$M2)
+        precision <- param$tausq*(param$kappa^4 * M$M0 + 2*param$phi * param$kappa^2 * M$M1 + M$M2)
         return(precision)
     }
     mu <- function() return(numeric(0))
@@ -32,7 +52,12 @@
         rho      <- sqrt(8)/param$kappa
         sigma    <- sqrt(param$tausq)
         phi      <- param$phi
-        lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)    
+        ## rho0     <- 30
+        ## lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
+        ## alpha      <- 1-10^(-15)
+        ## lambda.rho <- -log(alpha) * rho0 
+        ## lrho.sp    <- log(lambda.rho) - 2*log(rho) -lambda.rho/rho
+        lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
         lsigma.sp  <- dexp(sigma, 1/2, log = TRUE)
         lpphi.sp   <- prior.phi_osc(phi, a=1, b=20, lg=TRUE)
         res        <- lpphi.sp + lrho.sp + lsigma.sp
@@ -49,6 +74,7 @@
 
 'circular1D.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"),
                                theta = NULL) {
+    envir <- parent.env(environment())
     interpret.theta <- function() {
         kappa    <- exp(theta[1L])
         sigma   <- exp(theta[2L])        
@@ -56,11 +82,11 @@
         z       <- list(kappa  = kappa, tausq = tausq)
         return(z)
     }
-    graph <- function() require(Matrix); return(Q())
+    graph <- function() return(M2)
     Q <- function() {
         require(Matrix)
         param <- interpret.theta()
-        precision <- param$tausq*(param$kappa^2 * M0 + 2 * param$kappa^2 * M1 + M2)
+        precision <- param$tausq*(param$kappa^4 * M0 + 2 * param$kappa^2 * M1 + M2)
         return(precision)
     }
     mu <- function() return(numeric(0))

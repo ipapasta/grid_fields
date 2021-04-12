@@ -154,7 +154,6 @@ T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x,
 ## ---------------------------------------
 ## SpatialPointsDataFrame and SpatialLines
 ## ---------------------------------------
-
 Y.spdf    <- SpatialPointsDataFrame(SpatialPoints(cbind(Y$position_x, Y$position_y)), as.data.frame(Y%>%select(-c(position_x, position_y))))
 Ypos.sldf <- SpatialLinesDataFrame(SpatialLines(lapply(as.list(1:nrow(Ypos)),function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
                                                                                     Ypos$coords.lead[k,1]),
@@ -163,9 +162,8 @@ Ypos.sldf <- SpatialLinesDataFrame(SpatialLines(lapply(as.list(1:nrow(Ypos)),fun
                                                                                   ID=k))),
                                    Ypos %>% select(-c(coords, coords.lead)))
 
-data <- list(Ypos=Ypos, Y=Y, Yspdf=Yspdf, Ypos.sldf = Ypos.sldf)
+data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
-Ypos.sldf
 
 
 
@@ -344,40 +342,96 @@ save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
 ##
 
 if(FALSE){
+    library(inlabru)
     B.phi0.matern = matrix(c(0,1,0), nrow=1)
     B.phi1.matern = matrix(c(0,0,1), nrow=1)
     B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
     B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
     B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
     fem.mesh <- inla.mesh.fem(mesh, order = 2)
+    fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
     M0 = fem.mesh$c0
     M1 = fem.mesh$g1
     M2 = fem.mesh$g2
-
-    oscillating.spde2 = inla.spde2.generic(M0 = M0, M1 = M1, M2 = M2, 
-                                           B0 = B.phi0.oscillating, B1 = B.phi1.oscillating, B2 = B.phi2.oscillating, theta.mu = c(0, log(20), -5), 
-                                           theta.Q = diag(c(10, 10, 10)), transform = "log")
+    M0.hd = fem.mesh.hd$c0
+    M1.hd = fem.mesh.hd$g1
+    M2.hd = fem.mesh.hd$g2
     
     source("rgeneric_models.R")
-
-    ## 
-    ## spde2
-    ## 
-    cmp.oscillating.spde2 <- coordinates ~ mySPDE(coordinates, model = oscillating.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
-    fit.oscillating.spde2 <- lgcp(cmp.oscillating.spde2, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
-
+    
     ## 
     ## rgeneric
-    oscillating.rgeneric <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2)) 
-    cmp.oscillating.rgeneric <- coordinates ~ mySPDE(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
-    fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+    oscillating.rgeneric <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2))
+    circular.rgeneric <- inla.rgeneric.define(circular1D.model, M=list(M0=M0.hd, M1=M1.hd, M2=M2.hd))
+    ## cmp.oscillating.rgeneric <- hd2 + coordinates ~ circular(hd2, model=circular.rgeneric) +
+    ##     mySPDE(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+    cmp.oscillating.rgeneric <- coordinates ~ 
+        spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
+        + Intercept
+    
+    ## +        direction(Y.spdf$hd)
+    ## hd 
+    ## form <- coordinates  ~ spde2 + hd + Intercept 
+    fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh),
+                                     ## formula=form,
+                                     options=list(verbose = TRUE))
 
-    plot(fit.oscillating.spde2$marginals.hyperpar[[1]], type="l", xlim=c(-5,5))
-    lines(fit.oscillating.spde2$marginals.hyperpar[[2]], lty=2)
-    lines(fit.oscillating.spde2$marginals.hyperpar[[3]], lty=2)
+    ## -------------------------------------
+    ## temporal
+    ## -------------------------------------
+    cmp.temporal <- firing_times ~ 
+        temporal(firing_times, model = "ar1", mapper=bru_mapper(mesh1d, indexed=TRUE)) +
+        + Intercept
+    fit.temporal <- lgcp(cmp.temporal, data = Y.spdf, samplers = Ypos.sldf, domain = list(firing_times = mesh1d),
+                                     ## formula=form,
+                         options=list(verbose = TRUE))
+
+    ## -------------------------------------
+    ## directional
+    ## -------------------------------------
+    circular.rgeneric <- inla.rgeneric.define(circular1D.model, M=list(M0=M0.hd, M1=M1.hd, M2=M2.hd))
+    cmp.circular <- hd ~ 
+        directional(hd, model = circular.rgeneric, mapper=bru_mapper(mesh.hd, indexed=TRUE)) +
+        + Intercept
+
+    fit.circular <- lgcp(cmp.circular, data = Y.spdf, samplers = Ypos.sldf, domain = list(hd = mesh.hd),
+                         options=list(verbose = TRUE))
+
+    ## example
+    df.ex <- tibble(x=rnorm(100), y = 0.8 * x + sqrt(1-.8^2)*rnorm(100), th = atan2(y,x) + pi)
+    A.hd <- inla.spde.make.A(mesh = mesh.hd, loc = df.ex$th)
+    indexs <- inla.spde.make.index("dir", mesh.hd$n)
+    stk.e <- inla.stack(
+        tag = "est",
+        data = list(y = df.ex$y),
+        A = list(1, A.hd),
+        effects = list(data.frame(b0 = rep(1, nrow(df.ex))), s = indexs)
+    )
+    formula <- y ~ 0 + b0 + f(dir, model = circular.rgeneric)
+    inla(formula, family="normal",   data = inla.stack.data(stk.e),
+         control.predictor = list(
+             compute = TRUE,
+             A = inla.stack.A(stk.e)
+         ))
+    
+    ## -------------------------------------
+    ## oscillating and temporal - incorrect
+    ## -------------------------------------
+    cmp.oscillating.temporal <- coordinates + firing_times ~
+        spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
+        f(firing_times, model = "ar1", mapper=bru_mapper(mesh1d, indexed=TRUE)) +
+        + Intercept
+    fit.oscillating.temporal <- lgcp(cmp.oscillating.temporal, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh, firing_times = mesh1d),
+                                     ## formula=form,
+                                     options=list(verbose = TRUE))    ## 
+    ## 
+    
+    plot(fit.oscillating.rgeneric$marginals.hyperpar[[1]], type="l", xlim=c(-7,10))
+    lines(fit.oscillating.rgeneric$marginals.hyperpar[[2]], lty=2)
+    lines(fit.oscillating.rgeneric$marginals.hyperpar[[3]], lty=2)
     
     pxl <- pixels(mesh, nx=1000, ny=1000)
-    pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ mySPDE + Intercept)
+    pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ mySPDE)
 
     library(pals)
     ggplot() +
@@ -400,11 +454,27 @@ if(FALSE){
     matern.spde2 <- inla.spde2.pcmatern(mesh,
                                         prior.sigma = c(2, 0.01),
                                         prior.range = c(20, 0.01))
+
+    ## fit.oscillating.rgeneric.no.samplers <- lgcp(cmp.oscillating.rgeneric,
+    ## data = Y.spdf, samplers = NULL, domain = list(coordinates = mesh), options=list(verbose = TRUE))    
+    ## pr.int <- predict(fit.oscillating.rgeneric.no.samplers, pxl, ~ mySPDE + Intercept)
     
     ## 
     ## cmp.matern <- coordinates ~ mySPDE(coordinates, model = matern.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
     ## fit.matern <- lgcp(cmp.matern, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))    
 
+    ## 
+    ## spde2
+    ##
+    oscillating.spde2 = inla.spde2.generic(M0 = M0, M1 = M1, M2 = M2, 
+                                           B0 = B.phi0.oscillating, B1 = B.phi1.oscillating, B2 = B.phi2.oscillating, theta.mu = c(0, log(20), -5), 
+                                           theta.Q = diag(c(10, 10, 10)), transform = "log")
+    cmp.oscillating.spde2 <- coordinates ~ mySPDE(coordinates, model = oscillating.spde2, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
+    fit.oscillating.spde2 <- lgcp(cmp.oscillating.spde2, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh), options=list(verbose = TRUE))
+
+    plot(fit.oscillating.spde2$marginals.hyperpar[[1]], type="l", xlim=c(-5,5))
+    lines(fit.oscillating.spde2$marginals.hyperpar[[2]], lty=2)
+    lines(fit.oscillating.spde2$marginals.hyperpar[[3]], lty=2)
 }
 
 

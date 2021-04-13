@@ -144,7 +144,12 @@ Ypos <- inner_join(Ypos.tmp %>%
 
 
 filter.index  <- do.call("c", Ypos$filter.index)
-## no filter
+
+
+
+## ------------------------------
+## integration weights are T.data
+## ------------------------------
 coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
 HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))
 T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
@@ -205,6 +210,9 @@ Atildeobs    <- inla.spde.make.A(mesh=mesh1d, data$Y$firing_times)
 ## nrow(A)==nrow(At); 92264 each row of above matrices contains
 ## non-zero values at knots wrapping a distinct line segment.
 ## Ck <- sapply(dGamma, function(x) rep(x, 6))
+
+## (coords.trap, HD.data, T.data)
+
 dGamma <- c(do.call("c", Ypos$Li))
 dT  <- diff(T.data)
 Atmp <- as(A, "dgTMatrix")
@@ -216,37 +224,91 @@ At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
 names(A.indices) <- c("tk", "i", "psi.ot") #ot: omega x theta
 names(At.indices) <- c("tk", "l", "psi.t")
 
-df <- full_join(At.indices %>% group_by(tk) %>% nest(),
+
+df.unnest <- full_join(At.indices %>% group_by(tk) %>% nest(),
                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+    arrange(tk) %>%
     ungroup %>% 
-    mutate(dGamma=c(dGamma,0),
-           dGamma.lead = lead(dGamma),
-           dGamma.lag = lag(dGamma),
-           val = pmap(list(data.x, data.y, dGamma), function(x, y, z){
-        oo <- expand.grid(1:nrow(x), 1:nrow(y))
-        ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
-            x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
-        oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val=ooo)
-        oooo
-    })) %>% dplyr::select(-c("data.x", "data.y")) %>%
+    mutate(
+        time = T.data,
+        time.lag = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
+        direction     = HD.data,
+        direction.lag = c(0, HD.data[-length(direction)]),
+        coords = I(coords.trap),
+        coords.lag = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+        dGamma=c(dGamma,0),
+        dGamma.lead = lead(dGamma),
+        dGamma.lag = lag(dGamma),
+        val = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+            oo <- expand.grid(1:nrow(x), 1:nrow(y))
+            ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+            oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val=ooo)
+            oooo
+        }))
+
+df <- df.unnest %>% dplyr::select(-c("data.x", "data.y")) %>%
     unnest(val)
 
+
 df.W <- rbind(df %>% mutate(group=tk,
-                            dGamma.lag=0),
-              df %>% filter(tk!=1) %>%
-              mutate(group=tk-1,
-                     dGamma=0)) %>%
+                            dGamma.lag=0) %>%
+              select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val),
+              df %>% 
+              filter(tk!=1) %>%
+              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                     group=tk-1,
+                     dGamma=0) %>%
+              select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val)) %>%
     arrange(group) %>%
-    mutate(dGamma.trap = dGamma + dGamma.lag)
+    mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
+    ## select(-c(dGamma, dGamma.lead, dGamma.lag))
+
+## print(df.W %>% select(tk,time, group, dGamma, dGamma.lag, dGamma.trap), n=60)
 
 tol <- 0
 df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
     summarize(val = sum(max(dGamma.trap*val, tol)))
-## df.dGamma.sum.k.kplus1$val[df.dGamma.sum.k.kplus1$val==0] <- 1e-16
 
+df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
+    summarize(val = sum(max(dGamma.trap*val, tol)),
+              time = unique(time),
+              direction=unique(direction),
+              coords=unique(coords))
+
+## mesh indices crossed model index to space and direction models indices
+df.dGamma.sum.k.kplus1 <- df.dGamma.sum.kplus1
+
+dim(df.dGamma.sum.k.kplus1)
+dim(df.dGamma.sum.k.kplus1.exp)
+## df.dGamma.sum.k.kplus1$val[df.dGamma.sum.k.kplus1$val==0] <- 1e-16
 ## the integration scheme is stable, which can be achieved by ensuring
 ## positive weights on all basis functions that interact with the
 ## line/curve of integration.
+
+W <- sparseMatrix(i=df.dGamma.sum.k.kplus1$l,
+                  j=df.dGamma.sum.k.kplus1$i,
+                  x=df.dGamma.sum.k.kplus1$val/2)
+
+
+df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+mapindex2space.direction_index <- function(index){    
+    f<-function(index.single){
+        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
+mapindex2space.direction_basis <- function(index){    
+    f<-function(index.single){
+        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
+W.inlabru <- as(W, "dgTMatrix")
+W.inlabru <- data.frame(time=W.inlabru@i+1, spacedir=W.inlabru@j+1, weight=W.inlabru@x)
 
 W <- sparseMatrix(i=df.dGamma.sum.k.kplus1$l,
                   j=df.dGamma.sum.k.kplus1$i,
@@ -372,7 +434,7 @@ if(FALSE){library(inlabru) B.phi0.matern = matrix(c(0,1,0), nrow=1)
     ## samplers.space <- cbind(Ypos.sldf@data$time, Ypos.sldf@data$time.lead)
     ## ips  <- ipoints(samplers.space.direction, mesh1d)
     ## 
-    fit.space <- lgcp(cmp.space, data = Y.spdf@data, samplers = samplers.space, domain = list(firing_times = mesh1d),
+    fit.space <- lgcp(cmp.space, data = Y.spdf@data, domain = list(firing_times = mesh1d),
                       options=list(verbose = TRUE, bru_max_iter=1))
     ## 
 

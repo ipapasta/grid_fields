@@ -35,7 +35,7 @@ source("hessian_osc_temp.R")
 source("llik.R")
 source("marginalposterior.R")
 
-k    <- 3
+k    <- 10
 mesh      <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 ## 
 fem.mesh  <- inla.mesh.fem(mesh, order = 2)
@@ -178,7 +178,7 @@ data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
 
 ## circular domain and temporal domain meshes
-mesh1d  <- inla.mesh.1d(loc=T.data[seq(1, length(T.data), by = 300)], order=2)
+mesh1d  <- inla.mesh.1d(loc=c(T.data[seq(1, length(T.data), by = 300)], T.data[length(T.data)]), order=2)
 print(paste("mesh1d:", head(diff(mesh1d$loc))))
 
 ## POSITIONAL - Used for INTEGRAL
@@ -341,22 +341,16 @@ save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
 ## inlabru implementation
 ##
 
-if(FALSE){
-    library(inlabru)
-    B.phi0.matern = matrix(c(0,1,0), nrow=1)
+if(FALSE){library(inlabru) B.phi0.matern = matrix(c(0,1,0), nrow=1)
+
     B.phi1.matern = matrix(c(0,0,1), nrow=1)
     B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
     B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
     B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
     fem.mesh <- inla.mesh.fem(mesh, order = 2)
     fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
-    M0 = fem.mesh$c0
-    M1 = fem.mesh$g1
-    M2 = fem.mesh$g2
-    M0.hd = fem.mesh.hd$c0
-    M1.hd = fem.mesh.hd$g1
-    M2.hd = fem.mesh.hd$g2
-    
+    M0 = fem.mesh$c0; M1 = fem.mesh$g1; M2 = fem.mesh$g2
+    M0.hd = fem.mesh.hd$c0; M1.hd = fem.mesh.hd$g1; M2.hd = fem.mesh.hd$g2
     source("rgeneric_models.R")
     
     ## 
@@ -367,7 +361,44 @@ if(FALSE){
     ##     mySPDE(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
     cmp.oscillating.rgeneric <- coordinates ~ 
         spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
-        + Intercept
+        Intercept
+
+    ## cmp.oscillating.rgeneric <- firing_times ~ spde2(space(firing_times), model=oscillating.rgeneric, ..., mapper=...) + temporal(firing_times, model="OU??")
+
+    space.rgeneric <- inla.rgeneric.define(oscillating.model,
+                                            M=list(M0.space=M0, M1.space=M1, M2.space=M2))
+    cmp.space <- firing_times ~ spde2(space(firing_times), model=space.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) ## +
+        ## time(firing_times, model="ou")
+    ## samplers.space <- cbind(Ypos.sldf@data$time, Ypos.sldf@data$time.lead)
+    ## ips  <- ipoints(samplers.space.direction, mesh1d)
+    ## 
+    fit.space <- lgcp(cmp.space, data = Y.spdf@data, samplers = samplers.space, domain = list(firing_times = mesh1d),
+                      options=list(verbose = TRUE, bru_max_iter=1))
+    ## 
+
+    
+
+    ##
+    space.direction <- inla.rgeneric.define(space.direction.model,
+                                            M=list(M0.space=M0, M1.space=M1, M2.space=M2,
+                                                   M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
+    cmp.space.direction <- firing_times ~
+        spde2(list(spatial=space(firing_times), direction=direction(firing_times)), model=space.direction,
+              mapper=bru_mapper_multi(list(direction=bru_mapper(mesh.hd, indexed=TRUE), spatial=bru_mapper(mesh,indexed=TRUE)))) +
+        time(firing_times, model="ou")
+
+    samplers.space.direction <- cbind(Ypos.sldf@data$time, Ypos.sldf@data$time.lead)
+    ips  <- ipoints(samplers.space.direction, mesh1d)
+
+    fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf, samplers = samplers.space.direction, domain = list(firing_times = mesh1d),
+                                     options=list(verbose = TRUE, bru_max_iter=1))
+    ## 
+    
+    ## space takes a vector of firing times and outputs a two-column matrix corresponding to those times.
+    ## space(firing_times, ...) check ... or fetch data from global environment.
+    
+    ## spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
+    ## Intercept
     
     ## +        direction(Y.spdf$hd)
     ## hd 
@@ -375,17 +406,22 @@ if(FALSE){
     fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, samplers = Ypos.sldf, domain = list(coordinates = mesh),
                                      ## formula=form,
                                      options=list(verbose = TRUE))
-
-    ## -------------------------------------
-    ## temporal
+    ## ------------------------------------------------------- if you
+    ## give ips then you don't need samplers and  domain stands
+    ## for integration domain - used to construct integration
+    ## scheme. First take domain and samplers (subintervals).
+    ## By default it would put integral
+    ## -------------------------------------------------------
+    ## ------------------------------------- temporal
     ## -------------------------------------
     cmp.temporal <- firing_times ~ 
         temporal(firing_times, model = "ar1", mapper=bru_mapper(mesh1d, indexed=TRUE)) +
         + Intercept
-    fit.temporal <- lgcp(cmp.temporal, data = Y.spdf, samplers = Ypos.sldf, domain = list(firing_times = mesh1d),
+    fit.temporal <- lgcp(cmp.temporal, data = Y.spdf, samplers = matrix(c(0, max(Y$firing_times)), nrow=1), domain = list(firing_times = mesh1d),
                                      ## formula=form,
                          options=list(verbose = TRUE))
-
+    ## samplers a matrix for temporal process (each row codes an interval in time )
+    ## if formula is coordinates ~ . (tells that predictor is linear)
     ## -------------------------------------
     ## directional
     ## -------------------------------------
@@ -397,22 +433,6 @@ if(FALSE){
     fit.circular <- lgcp(cmp.circular, data = Y.spdf, samplers = Ypos.sldf, domain = list(hd = mesh.hd),
                          options=list(verbose = TRUE))
 
-    ## example
-    df.ex <- tibble(x=rnorm(100), y = 0.8 * x + sqrt(1-.8^2)*rnorm(100), th = atan2(y,x) + pi)
-    A.hd <- inla.spde.make.A(mesh = mesh.hd, loc = df.ex$th)
-    indexs <- inla.spde.make.index("dir", mesh.hd$n)
-    stk.e <- inla.stack(
-        tag = "est",
-        data = list(y = df.ex$y),
-        A = list(1, A.hd),
-        effects = list(data.frame(b0 = rep(1, nrow(df.ex))), s = indexs)
-    )
-    formula <- y ~ 0 + b0 + f(dir, model = circular.rgeneric)
-    inla(formula, family="normal",   data = inla.stack.data(stk.e),
-         control.predictor = list(
-             compute = TRUE,
-             A = inla.stack.A(stk.e)
-         ))
     
     ## -------------------------------------
     ## oscillating and temporal - incorrect
@@ -430,8 +450,8 @@ if(FALSE){
     lines(fit.oscillating.rgeneric$marginals.hyperpar[[2]], lty=2)
     lines(fit.oscillating.rgeneric$marginals.hyperpar[[3]], lty=2)
     
-    pxl <- pixels(mesh, nx=1000, ny=1000)
-    pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ mySPDE)
+    pxl <- pixels(mesh, nx=500, ny=500)
+    pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ spde2)
 
     library(pals)
     ggplot() +
@@ -439,21 +459,15 @@ if(FALSE){
         gg(mycoords, color="red", size=0.2)+
         scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar")+
         xlim(0,100)+
-        ylim(0,100)+
-        ## gg(mexdolphin$ppoly) +
-        ## gg(mexdolphin$samplers, color = "grey") +
-        ## gg(mexdolphin$points, size = 0.2, alpha = 1) +
-        ## noyticks +
-        ## noxticks +
-        ## theme(legend.key.width = unit(x = 0.2, "cm"), legend.key.height = unit(x = 0.3, "cm")) +
-        ## theme(legend.text = element_text(size = 6)) +
-        ## guides(fill = FALSE) +
+        ylim(0,100)+   
         coord_equal() + theme_classic()
     ## 
     
     matern.spde2 <- inla.spde2.pcmatern(mesh,
                                         prior.sigma = c(2, 0.01),
                                         prior.range = c(20, 0.01))
+
+
 
     ## fit.oscillating.rgeneric.no.samplers <- lgcp(cmp.oscillating.rgeneric,
     ## data = Y.spdf, samplers = NULL, domain = list(coordinates = mesh), options=list(verbose = TRUE))    
@@ -481,74 +495,6 @@ if(FALSE){
 
 
 
-## opt.theta.copyla <- cobyla(x0=opt.theta$par, fn = pthetapc.prop.marg.post_osc_temp, data=data, 
-##                            X=Xest, Z=Zest, beta=betaest,
-##                            mesh=mesh, mesh.theta=mesh.hd, mesh1d=mesh1d,
-##                            A=A, Atilde=Atilde, Aobs=Aobs, Atildeobs=Atildeobs,
-##                            W=W, acc=1e-3,
-##                            print.verbose=FALSE,
-##                            control = list(xtol_rel = 1e-4, maxeval = 2000))
-
-## opt.theta.full.mle <- opt.theta
-
- ## opt.theta
-## $par
-## [1]  3.1495294 -0.7172584 -4.5455201  2.9199646 -0.1594968  1.7720353 -0.2435957
-
-## $value
-## [1] 8045.094
-
-## $counts
-## function gradient 
-##      328       NA 
-
-## $convergence
-## [1] 0
-
-## $message
-## NULL
-
-## opt.theta.no.prior 
-## opt.theta.no.prior
-## $par
-## [1]  3.1336597 -0.6915424 -4.0642065  2.4643263  0.1568164  1.4272924 -0.7964659
-
-## $value
-## [1] 3690.094
-
-## $counts
-## function gradient 
-##      570       NA 
-
-## $convergence
-## [1] 0
-
-## $message
-## NULL
-
-
-## opt.theta.strong.prior
-## $par
-## [1]  3.136220401 -0.389107783 -3.818003347  1.805182245  0.009856284
-## [6]  1.340381863 -0.824562382
-
-## $value
-## [1] 3707.501
-
-## $counts
-## function gradient 
-##      714       NA 
-
-## $convergence
-## [1] 0
-
-## $message
-## NULL
-
-
-
-
-
 
 ## theta.hd <- seq(2.5,7.5,len=5)
 ## theta.temp <- seq(1,10,len=10)
@@ -570,81 +516,6 @@ for(i in 1:length(theta.rho)){
                                                     W=W, 
                                                     acc=1e-3)    
 }
-
-
-## theta.rho.hd <- seq(5, 8, len=5)
-## theta.rho.temp <- seq(3, 6, len=5)
-## par.theta.profile <- c(log(22.898),
-##                        log(0.9002),
-##                        -log((1-(-0.954))/(1+(-0.954))),
-##                        log(6.203),
-##                        log(0.757),
-##                        log(3.852),
-##                        log(0.438))
-
-## mat.prof  <- matrix(0, nrow=nrow(theta.rho.hd), ncol=nrow(theta.rho.temp))
-## for(i in 1:length(theta.rho)){
-##     par.theta.profile <- c(log(21),
-##                            log(1.2),
-##                            -log((1-(-0.99))/(1+(-0.99))),
-##                            log(5),
-##                            log(0.9),
-##                            log(3.5),
-##                            log(0.5))
-##     mat.prof[i,j] <- pthetapc.prop.marg.post_osc_temp(par.theta.profile, data=data, 
-##                                                     X=Xinit, Z=Zinit, beta=betaest,
-##                                                     mesh=mesh, mesh.theta=mesh.hd, mesh1d=mesh1d,
-##                                                     A=A, Atilde=Atilde, Aobs=Aobs, Atildeobs=Atildeobs,
-##                                                     W=W, 
-##                                                     acc=1e-3)    
-## }
-
-## ## rho is:   sigma is:  phi is:   rho_hd is:   sigma_hd is:  rho_temporal is:   sigma_temporal is:  
-
-## plot(theta.var, val.prof)
-
-## plot(theta.var, val.prof)
-
-## logrhol    <- log(10)
-## logsigmaU  <- log(1) #                                                                                                                              
-## alpha1     <- .001                                                                                                                                  
-## alpha2     <- 1e-6                                                                                                                                  
-## logrho.tempL    <- log(10)                                                                                                                          
-## logsigma.tempU  <- log(1) #                                                                                                                         
-## alphaT1     <- .001                                                                                                                                 
-## alphaT2     <- 1e-6
-## hyperpar   <- list(alpha1=alpha1, alpha2=alpha2, rhoL=exp(logrhoL), sigmaU=exp(logsigmaU),
-##                    alphaT1=alphaT1, alphaT2=alphaT2, rho.tempL=exp(logrho.tempL), sigma.tempU=exp(logsigma.tempU))
-## ## par=par.theta
-
-## fn = pthetapc.prop.marg.post_osc_temp; hyperpar=hyperpar; data=data
-## X=Xinit; Z=Zinit; beta=betaest; mesh=mesh; mesh.theta=mesh.hd; mesh1d=mesh1d; A=A; Atilde=Atilde; Aobs=Aobs; Atildeobs=Atildeobs;
-## W=W;  acc=1e-3; print.verbose=TRUE; control=list(maxit=1000)
-
-## save(opt.theta, file="fitted_model.RData")
-
-## if(FALSE){
-##         ## multiplicities for trapezoidal rule
-##         intermediate.knots <- cbind(do.call("rbind",Ypos$sp)[filter.index,1][-1] -
-##                                     do.call("rbind",Ypos$ep)[filter.index,1][-sum(filter.index)])
-##         functions.multiplicity <- intermediate.knots
-
-##         for(i in 1:length(functions.multiplicity)) {
-##             if(i==1){
-##                 if(functions.multiplicity[i]!=0) functions.multiplicity[i] <- 1
-##                 else functions.multiplicity[i] <- 2
-##             }else{
-##                 if(functions.multiplicity[i]!=0) {
-##                     functions.multiplicity[i] <- 1
-##                     functions.multiplicity[i-1] <- 1} else{
-##                                                         functions.multiplicity[i] <- 2
-##                                                     }
-##             }
-##         }
-
-##         functions.multiplicity <- c(1, functions.multiplicity, 1)
-## }
-
 
 
 

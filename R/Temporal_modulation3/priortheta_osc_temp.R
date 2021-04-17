@@ -18,16 +18,16 @@ prior.theta_osc_temp <- function(rho, sigma, phi,
     sigmaLN <- 0.5
     murho   <- 25
     lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)    
-    lsigma.sp  <- dgamma(sigma, 2, 2, log = TRUE)
-    lpphi.sp   <- prior.phi_osc(phi, a=3, b=30, lg=TRUE)
+    lsigma.sp  <- dexp(sigma, 1/2, log = TRUE)
+    lpphi.sp   <- prior.phi_osc(phi, a=1, b=20, lg=TRUE)
             ## l2.sp <- -log(alpha2)/sigmaU
         ## log(l2.sp) - l2.sp*sigma
     ## ---------------
     ## directional
     ## ---------------
-    murho.hd   <- 2*pi/3
-    sigmaLN.hd <- .25
-    lrho.hd    <- dexp(rho.hd, 2, log=TRUE)
+    ## murho.hd   <- 2*pi/3
+    ## sigmaLN.hd <- .25
+    lrho.hd    <- dexp(rho.hd, 1/pi, log=TRUE)
     ## dlnorm(rho.hd, log(murho.hd), sigmaLN.hd, log=TRUE)
     lsigma.hd  <- dexp(sigma.hd, 1, log = TRUE)
     ## l2.hd <- -log(alphahd2)/sigmaU.hd
@@ -37,7 +37,7 @@ prior.theta_osc_temp <- function(rho, sigma, phi,
     ## ---------------
     murho.temp   <- 7
     sigmaLN.temp <- 1
-    lrho.temp    <- dexp(rho.temp, 1/2)## dlnorm(rho.temp, log(murho.temp), sigmaLN.temp, log=TRUE)    
+    lrho.temp    <- dexp(rho.temp, 1/4, log=TRUE)## dlnorm(rho.temp, log(murho.temp), sigmaLN.temp, log=TRUE)    
     lsigma.temp  <- dexp(sigma.temp, 1, log = TRUE)
     ## l2.temp      <- -log(alphaT2)/sigmaU.temp
     ## lsigma.temp  <- log(l2.temp) - l2.temp*sigma.temp

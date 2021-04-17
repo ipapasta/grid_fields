@@ -48,7 +48,7 @@
         lrho.space    <- dlnorm(param$rho.space, log(murho), sigmaLN, log=TRUE)
         lsigma.space  <- dexp(sigma.space, 1/2, log = TRUE)
         lpphi.space   <- prior.phi_osc(phi.space, a=1, b=20, lg=TRUE)
-        lrho.direction    <- dexp(param$rho.direction, 1/pi, log=TRUE)        
+        lrho.direction    <- dexp(param$rho.direction, 1/(2*pi), log=TRUE)        
         lsigma.direction  <- dexp(sigma.direction, 1, log = TRUE)
         res        <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction
         return(res)

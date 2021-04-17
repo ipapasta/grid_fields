@@ -543,7 +543,7 @@ if(FALSE){
                     A_w <- INLA::inla.spde.make.A(domain, int_loc, 
                                                   weights = int_w * (int_loc >= min(subsamplers)) * 
                                                       (int_loc <= max(subsamplers)))
-                    ips[[j]] <- data.frame(loc = domain$loc, weight = colSums(A_w))
+                    ips[[j]] <- data.frame(loc = domain$loc, weight = Matrix::colSums(A_w))
                 }
                 else {
                     inside <- (int_loc >= min(subsamplers)) & (int_loc <= 

@@ -1,11 +1,6 @@
-* Grid-Fields
+* TODO Grid-Fields
 
-** Background
-*** History
-*** Literature review
-** Point process models
-*** Preliminaries and notation
-** Covariance functions
-*** Oscillating covariance functions
-*** Periodic covariance functions
-*** Separable covariance
+
+
+- State "TODO"       from              [2021-04-17 Sat 11:57] \\
+  add formatting_data.html output

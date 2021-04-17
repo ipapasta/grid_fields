@@ -391,18 +391,82 @@ if(FALSE){
                                      domain = list(firing_times = mesh1d),
                                      options=list(verbose = TRUE, bru_max_iter=1))
 
-    plot(fit.space.direction.time$marginals.hyperpar[[1]], type="l", xlim=c(-7,25))
-    lines(fit.space.direction.time$marginals.hyperpar[[2]], lty=2)
-    lines(fit.space.direction.time$marginals.hyperpar[[3]], lty=2)
-    lines(fit.space.direction.time$marginals.hyperpar[[4]], lty=2)
-    lines(fit.space.direction.time$marginals.hyperpar[[5]], lty=2)
-    lines(fit.space.direction.time$marginals.hyperpar[[6]], lty=2)
-    lines(fit.space.direction.time$marginals.hyperpar[[7]], lty=2)
+    save(fit.space.direction.time, file="sdt_inlabru.RData")
 
+    plot(fit.space.direction.time$marginals.hyperpar[[1]], type="l")
+    sigmaLN  <- 1; murho    <- 30
+    lines(seq(0,100,len=100), dlnorm(seq(0,100,len=100), sigmaLN, log=FALSE), lty=2)
+    ##
+    plot(fit.space.direction.time$marginals.hyperpar[[2]], type="l")
+    lines(seq(0,10,len=100), dexp(seq(0,10,len=100), 1/2, log = FALSE), lty=2)
+    ## 
+    plot(fit.space.direction.time$marginals.hyperpar[[3]], type="l")
+    lines(seq(-1,1,len=100), prior.phi_osc(seq(-1,1,len=100), a=1, b=20, lg=FALSE), lty=2)
+    ## 
+    plot(fit.space.direction.time$marginals.hyperpar[[4]], type="l")
+    lines(seq(0,10,len=100), dexp(seq(0,10,len=100), 1/(2*pi), log = FALSE), lty=2)
+    ## 
+    plot(fit.space.direction.time$marginals.hyperpar[[5]], lty=2, type="l")
+    lines(seq(0,10,len=100), dexp(seq(0,10,len=100), 1, log = FALSE), lty=2)
+    ## 
+    plot(fit.space.direction.time$marginals.hyperpar[[6]], type="l")
+    lines(seq(0,200,len=100), dexp(seq(0,200,len=100), 1/100, log=TRUE), lty=2)
+    ## 
+    plot(fit.space.direction.time$marginals.hyperpar[[7]], type="l")
+    lines(seq(0,10,len=100), dexp(seq(0,10,len=100), 1/3, log = FALSE), lty=2)
+
+
+    ##
+    slack <- 5
+    maxx  <- max(pos.coords[,"x"]+slack)
+    maxy  <- max(pos.coords[,"y"]+slack)
+    minx  <- min(pos.coords[,"x"]-slack)
+    miny  <- min(pos.coords[,"y"]-slack)
+    N      <- 100
+    coords  <- expand.grid(seq(minx, maxx, len=N), seq(miny, maxy, len=N))
+    coords  <- matrix(rep(c(40,45),N*N), ncol=2,byrow=TRUE)
+    times   <- rep(10,N*N)
+    dir     <- seq(0,2*pi, length=N*N)
+    dat.2.predict <- data.frame(firing_times=times, hd=dir, coords.x1=coords[,1], coords.x2=coords[,2])
+    pr.int.full <- predict(fit.space.direction.time, dat.2.predict, ~ Intercept + spde2 + time)
+    pr.int.full <- predict(fit.space.direction.time, NULL, ~ spde2_eval(coords, dir) + time_eval(times))
+    pr.int.full <- predict(fit.space.direction.time, NULL, ~ spde2_eval(coords, dir) + time_eval(times))
+
+    p1 <- ggplot(pr.int.full) + 
+        geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+
+        scale_x_continuous(breaks=seq(0,2*pi - pi/3,pi/3),
+                           labels=paste0(0:5,expression("pi"),"/",3)) +
+        scale_y_continuous(breaks=seq(-3.5,3.5, by=0.5), limits=c(-3.5, 3.5))+
+        geom_line(aes(x=hd, y=mean)) +
+        geom_hline(yintercept=0, colour="grey")+
+        coord_polar(start = pi, direction=1) + theme_minimal()
+
+    p2<- ggplot(pr.int.full) + 
+        geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+
+        geom_line(aes(x=hd, y=mean)) +
+        geom_hline(yintercept=0, colour="grey")+
+        coord_fixed()+
+        theme_minimal()
+
+    grid.arrange(p1,p2, nrow=1)
+    
+    pr.int.full <- predict(fit.space.direction.time, NULL, ~ c(Intercept = Intercept_latent))
+    pr.int <- predict(fit.space.direction.time, NULL, ~ spde2_eval(coords, dir) + time_eval(times))
+    pr.int <- predict(fit.space.direction.time,NULL, ~ Intercept + spde2(coords))
+    p3  <- ggplot(pr.int.full, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
+        scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
+                             limits=c(min(pr.int.full$mean),max(pr.int.full$mean)))+
+        coord_fixed()+ 
+        theme_classic() + theme(legend.text=element_text(size=11))
+    ## 
     
     pxl <- pixels(mesh, nx=500, ny=500)
+
+    
     pr.int <- predict(fit.space.rgeneric, pxl, ~ spde2)
 
+    pr.int <- predict(fit.space.direction.time, pxl, ~ spde2) 
+    
     library(pals)
     ggplot() +
         gg(pr.int) +

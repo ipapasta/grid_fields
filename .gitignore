@@ -8,7 +8,6 @@
 *.eps
 /.DS_Store
 /R/HD/
-/R/data/
 /R/.DS_Store
 /R/Matern/.DS_Store
 /R/Temporal_modulation/.Rhistory

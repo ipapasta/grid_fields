@@ -338,8 +338,8 @@ par.theta <- c(log(21.77),
                log(23.36),
                log(0.79))
 
-
-
+## old implementation
+if(FALSE){
 opt.theta <- optim(par=par.theta, fn = pthetapc.prop.marg.post_osc_temp, data=data, 
                    X=Xinit, Z=Zinit, beta=betainit,
                    mesh=mesh, mesh.theta=mesh.hd, mesh1d=mesh1d,
@@ -349,6 +349,42 @@ opt.theta <- optim(par=par.theta, fn = pthetapc.prop.marg.post_osc_temp, data=da
                    control=list(maxit=5000))
 
 save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
+}
+
+library(inlabru)
+B.phi0.matern = matrix(c(0,1,0), nrow=1)
+B.phi1.matern = matrix(c(0,0,1), nrow=1)
+B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
+B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
+B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
+fem.mesh    <- inla.mesh.fem(mesh, order = 2)
+fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
+fem.mesh.temporal <- inla.mesh.fem(mesh1d, order = 2)
+M0 = fem.mesh$c0; M1 = fem.mesh$g1; M2 = fem.mesh$g2
+M0.temporal = fem.mesh.temporal$c0; M1.temporal = fem.mesh.temporal$g1; M2.temporal = fem.mesh.temporal$g2
+M0.hd = fem.mesh.hd$c0; M1.hd = fem.mesh.hd$g1; M2.hd = fem.mesh.hd$g2
+source("rgeneric_models.R")
+
+
+## space-directional + temporal
+space.direction <- inla.rgeneric.define(space.direction.model,
+                                        M=list(M0.space=M0, M1.space=M1, M2.space=M2,
+                                               M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
+## 
+temporal <- inla.rgeneric.define(temporal.model,
+                                 M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal))
+## 
+cmp.space.direction.time <- firing_times ~
+    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction,
+          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
+    time(firing_times, model=temporal, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
+
+fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(Y.spdf),
+                                 ips=W.ipoints,
+                                 domain = list(firing_times = mesh1d),
+                                 options=list(
+                                     num.threads=8,
+                                     verbose = TRUE, bru_max_iter=1))
 
 
 
@@ -357,42 +393,8 @@ save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
 ## -------------------------------------------------------------------------
 
 if(FALSE){
-
-    library(inlabru)
-    B.phi0.matern = matrix(c(0,1,0), nrow=1)
-    B.phi1.matern = matrix(c(0,0,1), nrow=1)
-    B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
-    B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
-    B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
-    fem.mesh    <- inla.mesh.fem(mesh, order = 2)
-    fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
-    fem.mesh.temporal <- inla.mesh.fem(mesh1d, order = 2)
-    M0 = fem.mesh$c0; M1 = fem.mesh$g1; M2 = fem.mesh$g2
-    M0.temporal = fem.mesh.temporal$c0; M1.temporal = fem.mesh.temporal$g1; M2.temporal = fem.mesh.temporal$g2
-    M0.hd = fem.mesh.hd$c0; M1.hd = fem.mesh.hd$g1; M2.hd = fem.mesh.hd$g2
-    source("rgeneric_models.R")
-    
-
-    ## space-directional + temporal
-    space.direction <- inla.rgeneric.define(space.direction.model,
-                                            M=list(M0.space=M0, M1.space=M1, M2.space=M2,
-                                                   M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
-    ## 
-    temporal <- inla.rgeneric.define(temporal.model,
-                                     M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal))
-    ## 
-    cmp.space.direction.time <- firing_times ~
-        spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction,
-              mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
-        time(firing_times, model=temporal, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
-
-    fit.space.direction.time <- lgcp(cmp.space.direction, data = as.data.frame(Y.spdf),
-                                     ips=W.ipoints,
-                                     domain = list(firing_times = mesh1d),
-                                     options=list(verbose = TRUE, bru_max_iter=1))
-
     save(fit.space.direction.time, file="sdt_inlabru.RData")
-
+    ## 
     plot(fit.space.direction.time$marginals.hyperpar[[1]], type="l")
     sigmaLN  <- 1; murho    <- 30
     lines(seq(0,100,len=100), dlnorm(seq(0,100,len=100), sigmaLN, log=FALSE), lty=2)

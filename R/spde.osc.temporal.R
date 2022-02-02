@@ -3,10 +3,6 @@
 ##
 ## set.seed(111086) 
 ## !! quilt.plot
-## 
-## load packages
-##
-counter <- 0
 ## sim     <- FALSE
 ## library(Rcpp)
 library(tidyverse)
@@ -17,6 +13,7 @@ library(inlabru)
 library(sp)
 library(fields)
 library(nloptr)
+library(pals)
 ## require(rgdal, quietly=TRUE)
 ## scp -r /home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/R/* ipapasta@xserver2.maths.ed.ac.uk:/home/ipapasta/Software/R/grid_fields/R/
 ## 
@@ -26,36 +23,36 @@ source("load_data.R")
 source("Functions.R")
 source("osc_precision.R")
 source("hd_precision.R")
-source("objective.R")
+## source("objective.R")
 source("temp_precision.R")
-source("priorbetaXZ_osc_temp.R")
-source("priortheta_osc_temp.R")              
-source("gradient_osc_temp.R")
-source("hessian_osc_temp.R")
-source("llik.R")
-source("marginalposterior.R")
+## source("priorbetaXZ_osc_temp.R")
+## source("priortheta_osc_temp.R")              
+## source("gradient_osc_temp.R")
+## source("hessian_osc_temp.R")
+## source("llik.R")
+## source("marginalposterior.R")
 
 k    <- 5
 mesh      <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 ## 
 fem.mesh  <- inla.mesh.fem(mesh, order = 2)
-Bspatial.phi0 = matrix(c(0,1,0,0), nrow=1)
-Bspatial.phi1 = matrix(c(0,0,1,0), nrow=1)
-Bspatial.phi2 = matrix(c(0,0,0,1), nrow=1)
-M0.spatial = fem.mesh$c0 # C
-M1.spatial = fem.mesh$g1
-M2.spatial = fem.mesh$g2
+## Bspatial.phi0 = matrix(c(0,1,0,0), nrow=1)
+## Bspatial.phi1 = matrix(c(0,0,1,0), nrow=1)
+## Bspatial.phi2 = matrix(c(0,0,0,1), nrow=1)
+## M0.spatial = fem.mesh$c0 # C
+## M1.spatial = fem.mesh$g1
+## M2.spatial = fem.mesh$g2
 ## 
 p         <- mesh$n                         
 theta.nodes <- seq(0, 2*pi, len=30)
 mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
 fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
 ##
-Bhd.phi0 = matrix(c(0,1,0), nrow=1)
-Bhd.phi1 = matrix(c(0,0,1), nrow=1)
-M0.hd = fem.mesh.hd$c0
-M1.hd = fem.mesh.hd$g1
-M2.hd = fem.mesh.hd$g2
+## Bhd.phi0 = matrix(c(0,1,0), nrow=1)
+## Bhd.phi1 = matrix(c(0,0,1), nrow=1)
+## M0.hd = fem.mesh.hd$c0
+## M1.hd = fem.mesh.hd$g1
+## M2.hd = fem.mesh.hd$g2
 ## 
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
@@ -159,13 +156,13 @@ T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x,
 ## ---------------------------------------
 ## SpatialPointsDataFrame and SpatialLines
 ## ---------------------------------------
-Y.spdf    <- SpatialPointsDataFrame(SpatialPoints(cbind(Y$position_x, Y$position_y)), as.data.frame(Y%>%select(-c(position_x, position_y))))
+Y.spdf    <- SpatialPointsDataFrame(SpatialPoints(cbind(Y$position_x, Y$position_y)), as.data.frame(Y%>%dplyr::select(-c(position_x, position_y))))
 Ypos.sldf <- SpatialLinesDataFrame(SpatialLines(lapply(as.list(1:nrow(Ypos)),function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
                                                                                     Ypos$coords.lead[k,1]),
                                                                                   c(Ypos$coords[k,2],
                                                                                     Ypos$coords.lead[k,2])))),
                                                                                   ID=k))),
-                                   Ypos %>% select(-c(coords, coords.lead)))
+                                   Ypos %>% dplyr::select(-c(coords, coords.lead)))
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
@@ -253,13 +250,13 @@ df <- df.unnest %>% dplyr::select(-c("data.x", "data.y")) %>%
 
 df.W <- rbind(df %>% mutate(group=tk,
                             dGamma.lag=0) %>%
-              select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val),
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val),
               df %>% 
               filter(tk!=1) %>%
               mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
                      group=tk-1,
                      dGamma=0) %>%
-              select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val)) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val)) %>%
     arrange(group) %>%
     mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
     ## select(-c(dGamma, dGamma.lead, dGamma.lag))
@@ -281,9 +278,6 @@ df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
 ## positive weights on all basis functions that interact with the
 ## line/curve of integration.
 
-## W <- sparseMatrix(i=df.dGamma.sum.k.kplus1$l,
-##                   j=df.dGamma.sum.k.kplus1$i,
-##                   x=df.dGamma.sum.k.kplus1$val/2) 
 
 
 ## Include arguments in functions
@@ -307,80 +301,120 @@ mapindex2space.direction_basis <- function(index){
 W <- sparseMatrix(i=df.dGamma.sum.k.kplus1$l,
                   j=df.dGamma.sum.k.kplus1$i,
                   x=df.dGamma.sum.k.kplus1$val/2)
-
 W         <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(A)-ncol(W)))
-W.ipoints <- as(W, "dgTMatrix")
-W.ipoints <- data.frame(firing_times=mesh1d$loc[W.ipoints@i+1], hd=mapindex2space.direction_basis(W.ipoints@j+1)[,1],
-                        coords.x1 =mapindex2space.direction_basis(W.ipoints@j+1)[,2],
-                        coords.x2 =mapindex2space.direction_basis(W.ipoints@j+1)[,3],
-                        weight=W.ipoints@x) %>% arrange(firing_times)
-
-load("modelfit.RData")
-Xest       <-   Xinit    <- Matrix(rep(0, ncol(A)), ncol=1)
-Zest       <-   Zinit    <- Matrix(rep(0, mesh1d$n), ncol=1)
-
-betaest       <-   betainit <- 0
-## nrow(Y)/sum((Ypos %>% mutate(speed.lead = lead(speed), dt=c(diff(time)[1], diff(time) ))  %>%
-##            head(-1) %>%
-##            mutate(val=dt*((speed + speed.lead)/2)))$val)
-                                        #(number of firing events)/
-                                        #(\int_\Gamma ds)
-gradest       <- NULL
-Hessianest    <- NULL
+W.ipoints.M2 <- as(W, "dgTMatrix")
+W.ipoints.M2 <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2@i+1], hd=mapindex2space.direction_basis(W.ipoints.M2@j+1)[,1],
+                        coords.x1 =mapindex2space.direction_basis(W.ipoints.M2@j+1)[,2],
+                        coords.x2 =mapindex2space.direction_basis(W.ipoints.M2@j+1)[,3],
+                        weight=W.ipoints.M2@x) %>% arrange(firing_times)
 
 
-set.seed(111086)
-par.theta <- c(log(21.77),
-               log(0.48),
-               -log((1-(-0.91))/(1+(-0.91))),
-               log(3.23),
-               log(3.01),
-               log(23.36),
-               log(0.79))
 
-## old implementation
-if(FALSE){
-opt.theta <- optim(par=par.theta, fn = pthetapc.prop.marg.post_osc_temp, data=data, 
-                   X=Xinit, Z=Zinit, beta=betainit,
-                   mesh=mesh, mesh.theta=mesh.hd, mesh1d=mesh1d,
-                   A=A, Atilde=Atilde, Aobs=Aobs, Atildeobs=Atildeobs,
-                   W=W, acc=1e-2,
-                   print.verbose=TRUE,
-                   control=list(maxit=5000))
 
-save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
-}
-
-library(inlabru)
+## the following B matrices are intended to be used with inla.spde2.generic - see spde2_implementation.pdf
+## for definition of matrices and quantities below. spde2_implementation presents methods for general non-stationary models
+## see Lindgren et al paper for information on GMRF precision matrices when the latent field is non-stationary
+## there are two ways for defining models: one with inla.spde2.generic and the other with inla.rgeneric.define
+## inla.spde2.generic provides support for matern models (this includes oscillating models too)
+## inla.rgeneric.define allows user to build the model from scratch - this includes priors of hyperparameters
+## Ideally, we need all models below to be fit with inla.rgeneric.define.
 B.phi0.matern = matrix(c(0,1,0), nrow=1)
 B.phi1.matern = matrix(c(0,0,1), nrow=1)
 B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
 B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
 B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
+
+## the following commands implement the finite element method and can
+## be used to obtain useful quantities such as the M matrices which
+## are also defined in spde2_implementation but can be used both in
+## inla.spde2.generic and inla.rgeneric.define
 fem.mesh    <- inla.mesh.fem(mesh, order = 2)
 fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
 fem.mesh.temporal <- inla.mesh.fem(mesh1d, order = 2)
-M0 = fem.mesh$c0; M1 = fem.mesh$g1; M2 = fem.mesh$g2
-M0.temporal = fem.mesh.temporal$c0; M1.temporal = fem.mesh.temporal$g1; M2.temporal = fem.mesh.temporal$g2
-M0.hd = fem.mesh.hd$c0; M1.hd = fem.mesh.hd$g1; M2.hd = fem.mesh.hd$g2
+## M matrices for spatial oscillating model
+M0 = fem.mesh$c0
+M1 = fem.mesh$g1
+M2 = fem.mesh$g2
+## M matrices for temporal model
+M0.temporal = fem.mesh.temporal$c0
+M1.temporal = fem.mesh.temporal$g1
+M2.temporal = fem.mesh.temporal$g2
+## M matrices for circular/directional model
+M0.hd = fem.mesh.hd$c0
+M1.hd = fem.mesh.hd$g1
+M2.hd = fem.mesh.hd$g2
+
+
+## for syntax on how to write new models see "git-books" or even better
+## vignette("rgeneric", package="INLA")
+## if you can't open the vignette then you probably have an older version of INLA.
+## Install most recent _development_ version
+## Finn suggested we amend the lgcp code to include inla.mode="experimental" (recent feature of INLA)
+## 
+
+## source all custom-made built models for inla.rgeneric.define
 source("rgeneric_models.R")
+## define models
+## oscilalting.rgeneric is used for M0
+## space.direction.rgeneric is used for M1 and M2
+## temporal.rgeneric is used for M1 and M2
+oscillating.rgeneric     <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2))
+circular.rgeneric        <- inla.rgeneric.define(circular1D.model,  M = list(M0=M0.hd, M1=M1.hd, M2=M2.hd))
+temporal.rgeneric        <- inla.rgeneric.define(temporal.model,    M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal))
+space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M0.space=M0, M1.space=M1, M2.space=M2,
+                                                                               M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
+
+## ----------------
+## Fitting M0 model
+## ----------------
+## current implementation below is correct
+cmp.oscillating.rgeneric <- coordinates ~ 
+    spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
+    Intercept
+cmp.space <- firing_times ~ spde2(space(firing_times), model=space.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) 
+
+fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, samplers = Ypos.sldf,
+                                 domain = list(coordinates = mesh), options=list(verbose = TRUE))
+
+## plot estimated intensity
+pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ spde2)
 
 
-## space-directional + temporal
-space.direction <- inla.rgeneric.define(space.direction.model,
-                                        M=list(M0.space=M0, M1.space=M1, M2.space=M2,
-                                               M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
-## 
-temporal <- inla.rgeneric.define(temporal.model,
-                                 M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal))
-## 
+ggplot() + gg(pr.int) + gg(mycoords, color="red", size=0.2)+
+    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar")+
+    xlim(0,100)+ ylim(0,100)+   
+    coord_equal() + theme_classic()
+
+## ----------------
+## Fitting M1 model
+## ----------------
+## NOTES: the integration points that are supplied are incorrect here but were used to verify that the code runs.
+## A correct implementation would need to compute the W.ipoints for M1 correctly-Work in progress
+
+cmp.space.direction <- firing_times ~
+    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))))
+
+fit.space.direction <- lgcp(cmp.space.direction, data = as.data.frame(Y.spdf),
+                            ips=W.ipoints.M2,
+                            domain = list(firing_times = mesh1d),
+                            options=list(
+                                num.threads=8,
+                                verbose = TRUE, bru_max_iter=1))
+
+
+
+## ----------------
+## Fitting M2 model
+## ----------------
+## current implementation below is correct
 cmp.space.direction.time <- firing_times ~
-    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction,
+    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
           mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
-    time(firing_times, model=temporal, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
+    time(firing_times, model=temporal.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
 
 fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(Y.spdf),
-                                 ips=W.ipoints,
+                                 ips=W.ipoints.M2,
                                  domain = list(firing_times = mesh1d),
                                  options=list(
                                      num.threads=8,
@@ -429,6 +463,7 @@ if(FALSE){
     coords  <- matrix(rep(c(40,45),N*N), ncol=2,byrow=TRUE)
     times   <- rep(10,N*N)
     dir     <- seq(0,2*pi, length=N*N)
+
     dat.2.predict <- data.frame(firing_times=times, hd=dir, coords.x1=coords[,1], coords.x2=coords[,2])
     pr.int.full <- predict(fit.space.direction.time, dat.2.predict, ~ Intercept + spde2 + time)
     pr.int.full <- predict(fit.space.direction.time, NULL, ~ spde2_eval(coords, dir) + time_eval(times))
@@ -462,9 +497,7 @@ if(FALSE){
         theme_classic() + theme(legend.text=element_text(size=11))
     ## 
     
-    pxl <- pixels(mesh, nx=500, ny=500)
-
-    
+    pxl <- pixels(mesh, nx=500, ny=500)    
     pr.int <- predict(fit.space.rgeneric, pxl, ~ spde2)
 
     pr.int <- predict(fit.space.direction.time, pxl, ~ spde2) 
@@ -482,7 +515,7 @@ if(FALSE){
     ## 
     ## rgeneric
     oscillating.rgeneric <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2))
-    circular.rgeneric <- inla.rgeneric.define(circular1D.model, M=list(M0=M0.hd, M1=M1.hd, M2=M2.hd))
+    circular.rgeneric    <- inla.rgeneric.define(circular1D.model, M=list(M0=M0.hd, M1=M1.hd, M2=M2.hd))
     ## cmp.oscillating.rgeneric <- hd2 + coordinates ~ circular(hd2, model=circular.rgeneric) +
     ##     mySPDE(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) + Intercept
     cmp.oscillating.rgeneric <- coordinates ~ 
@@ -498,16 +531,9 @@ if(FALSE){
     ## samplers.space <- cbind(Ypos.sldf@data$time, Ypos.sldf@data$time.lead)
     ## ips  <- ipoints(samplers.space.direction, mesh1d)
     ## 
-    fit.space <- lgcp(cmp.space, data = Y.spdf@data, domain = list(firing_times = mesh1d),
+    fit.space <- lgcp(cmp.space, data = Y.spdf@data, domain = list(firing_times = mesh1d),                      
                       options=list(verbose = TRUE, bru_max_iter=1))
-    ## 
 
-    
-
-    ##
-
-    
-    ## 
     
     ## space takes a vector of firing times and outputs a two-column matrix corresponding to those times.
     ## space(firing_times, ...) check ... or fetch data from global environment.
@@ -614,23 +640,61 @@ if(FALSE){
 ## theta.hd <- seq(2.5,7.5,len=5)
 ## theta.temp <- seq(1,10,len=10)
 ## theta.var <- seq(0.1,4, len=4)
-theta.rho <- seq(15,25,len=10)
-val.prof <- NULL
-for(i in 1:length(theta.rho)){    
-    par.theta.profile <- c(log(22.9),
-                           log(0.41),
-                           -log((1-(-0.92))/(1+(-0.92))),
-                           log(3.37),
-                           log(3.19),
-                           log(theta.rho[i]),
-                           log(0.79))
-    val.prof[i] <- pthetapc.prop.marg.post_osc_temp(par.theta.profile, data=data, 
-                                                    X=Xinit, Z=Zinit, beta=betaest,
-                                                    mesh=mesh, mesh.theta=mesh.hd, mesh1d=mesh1d,
-                                                    A=A, Atilde=Atilde, Aobs=Aobs, Atildeobs=Atildeobs,
-                                                    W=W, 
-                                                    acc=1e-3)    
-}
-
-
-
+## if(FALSE){
+##     theta.rho <- seq(15,25,len=10)
+##     val.prof <- NULL
+##     for(i in 1:length(theta.rho)){    
+##         par.theta.profile <- c(log(22.9),
+##                                log(0.41),
+##                                -log((1-(-0.92))/(1+(-0.92))),
+##                                log(3.37),
+##                                log(3.19),
+##                                log(theta.rho[i]),
+##                                log(0.79))
+##         val.prof[i] <- pthetapc.prop.marg.post_osc_temp(par.theta.profile, data=data, 
+##                                                         X=Xinit, Z=Zinit, beta=betaest,
+##                                                         mesh=mesh, mesh.theta=mesh.hd, mesh1d=mesh1d,
+##                                                         A=A, Atilde=Atilde, Aobs=Aobs, Atildeobs=Atildeobs,
+##                                                         W=W, 
+##                                                         acc=1e-3)    
+##     }
+## }
+## fit.space <- lgcp(cmp.space, data = Y.spdf@data, domain = list(firing_times = mesh1d),                      
+##                   options=list(verbose = TRUE, bru_max_iter=1))
+## space.rgeneric <- inla.rgeneric.define(oscillating.model,
+##                                        M=list(M0.space=M0, M1.space=M1, M2.space=M2))
+## time(firing_times, model="ou")
+## samplers.space <- cbind(Ypos.sldf@data$time, Ypos.sldf@data$time.lead)
+## ips  <- ipoints(samplers.space.direction, mesh1d)
+##
+## ----------------------------------
+## load("modelfit.RData")
+## Xest       <-   Xinit    <- Matrix(rep(0, ncol(A)), ncol=1)
+## Zest       <-   Zinit    <- Matrix(rep(0, mesh1d$n), ncol=1)
+## betaest       <-   betainit <- 0
+## nrow(Y)/sum((Ypos %>% mutate(speed.lead = lead(speed), dt=c(diff(time)[1], diff(time) ))  %>%
+##            head(-1) %>%
+##            mutate(val=dt*((speed + speed.lead)/2)))$val)
+                                        #(number of firing events)/
+                                        #(\int_\Gamma ds)
+## gradest       <- NULL
+## Hessianest    <- NULL
+## set.seed(111086)
+## par.theta <- c(log(21.77),
+##                log(0.48),
+##                -log((1-(-0.91))/(1+(-0.91))),
+##                log(3.23),
+##                log(3.01),
+##                log(23.36),
+##                log(0.79))
+## ## old implementation
+## if(FALSE){
+## opt.theta <- optim(par=par.theta, fn = pthetapc.prop.marg.post_osc_temp, data=data, 
+##                    X=Xinit, Z=Zinit, beta=betainit,
+##                    mesh=mesh, mesh.theta=mesh.hd, mesh1d=mesh1d,
+##                    A=A, Atilde=Atilde, Aobs=Aobs, Atildeobs=Atildeobs,
+##                    W=W, acc=1e-2,
+##                    print.verbose=TRUE,
+##                    control=list(maxit=5000))
+## save(opt.theta, Xest, Zest, betaest, Hessianest, file="fitted_model.RData")
+## }

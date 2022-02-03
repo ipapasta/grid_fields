@@ -165,22 +165,44 @@ dT  <- diff(T.data)
 ## ----------------------------------------------------
 ## NOTE: integration points same as above but integration weights different
 Atmp <- as(A, "dgTMatrix")
-A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x)
-A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame
+A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame # 
 Attmp <- as(Atilde, "dgTMatrix")
-At.indices <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x)
+At.indices <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
 At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
+
+## 
+## dim(A)[1] == dim(Atilde)[1] is TRUE, both matrices are basis function evaluations at
+## the starting coordinates (A) and the starting times (Atilde) of the line segments 
+## at positional data, that is, rows are line/time/arc segments (properly speaking: line segments, time intervals and arcs?)
+## for every starting coord/time/angle of a  line/time/arc segment, there are 6 basis functions that give a non-zero contribution,
+## that is, 3*2*2 (3 knots of a triangle * 2 knots of an arc  * 2 time interval knots )
+## A.indices and At.indices: first column is renamed to tk which stands for index of line/time/arc segment
+## Each tk appears 6 times, e.g., length(A.indices[,1])/6 = N, where N is the number of line/time/arc segments
+## A.indices: second column is renamed to i which stands for the index of the spatio-directional basis function
+## At.indices: second row is l which stands for the index of the temporal basis function
+## 
 names(A.indices) <- c("tk", "i", "psi.ot") #ot: omega x theta
 names(At.indices) <- c("tk", "l", "psi.t")
 
+
+
+## the code below used to define df.unnest first groups At.indices and A.indices by line/time/angle segment
+## then nests them so each row of the nested data frame contains all data for a line/time/arc segment.
+## Then information on times, head directions and coordinates are appended to the nested data frame:
+## for every line/time/arc segment, information on the coordinate, the time and the head direction is appended.
+## Information on lags and leads is also included because these are subsequently used to get the weights for
+## the numerical integration scheme based on the trapezoidal rule. For the weights, we also need to include the
+## lengths of the line segments (dGamma) together with lags and leads.
+## Finally, the val
 
 df.unnest <- full_join(At.indices %>% group_by(tk) %>% nest(),
                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
     arrange(tk) %>%
     ungroup %>% 
     mutate(
-        time = T.data,
-        time.lag = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
+        time          = T.data,
+        time.lag      = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
         direction     = HD.data,
         direction.lag = c(0, HD.data[-length(direction)]),
         coords = I(coords.trap),
@@ -189,7 +211,7 @@ df.unnest <- full_join(At.indices %>% group_by(tk) %>% nest(),
         dGamma.lead = lead(dGamma),
         dGamma.lag = lag(dGamma),
         val = pmap(list(data.x, data.y, dGamma), function(x, y, z){
-            oo <- expand.grid(1:nrow(x), 1:nrow(y))
+            oo  <- expand.grid(1:nrow(x), 1:nrow(y))
             ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
                 x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
             oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val=ooo)
@@ -200,8 +222,7 @@ df.tmp <- df.unnest %>% dplyr::select(-c("data.x", "data.y")) %>%
     unnest(val)
 
 
-df.W <- rbind(df.tmp %>% mutate(group=tk,
-                            dGamma.lag=0) %>%
+df.W <- rbind(df.tmp %>% mutate(group=tk, dGamma.lag=0) %>%
               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val),
               df.tmp %>% 
               filter(tk!=1) %>%

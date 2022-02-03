@@ -175,8 +175,9 @@ At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
 ## dim(A)[1] == dim(Atilde)[1] is TRUE, both matrices are basis function evaluations at
 ## the starting coordinates (A) and the starting times (Atilde) of the line segments 
 ## at positional data, that is, rows are line/time/arc segments (properly speaking: line segments, time intervals and arcs?)
-## for every starting coord/time/angle of a  line/time/arc segment, there are 6 basis functions that give a non-zero contribution,
-## that is, 3*2*2 (3 knots of a triangle * 2 knots of an arc  * 2 time interval knots )
+## for every starting coord/time/angle of a  line/time/arc segment, there are 6 spatio-temporal basis functions that give a non-zero contribution,
+## that is, 3*2 (3 knots of a triangle * 2 knots of an arc) and 2 temporal basis functions that give non-zero contributions,
+## that is, 2 time interval knots.
 ## A.indices and At.indices: first column is renamed to tk which stands for index of line/time/arc segment
 ## Each tk appears 6 times, e.g., length(A.indices[,1])/6 = N, where N is the number of line/time/arc segments
 ## A.indices: second column is renamed to i which stands for the index of the spatio-directional basis function
@@ -187,16 +188,47 @@ names(At.indices) <- c("tk", "l", "psi.t")
 
 
 
-## the code below used to define df.unnest first groups At.indices and A.indices by line/time/angle segment
+## the code below used to define df.prism first groups At.indices and A.indices by line/time/angle segment
 ## then nests them so each row of the nested data frame contains all data for a line/time/arc segment.
-## Then information on times, head directions and coordinates are appended to the nested data frame:
-## for every line/time/arc segment, information on the coordinate, the time and the head direction is appended.
+## During nesting, information on the index of the basis functions and its associated value is stored
+## in new column variables named as
+## data.x: for the temporal basis functions, and as
+## data.y for the spatio.directional basis functions.
+## Then information on times, head directions, and coordinates is appended to the nested data frame:
+## for every line/time/arc segment (indexed by variable tk), information about the coordinate, the time and the head direction is appended.
 ## Information on lags and leads is also included because these are subsequently used to get the weights for
-## the numerical integration scheme based on the trapezoidal rule. For the weights, we also need to include the
-## lengths of the line segments (dGamma) together with lags and leads.
-## Finally, the val
+## the numerical integration scheme based on the trapezoidal rule. For the computation of the weights, the
+## lengths of the line segments (dGamma) together with their lags and leads are also appended.
+## Finally, for the code in the last column variable named _val_. Fix a line segment, say the first one tk=1.
+## Then, for example, the first elements of the column variables data.x and data.y (these are lists due to the nest operation) are:
+## 
+## > data.y[[1]]
+## # A tibble: 6 x 2
+##       i psi.ot
+##   <dbl>  <dbl>
+## 1  7660 0.0475
+## 2  7726 0.405 
+## 3  8037 0.246 
+## 4  8932 0.0205
+## 5  8998 0.175 
+## 6  9309 0.106
+## 
+## > data.x[[1]]
+##       l psi.t
+##   <dbl> <dbl>
+## 1     1     1
+## 2     2     0
+##
 
-df.unnest <- full_join(At.indices %>% group_by(tk) %>% nest(),
+## The code in this last function creates the Cartesian product {1,2} X {7660, 7726, 8037, 8932, 8998, 9309},
+## that is, the set of all ordered pairs (a,b) where a \in {1,2} and b \in {7660, 7726, 8037, 8932, 8998, 9309}
+## with expand.grid, and calculates, for each pair, the product of the basis functions \psi_{T} * \psi_{Omega x Theta}
+## Lastly, the function returns a data.frame that has the index of the temporal basis function l, the index of the
+## spatio-directional basis function i, and the product of the basis functions _val_
+## this data framed is stored in the column variable named val. The final commands discard data.x and data.y
+## which are no longer used and unnest the data frame to bring it back to standard form
+
+df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
     arrange(tk) %>%
     ungroup %>% 
@@ -216,15 +248,16 @@ df.unnest <- full_join(At.indices %>% group_by(tk) %>% nest(),
                 x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
             oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val=ooo)
             oooo
-        }))
-
-df.tmp <- df.unnest %>% dplyr::select(-c("data.x", "data.y")) %>%
+        })) %>%
+    dplyr::select(-c("data.x", "data.y")) %>%
     unnest(val)
 
+## df.tmp <- df.prism %>% 
 
-df.W <- rbind(df.tmp %>% mutate(group=tk, dGamma.lag=0) %>%
+
+df.W <- rbind(df.prism %>% mutate(group=tk, dGamma.lag=0) %>%
               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val),
-              df.tmp %>% 
+              df.prism %>% 
               filter(tk!=1) %>%
               mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
                      group=tk-1,

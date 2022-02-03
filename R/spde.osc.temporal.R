@@ -1,59 +1,27 @@
-## 
-## seed for reproducibility
-##
-## set.seed(111086) 
-## !! quilt.plot
-## sim     <- FALSE
-## library(Rcpp)
+set.seed(111086) 
 library(tidyverse)
 library(purrr)
-library(INLA)   #install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
-inla.setOption(pardiso.license = "/Users/ipapasta/pardiso.lic")
+library(INLA)  
 library(inlabru)
 library(sp)
 library(fields)
 library(nloptr)
 library(pals)
-## require(rgdal, quietly=TRUE)
-## scp -r /home/ipapasta/Dropbox/org/Research/Software/R/grid_fields/R/* ipapasta@xserver2.maths.ed.ac.uk:/home/ipapasta/Software/R/grid_fields/R/
-## 
-## source R and cpp functions.
-## 
+inla.setOption(pardiso.license = "/Users/ipapasta/pardiso.lic")
 source("load_data.R")
 source("Functions.R")
 source("osc_precision.R")
 source("hd_precision.R")
-## source("objective.R")
 source("temp_precision.R")
-## source("priorbetaXZ_osc_temp.R")
-## source("priortheta_osc_temp.R")              
-## source("gradient_osc_temp.R")
-## source("hessian_osc_temp.R")
-## source("llik.R")
-## source("marginalposterior.R")
 
 k    <- 5
 mesh      <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
-## 
-fem.mesh  <- inla.mesh.fem(mesh, order = 2)
-## Bspatial.phi0 = matrix(c(0,1,0,0), nrow=1)
-## Bspatial.phi1 = matrix(c(0,0,1,0), nrow=1)
-## Bspatial.phi2 = matrix(c(0,0,0,1), nrow=1)
-## M0.spatial = fem.mesh$c0 # C
-## M1.spatial = fem.mesh$g1
-## M2.spatial = fem.mesh$g2
-## 
-p         <- mesh$n                         
-theta.nodes <- seq(0, 2*pi, len=30)
-mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
-fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
 ##
-## Bhd.phi0 = matrix(c(0,1,0), nrow=1)
-## Bhd.phi1 = matrix(c(0,0,1), nrow=1)
-## M0.hd = fem.mesh.hd$c0
-## M1.hd = fem.mesh.hd$g1
-## M2.hd = fem.mesh.hd$g2
-## 
+## size of discretized fields 
+p           <- mesh$n
+p.theta     <- 30
+theta.nodes <- seq(0, 2*pi, len=p.theta)
+mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
 
@@ -65,10 +33,6 @@ Ypos.tmp <- data.frame(
     mutate(hd.lead = lead(X$hd)) %>%
     head(-1)
 
-## options(warn=2)
-
-
-## o <- lapply(1:nrow(Ypos.tmp), function(k) Ypos.tmp$hd == Ypos.tmp$hd.lead)
 
 
 Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs),
@@ -95,20 +59,12 @@ Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs),
 
 Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
     unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
-
-names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")
-## Ypos.tmp$Time.split[3][[1]]
-    
+names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
 
 line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
                              filter.zero.length=FALSE,
                              ep=Ypos.tmp$coords.lead, tol=.0)
 
-## line.segments.filtered <- split.lines(mesh, sp=do.call("rbind", Ypos.tmp$coords),
-##                              filter.zero.length=TRUE,
-##                              ep=do.call("rbind",Ypos.tmp$coords.lead), tol=1e-4)
-## dim(line.segments.filtered$sp)
-## filter.index contains the # of lines used in the integration
 
 df <- data.frame(origin=line.segments$split.origin,
                  filter.index=line.segments$filter.index,
@@ -120,17 +76,7 @@ df <- data.frame(origin=line.segments$split.origin,
     mutate(ep = lapply(ep, function(x) do.call("rbind", x))) 
 
 
-
-
-## length of line segments
-## duration of time intervals + data as attribute
-## change in head direction + data as attribute
-
-
-## oo <- inner_join(Ypos.tmp %>%
-##                    mutate(origin=1:nrow(Ypos.tmp)), df)
-
-
+## attribute named _data_ stores length of line segments, time differences and arclengths
 Ypos <- inner_join(Ypos.tmp %>%
                    mutate(origin=1:nrow(Ypos.tmp)), df) %>%    
     mutate(Li = map2(sp, ep,
@@ -138,80 +84,86 @@ Ypos <- inner_join(Ypos.tmp %>%
     mutate(Ti = pmap(list(time, time.lead, Li), interpolate)) %>%
     mutate(HDi = pmap(list(hd, hd.lead, Li), interpolate )) 
 
-
-
 filter.index  <- do.call("c", Ypos$filter.index)
 
 
 
-## ------------------------------
-## integration weights are T.data
-## ------------------------------
+## -----------------------------------------------
+## M1 model: T.data are used for integration knots 
+## -----------------------------------------------
 coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
 HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))
 T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
+## CHECK always that: dim(coords.trap) == length(HD.data); length(HD.data) == length(T.data)
 
 
 
 ## ---------------------------------------
 ## SpatialPointsDataFrame and SpatialLines
 ## ---------------------------------------
-Y.spdf    <- SpatialPointsDataFrame(SpatialPoints(cbind(Y$position_x, Y$position_y)), as.data.frame(Y%>%dplyr::select(-c(position_x, position_y))))
-Ypos.sldf <- SpatialLinesDataFrame(SpatialLines(lapply(as.list(1:nrow(Ypos)),function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
-                                                                                    Ypos$coords.lead[k,1]),
-                                                                                  c(Ypos$coords[k,2],
-                                                                                    Ypos$coords.lead[k,2])))),
-                                                                                  ID=k))),
-                                   Ypos %>% dplyr::select(-c(coords, coords.lead)))
+## inlabru accepts below formats for the data
+## Y.spdf is Y data frame except that coords are encoded as SpatialPoints
+## Ypos.sldf Ypos data frame except for coords and coords.lead are encoded as SpatialLines
+Y.spdf    <- SpatialPointsDataFrame(coords = SpatialPoints(cbind(Y$position_x, Y$position_y)),
+                                    data   = as.data.frame(Y%>%dplyr::select(-c(position_x, position_y))))
+Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypos)),
+                                                              function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
+                                                                                                  Ypos$coords.lead[k,1]),
+                                                                                                c(Ypos$coords[k,2],
+                                                                                                  Ypos$coords.lead[k,2])))), ID=k))),
+                                   data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
 
-
-
-## SpatialPointsDataFrame and SpatialLines
-
-
-
-## dim(coords.trap)
-## length(functions.multiplicity)
-      
-
-
-
-## circular domain and temporal domain meshes
+## mesh for temporal process
+## print(paste("mesh1d:", head(diff(mesh1d$loc))))
 mesh1d  <- inla.mesh.1d(loc=c(T.data[seq(1, length(T.data), by = 300)], T.data[length(T.data)]), order=2)
-print(paste("mesh1d:", head(diff(mesh1d$loc))))
 
-## POSITIONAL - Used for INTEGRAL
+
+## Matrix of basis function evaluations for positional data (INTEGRAL term of Poisson likelihood)
 Atilde <- inla.mesh.projector(mesh1d, loc=T.data)$proj$A
 Aosc   <- inla.mesh.projector(mesh, loc=coords.trap)$proj$A
 Ahd    <- inla.mesh.projector(mesh.hd, loc=HD.data)$proj$A
 A      <- inla.row.kron(Ahd, Aosc)
 
 
-## OBSERVED
-Aosc.obs  <- inla.spde.make.A(mesh=mesh,
-                              loc=as.matrix(data$Y %>%
-                                            dplyr:: select(position_x, position_y)))
+## ## Matrix of basis function evaluations for observed firing events (SUM term of Poisson likelihood)
+Atildeobs <- inla.spde.make.A(mesh=mesh1d, data$Y$firing_times)
+Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(data$Y %>% dplyr:: select(position_x, position_y)))
 Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, data$Y$hd)
-
 Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
-Atildeobs    <- inla.spde.make.A(mesh=mesh1d, data$Y$firing_times)
-
-## c(3.1305657, -0.8904750, -3.3000715,  1.2177724,  1.1621642,  3.0267431, -0.2246174)
-
-
 
 
 ## nrow(A)==nrow(At); 92264 each row of above matrices contains
 ## non-zero values at knots wrapping a distinct line segment.
 ## Ck <- sapply(dGamma, function(x) rep(x, 6))
-
 ## (coords.trap, HD.data, T.data)
 
+
+## Line segment lengths and Time interval lengths
+## ----------------------------------------------
+## NOTE: head direction arclengths are not used since dGamma(t)/d(t) is defined as:
+## ((d x(t)/dt)^2 + (d y(t)/dt)^2)^(1/2)
+## 
 dGamma <- c(do.call("c", Ypos$Li))
 dT  <- diff(T.data)
+
+## ----------------------------------------------------
+## Calculation of integration points and weights for M1
+## ----------------------------------------------------
+## NOTE: Suppose there are N line segments
+## integration points are (t_i, s_i, hd_i), i=0, .., N where
+## t_i =  initial time of line segment i
+## s_i =  position at initial time of line segment i
+## s_i =  head direction of animal at initial time of line segment i
+
+
+
+## ----------------------------------------------------
+## Calculation of integration points and weights for M2
+## ----------------------------------------------------
+## NOTE: integration points same as above but integration weights different
 Atmp <- as(A, "dgTMatrix")
 A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x)
 A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame
@@ -244,14 +196,14 @@ df.unnest <- full_join(At.indices %>% group_by(tk) %>% nest(),
             oooo
         }))
 
-df <- df.unnest %>% dplyr::select(-c("data.x", "data.y")) %>%
+df.tmp <- df.unnest %>% dplyr::select(-c("data.x", "data.y")) %>%
     unnest(val)
 
 
-df.W <- rbind(df %>% mutate(group=tk,
+df.W <- rbind(df.tmp %>% mutate(group=tk,
                             dGamma.lag=0) %>%
               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val),
-              df %>% 
+              df.tmp %>% 
               filter(tk!=1) %>%
               mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
                      group=tk-1,
@@ -364,6 +316,17 @@ temporal.rgeneric        <- inla.rgeneric.define(temporal.model,    M=list(M0.te
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M0.space=M0, M1.space=M1, M2.space=M2,
                                                                                M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
 
+## some information on lgcp arguments
+## domain: means integration domain. When integration domain is supplied together with samplers,
+## then lgcp constructs the integration scheme. There are options for
+## how it does that. By default, .. it will first take domain and
+## samplers, say for example samplers specify subintervals (time),
+## then it constructs the intersection of domains and samplers and
+## then it will place integration points on the remaining knots, so
+## essentially, original knots inside intervals and at the endpoints
+## of the intervals.  Then it takes samplers which will have say one
+## interval.
+
 ## ----------------
 ## Fitting M0 model
 ## ----------------
@@ -371,7 +334,7 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M
 cmp.oscillating.rgeneric <- coordinates ~ 
     spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
     Intercept
-cmp.space <- firing_times ~ spde2(space(firing_times), model=space.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) 
+## cmp.space <- firing_times ~ spde2(space(firing_times), model=space.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) 
 
 fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, samplers = Ypos.sldf,
                                  domain = list(coordinates = mesh), options=list(verbose = TRUE))
@@ -395,12 +358,10 @@ cmp.space.direction <- firing_times ~
     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
           mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))))
 
-fit.space.direction <- lgcp(cmp.space.direction, data = as.data.frame(Y.spdf),
-                            ips=W.ipoints.M2,
-                            domain = list(firing_times = mesh1d),
-                            options=list(
-                                num.threads=8,
-                                verbose = TRUE, bru_max_iter=1))
+fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
+                            ips     = W.ipoints.M2,
+                            domain  = list(firing_times = mesh1d),
+                            options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
 
 
 

@@ -87,14 +87,17 @@ Ypos <- inner_join(Ypos.tmp %>%
 filter.index  <- do.call("c", Ypos$filter.index)
 
 
-
-## -----------------------------------------------
-## M1 model: T.data are used for integration knots 
-## -----------------------------------------------
+## ------------------
+## Integration points
+## ------------------
+## 
+## CHECK always that: dim(coords.trap) == length(HD.data); length(HD.data) == length(T.data)
+##
 coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
 HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))
 T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
-## CHECK always that: dim(coords.trap) == length(HD.data); length(HD.data) == length(T.data)
+
+
 
 
 
@@ -149,21 +152,8 @@ Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
 dGamma <- c(do.call("c", Ypos$Li))
 dT  <- diff(T.data)
 
-## ----------------------------------------------------
-## Calculation of integration points and weights for M1
-## ----------------------------------------------------
-## NOTE: Suppose there are N line segments
-## integration points are (t_i, s_i, hd_i), i=0, .., N where
-## t_i =  initial time of line segment i
-## s_i =  position at initial time of line segment i
-## s_i =  head direction of animal at initial time of line segment i
 
 
-
-## ----------------------------------------------------
-## Calculation of integration points and weights for M2
-## ----------------------------------------------------
-## NOTE: integration points same as above but integration weights different
 Atmp <- as(A, "dgTMatrix")
 A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
 A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame # 
@@ -244,6 +234,12 @@ df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
         dGamma=c(dGamma,0),
         dGamma.lead = lead(dGamma),
         dGamma.lag = lag(dGamma),
+        val.M1 = pmap(list(data.y, dGamma), function(x, y, z){
+            ooo <- unlist(lapply(1:nrow(y)), function(k) {
+                y$psi.ot[oo[k,2]]})
+            oooo <- data.frame(i=y$i[oo[,2]],val=ooo)
+            oooo
+        }),
         val = pmap(list(data.x, data.y, dGamma), function(x, y, z){
             oo  <- expand.grid(1:nrow(x), 1:nrow(y))
             ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
@@ -255,14 +251,189 @@ df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
     unnest(val)
 
 
+df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
+                A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+    arrange(tk) %>%
+    ungroup %>% 
+    mutate(
+        time          = T.data,
+        time.lag      = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
+        direction     = HD.data,
+        direction.lag = c(0, HD.data[-length(direction)]),
+        coords = I(coords.trap),
+        coords.lag = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+        dGamma=c(dGamma,0),
+        dGamma.lead = lead(dGamma),
+        dGamma.lag = lag(dGamma),
+        val.M1 = pmap(list(data.y, dGamma), function(y, z) {
+            oo  <- 1:nrow(y)
+            ooo <- unlist(lapply(1:nrow(y), function(k) {
+                y$psi.ot[oo[k]]}))
+            oooo <- data.frame(i=y$i[oo],val.M1=ooo)
+            oooo
+        }),
+        val.M2 = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+            oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+            ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+            oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+            oooo
+        })) %>%
+    dplyr::select(-c("data.x", "data.y")) 
 
+names(df.prism.M1_M2)
+
+df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
+    unnest(cols=c(val.M1))
+df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
+    unnest(cols=c(val.M2))
+
+
+
+## ------------------------------------------------
+## M1 model:  Integration weights integration knots 
+## ------------------------------------------------
+## for ips argument in lgcp function, we need to have the integration weights in the following format
+## !! 4th Feb for M1 firing_times are not needed as there is no temporal basis function? Validate
+## If firing_times are kept, does code run?
+## |--------------+-----------+-----------+-----------+--------|
+## | firing_times | hd        | coords.x1 | coords.x2 | weight |
+## |--------------+-----------+-----------+-----------+--------|
+## | t_{j(k)}     | hd_{i(k)} | s1_{i(k)} | s1_{i(k)} | w_k    |
+## | .            | .         | .         | .         | .      |
+## | .            | .         | .         | .         | .      |
+## | .            | .         | .         | .         | .      |
 ## 
-## In what follows: two copies of the df.prism are created
+## 
+## In what follows: two copies of the df.prism.M2 are created
 ## the first copy has all line/time/arc segments and sets dGamma.lag = 0 everywhere
 ## the second copy removes the first line segment and relabels the line/time/arc segments to start from 1, that is,
 ## data are grouped by line/time/arc segment. dGamma is set to 0 everywhere for the second copy
 ## a snapshot of the data frame is shown below
-##     group        time direction  coords.1  coords.2     dGamma dGamma.lag l      i          val dGamma.trap
+
+##     group        time direction  coords.1  coords.2     dGamma dGamma.lag       i       val.M1  dGamma.trap
+## 1       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    7660 4.745711e-02  0.22258192
+## 2       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    7660 4.047041e-01  0.22258192
+## 3       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    7726 2.457178e-01  0.22258192
+## 4       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    7726 2.054480e-02  0.22258192
+## 5       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    8037 1.752017e-01  0.22258192
+## 6       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    8037 1.063744e-01  0.22258192
+## 7       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    8932 4.793113e-01  0.22258192
+## 8       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    8932 2.492118e-01  0.22258192
+## 9       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    8998 5.724036e-16  0.22258192
+## 10      1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    8998 1.786106e-01  0.22258192
+## 11      1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    9309 9.286630e-02  0.22258192
+## 12      1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000    9309 2.133004e-16  0.22258192
+## 13      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    7726 4.793113e-01  0.22258192
+## 14      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    7726 2.492118e-01  0.22258192
+## 15      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    8037 5.724036e-16  0.22258192
+## 16      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    8037 1.786106e-01  0.22258192
+## 17      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    8652 9.286630e-02  0.22258192
+## 18      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    8652 2.133004e-16  0.22258192
+## 19      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    8998 5.190876e-01  0.22258192
+## 20      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    8998 1.569205e-16  0.22258192
+## 21      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9309 3.368535e-01  0.22258192
+## 22      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9309 8.736490e-02  0.22258192
+## 23      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9924 2.641046e-17  0.22258192
+## 24      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9924 5.669404e-02  0.22258192
+##
+
+df.W.M1 <- rbind(df.prism.M1 %>% mutate(group=tk, dGamma.lag=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
+              df.prism.M1 %>% 
+              filter(tk!=1) %>%
+              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                     group=tk-1,
+                     dGamma=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
+    arrange(group) %>%
+    mutate(dGamma.trap = dGamma + dGamma.lag) 
+
+tol <- 0
+## df.dGamma.sum.k.kplus1.M1 <- df.W.M1 %>% group_by(group, i) %>%
+##     summarize(val = sum(max(dGamma.trap*val.M1, tol)))
+
+df.dGamma.sum.k.kplus1.M1 <- df.W.M1 %>% group_by(group, i) %>%
+    summarize(val = sum(max(dGamma.trap*val.M1, tol)),
+              time = unique(time),
+              direction=unique(direction),
+              coords=unique(coords))  %>%
+    ungroup %>% group_by(i) %>%
+    summarize(val = sum(val))
+
+    
+
+W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
+                     x=df.dGamma.sum.k.kplus1.M1$val/2,
+                     length=mesh$n * mesh.hd$n)
+
+## 
+## Finally, the W.ipoints.M2 matrix is created below which a format appropriate to be used in inlabru
+## 
+W.ipoints.M1 <- as(W.M1, "sparseMatrix")
+W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@j+1)[,1],
+                           coords.x1 =mapindex2space.direction_basis(W.ipoints.M1@j+1)[,2],
+                        coords.x2 =mapindex2space.direction_basis(W.ipoints.M1@j+1)[,3],
+                        weight=W.ipoints.M1@x) 
+
+
+
+## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional basis functions
+## this data frame is created to create correspondences
+## between spatio-directional basis knots with spatial basis knots, an
+## between spatio-directional basis knots with head directional basis knots, respectively.
+
+df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+
+## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
+## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
+## and returns the coordinates and the head direction associated with the spatial basis function and the
+## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
+## instead of returning coords and angles, it returns the indices of the associated basis functions.
+
+mapindex2space.direction_index <- function(index){    
+    f<-function(index.single){
+        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
+mapindex2space.direction_basis <- function(index){    
+    f<-function(index.single){
+        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
+
+
+
+## ------------------------------------------------
+## M2 model:  Integration weights integration knots 
+## ------------------------------------------------
+## NOTE: Suppose there are N line segments
+## integration points are (t_i, s_i, hd_i), i=0, .., N where
+## t_i =  initial time of line segment i
+## s_i =  position at initial time of line segment i
+## s_i =  head direction of animal at initial time of line segment i
+## |--------------+-----------+-----------+-----------+--------|
+## | firing_times | hd        | coords.x1 | coords.x2 | weight |
+## |--------------+-----------+-----------+-----------+--------|
+## | t_{j(k)}     | hd_{i(k)} | s1_{i(k)} | s1_{i(k)} | w_k    |
+## | .            | .         | .         | .         | .      |
+## | .            | .         | .         | .         | .      |
+## | .            | .         | .         | .         | .      |
+##
+
+## 
+## In what follows: two copies of the df.prism.M2 are created
+## the first copy has all line/time/arc segments and sets dGamma.lag = 0 everywhere
+## the second copy removes the first line segment and relabels the line/time/arc segments to start from 1, that is,
+## data are grouped by line/time/arc segment. dGamma is set to 0 everywhere for the second copy
+## a snapshot of the data frame is shown below
+
+##     group        time direction  coords.1  coords.2     dGamma dGamma.lag l      i       val.M2 dGamma.trap
 ## 1       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   7660 4.745711e-02  0.22258192
 ## 2       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 2   7660 0.000000e+00  0.22258192
 ## 3       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   7726 4.047041e-01  0.22258192
@@ -289,16 +460,14 @@ df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
 ## 24      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   9924 2.568244e-19  0.22258192
 ##
 
-
-
-df.W <- rbind(df.prism %>% mutate(group=tk, dGamma.lag=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val),
-              df.prism %>% 
+df.W.M2 <- rbind(df.prism.M2 %>% mutate(group=tk, dGamma.lag=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2),
+              df.prism.M2 %>% 
               filter(tk!=1) %>%
               mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
                      group=tk-1,
                      dGamma=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val)) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
     arrange(group) %>%
     mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
     ## select(-c(dGamma, dGamma.lead, dGamma.lag))
@@ -313,25 +482,25 @@ df.W <- rbind(df.prism %>% mutate(group=tk, dGamma.lag=0) %>%
 ## this operation is done next by
 
 tol <- 0
-df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
-    summarize(val = sum(max(dGamma.trap*val, tol)))
+## df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
+##     summarize(val = sum(max(dGamma.trap*val.M2, tol)))
 
-df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
-    summarize(val = sum(max(dGamma.trap*val, tol)),
+df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
+    summarize(val = sum(max(dGamma.trap*val.M2, tol)),
               time = unique(time),
               direction=unique(direction),
               coords=unique(coords))
 
 ## where an additional tol argument was used to avoid numerical instability in cases
-## where dGamma.trap * val was negative. The latest implementation does not suffer
-## from any instability so tol is set to 0. Note that dGamma.trap is always of the type
-## L_k for a weight term that comprises a sum of k and k+1 basis functions as
-## the formula above suggests.
+## where dGamma.trap * val.M2 was negative. The latest implementation does not suffer
+## from any instability so tol is set to 0. Note that dGamma.trap is always equal to dGamma
+## L_k for a weight term that comprises a sum of basis functions at the kth and (k+1)th line/time/arc segment as
+## the formula above suggests. 
 ## There must be a cleaner way of calculating this but have given up.
 ## A snapshot of the data frame above is given below
 ## 
-## > head(as.data.frame(df.dGamma.sum.k.kplus1),50)
-##    group l    i          val        time direction  coords.1  coords.2
+## > head(as.data.frame(df.dGamma.sum.k.kplus1.M2),50)
+##    group l    i          val.M2        time direction  coords.1  coords.2
 ## 1      1 1 7660 1.056309e-02 0.003131200  1.365427  54.58986 101.65842
 ## 2      1 1 7726 1.065576e-01 0.003131200  1.365427  54.58986 101.65842
 ## 3      1 1 8037 5.540326e-02 0.003131200  1.365427  54.58986 101.65842
@@ -384,51 +553,24 @@ df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
 ## 50     4 1 9924 7.404336e-02 0.034324800  1.329228  53.38962 101.83783
 
 
-## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional
-## this data frame is created to create correspondences
-## between spatio-directional basis knots with spatial basis knots, an
-## between spatio-directional basis knots with head directional basis knots, respectively.
-
-df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
-
-## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
-## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
-## and returns the coordinates and the head direction associated with the spatial basis function and the
-## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
-## instead of returning coords and angles, it returns the indices of the associated basis functions.
-
-mapindex2space.direction_index <- function(index){    
-    f<-function(index.single){
-        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
-
-mapindex2space.direction_basis <- function(index){    
-    f<-function(index.single){
-        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
-
-
-
 ## once we have all such weights, we aggregate them using
-## sum_{k=1}^N (L_k/2) * sum_{k*=1}^{2} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) * psi_l (t_k*) ]
+## sum_{k=1}^N (L_k/2) * sum_{k*=k}^{k+1} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) * psi_l (t_k*) ]
 ## this is done efficiently with sparseMatrix
 
-W <- sparseMatrix(i=df.dGamma.sum.k.kplus1$l,
-                  j=df.dGamma.sum.k.kplus1$i,
-                  x=df.dGamma.sum.k.kplus1$val/2)
+W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2$l,
+                  j=df.dGamma.sum.k.kplus1.M2$i,
+                  x=df.dGamma.sum.k.kplus1.M2$val/2)
 
-## if there are columns that are everywhere 0, then sparseMatrix would truncate them.
-## I think this may happen due to the knots placed outside the domain (cf a plot of spatial mesh)
-## where the animal never enters. In this case, there is no contribution (no line segment in these triangles)
-## so I manually add them by 
+## if there are columns in the matrix W above that are everywhere 0, then the sparseMatrix function drops them.
+## I think this may happen due to the knots placed outside the domain 
+## where the animal never enters (cf a plot of spatial mesh - outer boundary). In this case, there is no contribution as there is
+## no line segment in any  these triangles so I manually add them by appending 0 columns in the matrix W
+
 W         <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(A)-ncol(W)))
 
-## Finally, the W.ipoints.M2 matrix is created below which has the right format to be used in inlabru
+## 
+## Finally, the W.ipoints.M2 matrix is created below which a format appropriate to be used in inlabru
+## 
 W.ipoints.M2 <- as(W, "dgTMatrix")
 W.ipoints.M2 <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2@i+1], hd=mapindex2space.direction_basis(W.ipoints.M2@j+1)[,1],
                         coords.x1 =mapindex2space.direction_basis(W.ipoints.M2@j+1)[,2],
@@ -452,7 +594,7 @@ B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
 
 ## the following commands implement the finite element method and can
 ## be used to obtain useful quantities such as the M matrices which
-## are also defined in spde2_implementation but can be used both in
+## are also defined in spde2_implementation.spdf but can be used both in
 ## inla.spde2.generic and inla.rgeneric.define
 fem.mesh    <- inla.mesh.fem(mesh, order = 2)
 fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
@@ -517,9 +659,10 @@ fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, sample
 pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ spde2)
 
 
-ggplot() + gg(pr.int) + gg(mycoords, color="red", size=0.2)+
-    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar")+
-    xlim(0,100)+ ylim(0,100)+   
+ggplot() + gg(pr.int) +
+    gg(mycoords, color="red", size=0.2) + #mycoords is object containing the firing events. This object is defined in load_data.R
+    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar") +
+    xlim(0,100) + ylim(0,100) +   
     coord_equal() + theme_classic()
 
 ## ----------------
@@ -530,12 +673,17 @@ ggplot() + gg(pr.int) + gg(mycoords, color="red", size=0.2)+
 
 cmp.space.direction <- firing_times ~
     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))))
+          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
+    Intercept
 
 fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
-                            ips     = W.ipoints.M2,
+                            ips     = W.ipoints.M1,
                             domain  = list(firing_times = mesh1d),
                             options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
+
+
+
+
 
 
 

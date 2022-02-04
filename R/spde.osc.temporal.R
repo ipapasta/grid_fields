@@ -371,9 +371,9 @@ W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
 ## Finally, the W.ipoints.M2 matrix is created below which a format appropriate to be used in inlabru
 ## 
 W.ipoints.M1 <- as(W.M1, "sparseMatrix")
-W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@j+1)[,1],
-                           coords.x1 =mapindex2space.direction_basis(W.ipoints.M1@j+1)[,2],
-                        coords.x2 =mapindex2space.direction_basis(W.ipoints.M1@j+1)[,3],
+W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,1],
+                           coords.x1 =mapindex2space.direction_basis(W.ipoints.M1@i+1)[,2],
+                        coords.x2 =mapindex2space.direction_basis(W.ipoints.M1@i+1)[,3],
                         weight=W.ipoints.M1@x) 
 
 

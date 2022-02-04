@@ -220,6 +220,7 @@ names(At.indices) <- c("tk", "l", "psi.t")
 ## 2     2     0
 ##
 
+## 
 ## The code in this last function creates the Cartesian product {1,2} X {7660, 7726, 8037, 8932, 8998, 9309},
 ## that is, the set of all ordered pairs (a,b) where a \in {1,2} and b \in {7660, 7726, 8037, 8932, 8998, 9309}
 ## with expand.grid, and calculates, for each pair, the product of the basis functions \psi_{T} * \psi_{Omega x Theta}
@@ -227,6 +228,7 @@ names(At.indices) <- c("tk", "l", "psi.t")
 ## spatio-directional basis function i, and the product of the basis functions _val_
 ## this data framed is stored in the column variable named val. The final commands discard data.x and data.y
 ## which are no longer used and unnest the data frame to bring it back to standard form
+## 
 
 df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
@@ -252,7 +254,41 @@ df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
     dplyr::select(-c("data.x", "data.y")) %>%
     unnest(val)
 
-## df.tmp <- df.prism %>% 
+
+
+## 
+## In what follows: two copies of the df.prism are created
+## the first copy has all line/time/arc segments and sets dGamma.lag = 0 everywhere
+## the second copy removes the first line segment and relabels the line/time/arc segments to start from 1, that is,
+## data are grouped by line/time/arc segment. dGamma is set to 0 everywhere for the second copy
+## a snapshot of the data frame is shown below
+##     group        time direction  coords.1  coords.2     dGamma dGamma.lag l      i          val dGamma.trap
+## 1       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   7660 4.745711e-02  0.22258192
+## 2       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 2   7660 0.000000e+00  0.22258192
+## 3       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   7726 4.047041e-01  0.22258192
+## 4       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 2   7726 0.000000e+00  0.22258192
+## 5       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   8037 2.457178e-01  0.22258192
+## 6       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 2   8037 0.000000e+00  0.22258192
+## 7       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   8932 2.054480e-02  0.22258192
+## 8       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 2   8932 0.000000e+00  0.22258192
+## 9       1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   8998 1.752017e-01  0.22258192
+## 10      1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 2   8998 0.000000e+00  0.22258192
+## 11      1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 1   9309 1.063744e-01  0.22258192
+## 12      1 0.003131200  1.365427  54.58986 101.65842 0.22258192 0.00000000 2   9309 0.000000e+00  0.22258192
+## 13      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 1   7726 4.787342e-01  0.22258192
+## 14      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   7726 5.771147e-04  0.22258192
+## 15      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 1   8037 2.489118e-01  0.22258192
+## 16      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   8037 3.000635e-04  0.22258192
+## 17      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 1   8652 5.717144e-16  0.22258192
+## 18      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   8652 6.892025e-19  0.22258192
+## 19      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 1   8998 1.783955e-01  0.22258192
+## 20      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   8998 2.150560e-04  0.22258192
+## 21      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 1   9309 9.275448e-02  0.22258192
+## 22      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   9309 1.118157e-04  0.22258192
+## 23      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 1   9924 2.130436e-16  0.22258192
+## 24      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   9924 2.568244e-19  0.22258192
+##
+
 
 
 df.W <- rbind(df.prism %>% mutate(group=tk, dGamma.lag=0) %>%
@@ -267,7 +303,14 @@ df.W <- rbind(df.prism %>% mutate(group=tk, dGamma.lag=0) %>%
     mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
     ## select(-c(dGamma, dGamma.lead, dGamma.lag))
 
-## print(df.W %>% select(tk,time, group, dGamma, dGamma.lag, dGamma.trap), n=60)
+## this matrix is formed so that we can compute the weight in the trapezoidal rule associated with
+## one line/time/arc segment. Consider for the sake of simplicity the weight associated with the first line/time/arc segment.
+## This has the form: (Li denoting the length of the ith line segment which is stored in dGamma)
+## (L_1/2) * sum_{k*=0}^{1} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) * psi_l (t_k*) ],
+## and for the second:
+## (L_2/2) * sum_{k*=1}^{2} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) * psi_l (t_k*) ],
+## etc.
+## this operation is done next by
 
 tol <- 0
 df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
@@ -279,16 +322,81 @@ df.dGamma.sum.k.kplus1 <- df.W %>% group_by(group, l, i) %>%
               direction=unique(direction),
               coords=unique(coords))
 
-## df.dGamma.sum.k.kplus1$val[df.dGamma.sum.k.kplus1$val==0] <- 1e-16
-## the integration scheme is stable, which can be achieved by ensuring
-## positive weights on all basis functions that interact with the
-## line/curve of integration.
+## where an additional tol argument was used to avoid numerical instability in cases
+## where dGamma.trap * val was negative. The latest implementation does not suffer
+## from any instability so tol is set to 0. Note that dGamma.trap is always of the type
+## L_k for a weight term that comprises a sum of k and k+1 basis functions as
+## the formula above suggests.
+## There must be a cleaner way of calculating this but have given up.
+## A snapshot of the data frame above is given below
+## 
+## > head(as.data.frame(df.dGamma.sum.k.kplus1),50)
+##    group l    i          val        time direction  coords.1  coords.2
+## 1      1 1 7660 1.056309e-02 0.003131200  1.365427  54.58986 101.65842
+## 2      1 1 7726 1.065576e-01 0.003131200  1.365427  54.58986 101.65842
+## 3      1 1 8037 5.540326e-02 0.003131200  1.365427  54.58986 101.65842
+## 4      1 1 8652 1.272533e-16 0.003131200  1.365427  54.58986 101.65842
+## 5      1 1 8932 4.572901e-03 0.003131200  1.365427  54.58986 101.65842
+## 6      1 1 8998 3.970761e-02 0.003131200  1.365427  54.58986 101.65842
+## 7      1 1 9309 2.367703e-02 0.003131200  1.365427  54.58986 101.65842
+## 8      1 1 9924 4.741966e-17 0.003131200  1.365427  54.58986 101.65842
+## 9      1 2 7660 0.000000e+00 0.003131200  1.365427  54.58986 101.65842
+## 10     1 2 7726 1.284553e-04 0.003131200  1.365427  54.58986 101.65842
+## 11     1 2 8037 6.678871e-05 0.003131200  1.365427  54.58986 101.65842
+## 12     1 2 8652 1.534040e-19 0.003131200  1.365427  54.58986 101.65842
+## 13     1 2 8932 0.000000e+00 0.003131200  1.365427  54.58986 101.65842
+## 14     1 2 8998 4.786758e-05 0.003131200  1.365427  54.58986 101.65842
+## 15     1 2 9309 2.488814e-05 0.003131200  1.365427  54.58986 101.65842
+## 16     1 2 9924 5.716447e-20 0.003131200  1.365427  54.58986 101.65842
+## 17     2 1 7726 4.774293e-01 0.008852429  1.358788  54.36973 101.69133
+## 18     2 1 8037 2.303666e-01 0.008852429  1.358788  54.36973 101.69133
+## 19     2 1 8652 3.098200e-01 0.008852429  1.358788  54.36973 101.69133
+## 20     2 1 8998 1.651041e-01 0.008852429  1.358788  54.36973 101.69133
+## 21     2 1 9309 8.584379e-02 0.008852429  1.358788  54.36973 101.69133
+## 22     2 1 9924 5.214417e-02 0.008852429  1.358788  54.36973 101.69133
+## 23     2 2 7726 2.983597e-03 0.008852429  1.358788  54.36973 101.69133
+## 24     2 2 8037 2.777072e-04 0.008852429  1.358788  54.36973 101.69133
+## 25     2 2 8652 1.936157e-03 0.008852429  1.358788  54.36973 101.69133
+## 26     2 2 8998 5.021535e-04 0.008852429  1.358788  54.36973 101.69133
+## 27     2 2 9309 1.034848e-04 0.008852429  1.358788  54.36973 101.69133
+## 28     2 2 9924 3.258644e-04 0.008852429  1.358788  54.36973 101.69133
+## 29     3 1 7643 1.282249e-03 0.032641279  1.331181  53.45440 101.82815
+## 30     3 1 7726 3.378735e-02 0.032641279  1.331181  53.45440 101.82815
+## 31     3 1 8037 1.021394e-17 0.032641279  1.331181  53.45440 101.82815
+## 32     3 1 8652 2.193160e-02 0.032641279  1.331181  53.45440 101.82815
+## 33     3 1 8915 2.001912e-04 0.032641279  1.331181  53.45440 101.82815
+## 34     3 1 8998 5.686572e-03 0.032641279  1.331181  53.45440 101.82815
+## 35     3 1 9309 1.719054e-18 0.032641279  1.331181  53.45440 101.82815
+## 36     3 1 9924 3.690209e-03 0.032641279  1.331181  53.45440 101.82815
+## 37     3 2 7643 8.473320e-06 0.032641279  1.331181  53.45440 101.82815
+## 38     3 2 7726 2.185065e-04 0.032641279  1.331181  53.45440 101.82815
+## 39     3 2 8037 6.382991e-20 0.032641279  1.331181  53.45440 101.82815
+## 40     3 2 8652 1.449277e-04 0.032641279  1.331181  53.45440 101.82815
+## 41     3 2 8915 1.322897e-06 0.032641279  1.331181  53.45440 101.82815
+## 42     3 2 8998 3.553707e-05 0.032641279  1.331181  53.45440 101.82815
+## 43     3 2 9309 1.074288e-20 0.032641279  1.331181  53.45440 101.82815
+## 44     3 2 9924 2.306121e-05 0.032641279  1.331181  53.45440 101.82815
+## 45     4 1 7643 3.608168e-01 0.034324800  1.329228  53.38962 101.83783
+## 46     4 1 7726 5.672905e-01 0.034324800  1.329228  53.38962 101.83783
+## 47     4 1 8652 4.003107e-01 0.034324800  1.329228  53.38962 101.83783
+## 48     4 1 8915 6.673838e-02 0.034324800  1.329228  53.38962 101.83783
+## 49     4 1 8998 8.856825e-02 0.034324800  1.329228  53.38962 101.83783
+## 50     4 1 9924 7.404336e-02 0.034324800  1.329228  53.38962 101.83783
 
 
-
-## Include arguments in functions
+## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional
+## this data frame is created to create correspondences
+## between spatio-directional basis knots with spatial basis knots, an
+## between spatio-directional basis knots with head directional basis knots, respectively.
 
 df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+
+## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
+## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
+## and returns the coordinates and the head direction associated with the spatial basis function and the
+## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
+## instead of returning coords and angles, it returns the indices of the associated basis functions.
+
 mapindex2space.direction_index <- function(index){    
     f<-function(index.single){
         as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
@@ -304,16 +412,28 @@ mapindex2space.direction_basis <- function(index){
     t((Vectorize(f, vectorize.args="index.single"))(index))
 }
 
+
+
+## once we have all such weights, we aggregate them using
+## sum_{k=1}^N (L_k/2) * sum_{k*=1}^{2} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) * psi_l (t_k*) ]
+## this is done efficiently with sparseMatrix
+
 W <- sparseMatrix(i=df.dGamma.sum.k.kplus1$l,
                   j=df.dGamma.sum.k.kplus1$i,
                   x=df.dGamma.sum.k.kplus1$val/2)
+
+## if there are columns that are everywhere 0, then sparseMatrix would truncate them.
+## I think this may happen due to the knots placed outside the domain (cf a plot of spatial mesh)
+## where the animal never enters. In this case, there is no contribution (no line segment in these triangles)
+## so I manually add them by 
 W         <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(A)-ncol(W)))
+
+## Finally, the W.ipoints.M2 matrix is created below which has the right format to be used in inlabru
 W.ipoints.M2 <- as(W, "dgTMatrix")
 W.ipoints.M2 <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2@i+1], hd=mapindex2space.direction_basis(W.ipoints.M2@j+1)[,1],
                         coords.x1 =mapindex2space.direction_basis(W.ipoints.M2@j+1)[,2],
                         coords.x2 =mapindex2space.direction_basis(W.ipoints.M2@j+1)[,3],
                         weight=W.ipoints.M2@x) %>% arrange(firing_times)
-
 
 
 

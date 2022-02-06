@@ -1,6 +1,5 @@
-* TODO Grid-Fields
-
-
-
-- State "TODO"       from              [2021-04-17 Sat 11:57] \\
-  add formatting_data.html output
+* Repository for statistical analysis of spike trains from grid cells using Poisson points process models
+** Code instructions
+- load_data.R (do not print any object from this script in the console)
+- spde.osc.temporal is the main script for manipulating data and fiting models M0, M1 and M2
+- predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2

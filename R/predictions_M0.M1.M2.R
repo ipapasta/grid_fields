@@ -1,23 +1,27 @@
-## ---------
+## ******************************************
 ## Model M0
-## ---------
+## ******************************************
 N       <- 100
 coords  <- expand.grid(seq(0, 100, len=N), seq(0, 100, len=100)) %>% unname
 predict.data.space  <- data.frame(coords.x1=coords[,1], coords.x2=coords[,2])
-lambda.space        <- predict(fit.space.direction, predict.data.dir.fixed, ~ spde2)
+lambda.space        <- predict(fit.space, predict.data.space, ~ Intercept + spde2)
 
 p.space  <- ggplot(lambda.space, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
     scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
-                         limits=c(min(pr.int.full$mean),max(pr.int.full$mean)))+
+                         limits=c(min(lambda.space$mean),max(lambda.space$mean)))+
     coord_fixed()+ 
     theme_classic() + theme(legend.text=element_text(size=11))
 
 
 
+## ******************************************
+## Model M1
+## ******************************************
+## ------------------------------------------------------------
+## log intensity across space for fixed direction and
+## log intensity across direction for fixed coordinates
+## ------------------------------------------------------------
 
-## ---------
-## model M1
-## ---------
 N            <- 100
 fixed.dir    <- pi
 fixed.coord  <- c(40,45)
@@ -29,16 +33,16 @@ dir.fixed    <- rep(fixed.dir, length=100*100)
 
 predict.data.space.direction.dir.fixed     <- data.frame(hd=dir.fixed, coords.x1=coords[,1], coords.x2=coords[,2])
 predict.data.space.direction.coords.fixed  <- data.frame(hd=dir, coords.x1=coords.fixed[,1], coords.x2=coords.fixed[,2])
-lambda.space.direction.dir.fixed       <- predict(fit.space.direction, predict.data.space.direction.dir.fixed, ~ spde2)
-lambda.space.direction.coords.fixed    <- predict(fit.space.direction, predict.data.space.direction.coords.fixed, ~ spde2)
+lambda.space.direction.dir.fixed       <- predict(fit.space.direction, predict.data.space.direction.dir.fixed, ~ Intercept + spde2)
+lambda.space.direction.coords.fixed    <- predict(fit.space.direction, predict.data.space.direction.coords.fixed, ~ Intercept + spde2)
 
 
-p.dir.fixed  <- ggplot(lambda.space.direction.dir.fixed, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
+p.space.direction.dir.fixed  <- ggplot(lambda.space.direction.dir.fixed, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
     scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
                          limits=c(min(pr.int.full$mean),max(pr.int.full$mean)))+
     coord_fixed()+ 
     theme_classic() + theme(legend.text=element_text(size=11))
-p.coord.fixed <- ggplot(lambda.space.direction.coords.fixed) + 
+p.space.direction.coord.fixed <- ggplot(lambda.space.direction.coords.fixed) + 
     geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+
     scale_x_continuous(breaks=seq(0,2*pi - pi/3,pi/3),
                        labels=paste0(0:5,expression("pi"),"/",3)) +
@@ -52,9 +56,54 @@ p.coord.fixed <- ggplot(lambda.space.direction.coords.fixed) +
 
 grid.arrange(p.dir.fixed, p.coord.fixed, nrow=1)
 
-## ---------
+
+## ------------------------------------------------------------
+## Intensity across space averaged over head direction and
+## Intensity across direction averaged over spatial coordinates
+## ------------------------------------------------------------
+coords.dir   <- expand.grid(seq(0, 100, len=N), seq(0, 100, len=100), seq(0,2*pi,len=50)) %>% unname
+predict.data.space.direction.full  <- data.frame(hd=coords.dir[,3], coords.x1=coords.dir[,1], coords.x2=coords.dir[,2])
+lambda.space.direction.full      <- predict(fit.space.direction, predict.data.space.direction.full, ~ Intercept + spde2)
+
+lambda.space.direction.average.dir <- lambda.space.direction.full %>% mutate(hd=coords.dir[,3], coords.x1=coords.dir[,1], coords.x2=coords.dir[,2]) %>%
+    group_by(coords.x1, coords.x2) %>%
+    summarize(mean = mean(mean))
+
+lambda.space.direction.average.coord <- lambda.space.direction.full %>% mutate(hd=coords.dir[,3], coords.x1=coords.dir[,1], coords.x2=coords.dir[,2]) %>%
+    group_by(hd) %>%
+    summarize(mean = mean(mean))
+
+p.space.direction.average.dir  <- ggplot(lambda.space.direction.average.dir, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
+    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
+                         limits=c(min(lambda.space.direction.average.dir$mean),max(lambda.space.direction.average.dir$mean)))+
+    coord_fixed()+ 
+    theme_classic() + theme(legend.text=element_text(size=11))
+
+
+p.space.direction.average.coord <- ggplot(lambda.space.direction.average.coord) + 
+    ## geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+
+    scale_x_continuous(breaks=seq(0,2*pi - pi/3,pi/3),
+                       labels=paste0(0:5,expression("pi"),"/",3)) +
+    ## scale_y_continuous(breaks=seq(min(lambda.space.direction.average.coord$q0.025) %>% floor,
+    ##                               max(lambda.space.direction.average.coord$q0.975) %>% ceiling, by=0.5),
+    ##                    limits=c(min(lambda.space.direction.average.coord$q0.025) %>% floor,
+    ##                             max(lambda.space.direction.average.coord$q0.975) %>% ceiling))+
+    geom_line(aes(x=hd, y=mean)) +
+    geom_hline(yintercept=0, colour="grey")+
+    coord_polar(start = pi, direction=1) + theme_minimal()
+
+
+grid.arrange(p.space.direction.average.dir, p.space.direction.average.coord, nrow=1)
+
+
+## comparison of fitted log intensities -  M0 vs M1 averaged across head direction 
+grid.arrange(p.space, p.space.direction.average.dir, nrow=1)
+
+
+
+## ******************************************
 ## Model M2
-## ---------
+## ******************************************
 slack <- 5
 maxx  <- max(pos.coords[,"x"]+slack)
 maxy  <- max(pos.coords[,"y"]+slack)

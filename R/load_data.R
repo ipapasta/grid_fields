@@ -47,10 +47,12 @@ if(experimental){
                     index.position=(grid_cells_index.position))
 
     data_extract <- function(index.position, index.firing, trajectory, firing){
+        ## X: trajectory
         X <- data.frame(synced_time=as.numeric(trajectory$synced_time[[index.position]]),
                    position_x = trajectory$position_x[[index.position]],
                    position_y = trajectory$position_y[[index.position]],
                    hd = (trajectory$hd[[index.position]] + 180)*(pi/180))
+        ## Y: firing events
         Y <- data.frame(firing_times=as.numeric(firing$firing_times[[index.firing]])/(30*1000),
                    position_x = firing$position_x[[index.firing]],
                    position_y = firing$position_y[[index.firing]],
@@ -65,6 +67,20 @@ if(experimental){
     X <- dat$X
     Y <- dat$Y
 
+    ##
+    ## Firing events
+    ## 
     mycoords       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
-    ## plot(mycoords)
-}
+
+    ##
+    ## trajectory
+    ##
+    Pl   <- Polygon(cbind(X$position_x, X$position_y))
+    ID   <- "[0,1]x[0,1]"
+    Pls  <- Polygons(list(Pl), ID=ID)
+    SPls <- SpatialPolygons(list(Pls))
+    df   <- data.frame(value=1, row.names=ID)
+    SPDF       <- SpatialPolygonsDataFrame(SPls, df)                                         # str(df)
+    trajectory <- SpatialPolygonsDataFrame(SPls, df) 
+
+

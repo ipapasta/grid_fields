@@ -152,11 +152,17 @@ Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
 dGamma <- c(do.call("c", Ypos$Li))
 dT  <- diff(T.data)
 
+## spatial basis functions
+Aosctmp <- as(Aosc, "dgTMatrix")
+Aosc.indices <- cbind(cbind(Aosctmp@i+1, Aosctmp@j+1), Aosctmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+Aosc.indices <- Aosc.indices[order(Aosc.indices[,1]),] %>% as.data.frame # 
 
-
+## spatial-directional basis functions
 Atmp <- as(A, "dgTMatrix")
 A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
-A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame # 
+A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame #
+
+## temporal basis functions
 Attmp <- as(Atilde, "dgTMatrix")
 At.indices <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
 At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
@@ -164,7 +170,7 @@ At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
 ## 
 ## dim(A)[1] == dim(Atilde)[1] is TRUE, both matrices are basis function evaluations at
 ## the starting coordinates (A) and the starting times (Atilde) of the line segments 
-## at positional data, that is, rows are line/time/arc segments (properly speaking: line segments, time intervals and arcs?)
+## (positional data), that is, rows are line/time/arc segments (properly speaking: line segments, time intervals and arcs?)
 ## for every starting coord/time/angle of a  line/time/arc segment, there are 6 spatio-temporal basis functions that give a non-zero contribution,
 ## that is, 3*2 (3 knots of a triangle * 2 knots of an arc) and 2 temporal basis functions that give non-zero contributions,
 ## that is, 2 time interval knots.
@@ -172,14 +178,15 @@ At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
 ## Each tk appears 6 times, e.g., length(A.indices[,1])/6 = N, where N is the number of line/time/arc segments
 ## A.indices: second column is renamed to i which stands for the index of the spatio-directional basis function
 ## At.indices: second row is l which stands for the index of the temporal basis function
-## 
+##
+names(Aosc.indices) <- c("tk", "i", "psi.o") #ot: omega 
 names(A.indices) <- c("tk", "i", "psi.ot") #ot: omega x theta
-names(At.indices) <- c("tk", "l", "psi.t")
+names(At.indices) <- c("tk", "l", "psi.t") 
 
 
 
-## the code below used to define df.prism first groups At.indices and A.indices by line/time/angle segment
-## then nests them so each row of the nested data frame contains all data for a line/time/arc segment.
+## the code below used to define df.prism.M1_M2 first groups At.indices and A.indices by line/time/angle segment
+## then nests them so each row of the nested data frame contains all basis function evaluation data for line/time/arc segments.
 ## During nesting, information on the index of the basis functions and its associated value is stored
 ## in new column variables named as
 ## data.x: for the temporal basis functions, and as
@@ -220,36 +227,57 @@ names(At.indices) <- c("tk", "l", "psi.t")
 ## which are no longer used and unnest the data frame to bring it back to standard form
 ## 
 
-df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
-                A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+## df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
+##                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+##     arrange(tk) %>%
+##     ungroup %>% 
+##     mutate(
+##         time          = T.data,
+##         time.lag      = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
+##         direction     = HD.data,
+##         direction.lag = c(0, HD.data[-length(direction)]),
+##         coords = I(coords.trap),
+##         coords.lag = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+##         dGamma=c(dGamma,0),
+##         dGamma.lead = lead(dGamma),
+##         dGamma.lag = lag(dGamma),
+##         val.M1 = pmap(list(data.y, dGamma), function(x, y, z){
+##             ooo <- unlist(lapply(1:nrow(y)), function(k) {
+##                 y$psi.ot[oo[k,2]]})
+##             oooo <- data.frame(i=y$i[oo[,2]],val=ooo)
+##             oooo
+##         }),
+##         val = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+##             oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+##             ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+##                 x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+##             oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val=ooo)
+##             oooo
+##         })) %>%
+##     dplyr::select(-c("data.x", "data.y")) %>%
+##     unnest(val)
+
+df.prism.M0 <- Aosc.indices %>% group_by(tk) %>% nest() %>%
     arrange(tk) %>%
     ungroup %>% 
     mutate(
         time          = T.data,
-        time.lag      = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
+        time.lag      = c(0, time[-length(time)]),
         direction     = HD.data,
         direction.lag = c(0, HD.data[-length(direction)]),
-        coords = I(coords.trap),
-        coords.lag = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+        coords        = I(coords.trap),
+        coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
         dGamma=c(dGamma,0),
         dGamma.lead = lead(dGamma),
         dGamma.lag = lag(dGamma),
-        val.M1 = pmap(list(data.y, dGamma), function(x, y, z){
-            ooo <- unlist(lapply(1:nrow(y)), function(k) {
-                y$psi.ot[oo[k,2]]})
-            oooo <- data.frame(i=y$i[oo[,2]],val=ooo)
+        val.M0 = pmap(list(data, dGamma), function(y, z) {
+            oo  <- 1:nrow(y)
+            ooo <- unlist(lapply(1:nrow(y), function(k) {
+                y$psi.o[oo[k]]}))
+            oooo <- data.frame(i=y$i[oo],val.M0=ooo)
             oooo
-        }),
-        val = pmap(list(data.x, data.y, dGamma), function(x, y, z){
-            oo  <- expand.grid(1:nrow(x), 1:nrow(y))
-            ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
-                x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
-            oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val=ooo)
-            oooo
-        })) %>%
-    dplyr::select(-c("data.x", "data.y")) %>%
-    unnest(val)
-
+        })) %>% 
+    dplyr::select(-c("data")) 
 
 df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
@@ -257,11 +285,11 @@ df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
     ungroup %>% 
     mutate(
         time          = T.data,
-        time.lag      = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
+        time.lag      = c(0, time[-length(time)]),
         direction     = HD.data,
         direction.lag = c(0, HD.data[-length(direction)]),
-        coords = I(coords.trap),
-        coords.lag = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+        coords        = I(coords.trap),
+        coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
         dGamma=c(dGamma,0),
         dGamma.lead = lead(dGamma),
         dGamma.lag = lag(dGamma),
@@ -281,13 +309,55 @@ df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
         })) %>%
     dplyr::select(-c("data.x", "data.y")) 
 
-names(df.prism.M1_M2)
-
+df.prism.M0 <- df.prism.M0 %>% unnest(cols=c(val.M0))
 df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
     unnest(cols=c(val.M1))
 df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
     unnest(cols=c(val.M2))
 
+
+
+## ------------------------------------------------
+## M0 model:  Integration weights integration knots 
+## ------------------------------------------------
+df.W.M0 <- rbind(df.prism.M0 %>% mutate(group=tk, dGamma.lag=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
+              df.prism.M0 %>% 
+              filter(tk!=1) %>%
+              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                     group=tk-1,
+                     dGamma=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
+    arrange(group) %>%
+    mutate(dGamma.trap = dGamma + dGamma.lag) 
+
+tol <- 0
+## df.dGamma.sum.k.kplus1.M0 <- df.W.M0 %>% group_by(group, i) %>%
+##     summarize(val = sum(max(dGamma.trap*val.M0, tol)))
+## tmp <- df.W.M0 %>% group_by(group, i) %>% nest
+
+df.dGamma.sum.k.kplus1.M0 <- df.W.M0 %>% group_by(group, i) %>%
+    summarize(val = sum(max(dGamma.trap*val.M0, tol))/2,
+              time = unique(time),
+              direction=unique(direction),
+              coords=unique(coords))  %>%
+    ungroup %>% group_by(i) %>%
+    summarize(val = sum(val))
+
+## fit.space.direction$summary.random$spde2$mean
+    
+
+W.M0 <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
+                     x=df.dGamma.sum.k.kplus1.M0$val,
+                     length=mesh$n)
+
+## 
+## Finally, the W.ipoints.M2 matrix is created below which is in format appropriate to be used in lgcp ipoints arg
+## 
+W.ipoints.M0 <- as(W.M0, "sparseMatrix")
+W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
+                           coords.x2 = mesh$loc[W.ipoints.M0@i+1,2],
+                        weight=W.ipoints.M0@x) 
 
 
 ## ------------------------------------------------
@@ -305,9 +375,10 @@ df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
 ## | .            | .         | .         | .         | .      |
 ## 
 ## 
-## In what follows: two copies of the df.prism.M2 are created
+## In what follows: two copies of the df.prism.M1_M2 are created
 ## the first copy has all line/time/arc segments and sets dGamma.lag = 0 everywhere
-## the second copy removes the first line segment and relabels the line/time/arc segments to start from 1, that is,
+## the second copy removes the first line segment and relabels the line/time/arc segments to start from 1.
+## this way, data from adjacent line/time/arc segments are given the same label
 ## data are grouped by line/time/arc segment. dGamma is set to 0 everywhere for the second copy
 ## a snapshot of the data frame is shown below
 
@@ -349,26 +420,38 @@ df.W.M1 <- rbind(df.prism.M1 %>% mutate(group=tk, dGamma.lag=0) %>%
     arrange(group) %>%
     mutate(dGamma.trap = dGamma + dGamma.lag) 
 
+
+## this matrix is formed so that we can compute the weight in the trapezoidal rule associated with
+## one line/time/arc segment. Consider for the sake of simplicity the weight associated with the first line/time/arc segment.
+## This has the form: (Li denoting the length of the ith line segment which is stored in dGamma)
+## (L_1/2) * sum_{k*=0}^{1} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) ],
+## and for the second:
+## (L_2/2) * sum_{k*=1}^{2} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) ],
+## etc.
+## this operation is done next by
+
 tol <- 0
 ## df.dGamma.sum.k.kplus1.M1 <- df.W.M1 %>% group_by(group, i) %>%
 ##     summarize(val = sum(max(dGamma.trap*val.M1, tol)))
+## tmp <- df.W.M1 %>% group_by(group, i) %>% nest
 
 df.dGamma.sum.k.kplus1.M1 <- df.W.M1 %>% group_by(group, i) %>%
-    summarize(val = sum(max(dGamma.trap*val.M1, tol)),
+    summarize(val = sum(max(dGamma.trap*val.M1, tol))/2,
               time = unique(time),
               direction=unique(direction),
               coords=unique(coords))  %>%
     ungroup %>% group_by(i) %>%
     summarize(val = sum(val))
 
+## fit.space.direction$summary.random$spde2$mean
     
 
 W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
-                     x=df.dGamma.sum.k.kplus1.M1$val/2,
+                     x=df.dGamma.sum.k.kplus1.M1$val,
                      length=mesh$n * mesh.hd$n)
 
 ## 
-## Finally, the W.ipoints.M2 matrix is created below which a format appropriate to be used in inlabru
+## Finally, the W.ipoints.M2 matrix is created below which is in format appropriate to be used in lgcp ipoints arg
 ## 
 W.ipoints.M1 <- as(W.M1, "sparseMatrix")
 W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,1],
@@ -485,6 +568,8 @@ tol <- 0
 ## df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
 ##     summarize(val = sum(max(dGamma.trap*val.M2, tol)))
 
+tmp.M2 <- df.W.M2 %>% group_by(group, l, i) %>% nest
+
 df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
     summarize(val = sum(max(dGamma.trap*val.M2, tol)),
               time = unique(time),
@@ -593,8 +678,8 @@ B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
 B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
 
 ## the following commands implement the finite element method and can
-## be used to obtain useful quantities such as the M matrices which
-## are also defined in spde2_implementation.spdf but can be used both in
+## be used to obtain the M matrices  (defined in
+## spde2_implementation.spdf) which are used both in
 ## inla.spde2.generic and inla.rgeneric.define
 fem.mesh    <- inla.mesh.fem(mesh, order = 2)
 fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
@@ -646,23 +731,37 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M
 ## ----------------
 ## Fitting M0 model
 ## ----------------
-## current implementation below is correct
+## current implementation below is correct. Integration weights computed directly from ipoints function
+## ipoints is invoked since samplers and domain are given
 cmp.oscillating.rgeneric <- coordinates ~ 
     spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
     Intercept
-## cmp.space <- firing_times ~ spde2(space(firing_times), model=space.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) 
+fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric,
+                                 data = Y.spdf,
+                                 samplers = Ypos.sldf,
+                                 domain = list(coordinates = mesh),
+                                 options=list(verbose = TRUE))
 
-fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric, data = Y.spdf, samplers = Ypos.sldf,
-                                 domain = list(coordinates = mesh), options=list(verbose = TRUE))
+## below, samplers is not provided and fit is made using computed integration weights from trapezoidal approximation
+## weights are provided via W.ipoints.M0 in ips argument of lgcp. TODO: check the two implementations give
+## roughly the same output. 
+cmp.space <- firing_times ~
+    spde2(cbind(coords.x1, coords.x2), model=oscillating.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
+fit.space <- lgcp(cmp.space,
+                  data = Y.spdf,
+                  ips     = W.ipoints.M0,
+                  domain  = list(firing_times = mesh1d),
+                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
 
 ## plot estimated intensity
+pxl <- pixels(mesh, nx=500, ny=500)    
 pr.int <- predict(fit.oscillating.rgeneric, pxl, ~ spde2)
 
 
 ggplot() + gg(pr.int) +
     gg(mycoords, color="red", size=0.2) + #mycoords is object containing the firing events. This object is defined in load_data.R
     scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar") +
-    xlim(0,100) + ylim(0,100) +   
+    xlim(0,100) + ylim(0,100) + 
     coord_equal() + theme_classic()
 
 ## ----------------
@@ -681,10 +780,52 @@ fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                             domain  = list(firing_times = mesh1d),
                             options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
 
+N            <- 100
+coords       <- expand.grid(seq(0, 100, len=N), seq(0, 100, len=100)) %>% unname
+dir.fixed    <- rep(pi/3, length=100*100)
+coords.fixed <- matrix(rep(c(40,45),N*N), ncol=2,byrow=TRUE)
+dir          <- seq(0,2*pi, length=N*N)
+predict.data <- data.frame(coords.x1 = coords[,1], coords.x2 = coords[,2], hd = dir.fixed)
+
+## 
+## lambda.hd.fixed <- data.frame(firing_times=times, hd=dir.fixed, coords.x1=coords[,1], coords.x2=coords[,2])
+## pr.int.full <- predict(fit.space.direction, dat.2.predict, ~ Intercept + spde2 + time)
+lambda.hd.fixed     <- predict(fit.space.direction, data=NULL, formula = ~ spde2_eval(cbind(coords[,1],coords[,1]), rep(pi, N*N)) ) 
+lambda.hd.fixed     <- predict(fit.space.direction, data=NULL, formula = ~ spde2_eval(cbind(mesh$loc[,1],mesh$loc[,2]), rep(pi, mesh$n)) ) 
+lambda.hd.fixed     <- predict(fit.space.direction, data=NULL, formula = ~ spde2_eval(list(spatial=cbind(coords[,1],coords[,2]), direction=dir.fixed)) )
+
+lambda.hd.fixed     <- predict(fit.space.direction, data=NULL, formula = ~spde2_eval(spatial=cbind(predict.data$coords.x1, predict.data$coords.x2), direction=predict.data$hd))
+
+## lambda.coord.fixed  <- predict(fit.space.direction, NULL, ~ spde2_eval(coords.fixed, dir))
+
+Aosc.test   <- inla.mesh.projector(mesh, loc=SpatialPoints(as.data.frame(coords)))$proj$A
+Ahd.test    <- inla.mesh.projector(mesh.hd, loc=rep(pi, N*N))$proj$A
+A.test      <- inla.row.kron(Ahd.test, Aosc.test)
+quilt.plot(coords[,1], coords[,2], as.numeric(A.test %*% fit.space.direction$summary.random$spde2$mean))
+points(mycoords,cex=0.3,pch=16,col=2)
+
+quilt.plot(coords[,1], coords[,2], lambda.hd.fixed$mean)
+
+lambda.hd.fixed$coords.x1 <- coords[,1]
+lambda.hd.fixed$coords.x2 <- coords[,2]
+quilt.plot(lambda.hd.fixed$coords.x1, lambda.hd.fixed$coords.x2, lambda.hd.fixed$mean, asp=1)
+points(mycoords, cex=0.5, col="red")
+
+p1  <- ggplot(lambda.hd.fixed, aes(x=coords.x1,y=coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
+    ## geom_point(data=data$Y, size=(rank(lambdafit)/(1+n)), aes(x=position_x, y=position_y),color="red") +
+    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
+                         limits=c(min(lambda.hd.fixed$mean),max(lambda.hd.fixed$mean)))+
+    coord_fixed()
 
 
-
-
+p1 <- ggplot(lambda.coord.fixed) + 
+    geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+
+    scale_x_continuous(breaks=seq(0,2*pi - pi/3,pi/3),
+                       labels=paste0(0:5,expression("pi"),"/",3)) +
+    scale_y_continuous(breaks=seq(-3.5,3.5, by=0.5), limits=c(-3.5, 3.5))+
+    geom_line(aes(x=hd, y=mean)) +
+    geom_hline(yintercept=0, colour="grey")+
+    coord_polar(start = pi, direction=1) + theme_minimal()
 
 
 ## ----------------
@@ -751,6 +892,7 @@ if(FALSE){
     pr.int.full <- predict(fit.space.direction.time, dat.2.predict, ~ Intercept + spde2 + time)
     pr.int.full <- predict(fit.space.direction.time, NULL, ~ spde2_eval(coords, dir) + time_eval(times))
     pr.int.full <- predict(fit.space.direction.time, NULL, ~ spde2_eval(coords, dir) + time_eval(times))
+
 
     p1 <- ggplot(pr.int.full) + 
         geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+

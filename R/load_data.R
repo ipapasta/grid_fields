@@ -82,5 +82,4 @@ if(experimental){
     df   <- data.frame(value=1, row.names=ID)
     SPDF       <- SpatialPolygonsDataFrame(SPls, df)                                         # str(df)
     trajectory <- SpatialPolygonsDataFrame(SPls, df) 
-
-
+}

@@ -30,6 +30,32 @@ theta.nodes <- seq(0, 2*pi, len=p.theta)
 mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
+## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional basis functions
+## this data frame is created to create correspondences
+## between spatio-directional basis knots with spatial basis knots, an
+## between spatio-directional basis knots with head directional basis knots, respectively.
+df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+
+## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
+## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
+## and returns the coordinates and the head direction associated with the spatial basis function and the
+## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
+## instead of returning coords and angles, it returns the indices of the associated basis functions.
+
+mapindex2space.direction_index <- function(index){    
+    f<-function(index.single){
+        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
+mapindex2space.direction_basis <- function(index){    
+    f<-function(index.single){
+        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
 
 Ypos.tmp <- data.frame(
     index.CV = X$index.CV,
@@ -242,36 +268,9 @@ names(At.indices) <- c("tk", "l", "psi.t", "index.CV")
 ## which are no longer used and unnest the data frame to bring it back to standard form
 ## 
 
-## df.prism <- full_join(At.indices %>% group_by(tk) %>% nest(),
-##                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
-##     arrange(tk) %>%
-##     ungroup %>% 
-##     mutate(
-##         time          = T.data,
-##         time.lag      = c(0, time[-length(time)]), #issue with NAs, use 0 (will be discarded later)
-##         direction     = HD.data,
-##         direction.lag = c(0, HD.data[-length(direction)]),
-##         coords = I(coords.trap),
-##         coords.lag = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
-##         dGamma=c(dGamma,0),
-##         dGamma.lead = lead(dGamma),
-##         dGamma.lag = lag(dGamma),
-##         val.M1 = pmap(list(data.y, dGamma), function(x, y, z){
-##             ooo <- unlist(lapply(1:nrow(y)), function(k) {
-##                 y$psi.ot[oo[k,2]]})
-##             oooo <- data.frame(i=y$i[oo[,2]],val=ooo)
-##             oooo
-##         }),
-##         val = pmap(list(data.x, data.y, dGamma), function(x, y, z){
-##             oo  <- expand.grid(1:nrow(x), 1:nrow(y))
-##             ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
-##                 x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
-##             oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val=ooo)
-##             oooo
-##         })) %>%
-##     dplyr::select(-c("data.x", "data.y")) %>%
-##     unnest(val)
 
+
+## TODO: write function for the below code and add description
 Aosc.indices.group.segments <- Aosc.indices
 while(TRUE){
     if(length(which(diff(unique(Aosc.indices.group.segments$index.CV)) == 1)) == 0){
@@ -282,6 +281,38 @@ while(TRUE){
     ## n.CV.groups <- length(unique(Aosc.indices.group.segments$index.CV))
     ## n.lines.in.groups <- table(Aosc.indices.group.segments$index.CV) %>% as.numeric
     Aosc.indices.group.segments <- Aosc.indices.group.segments %>%
+        mutate(index.CV = case_when(
+                   index.CV %in% CV.groups[wh.group.to.pool.with.previous.group] ~ (index.CV-1),
+                   TRUE ~ index.CV
+               ))
+}
+
+A.indices.group.segments <- A.indices
+while(TRUE){
+    if(length(which(diff(unique(A.indices.group.segments$index.CV)) == 1)) == 0){
+        break
+    }
+    CV.groups <- unique(A.indices.group.segments$index.CV)
+    wh.group.to.pool.with.previous.group <- which(diff(unique(A.indices.group.segments$index.CV)) == 1) + 1
+    ## n.CV.groups <- length(unique(A.indices.group.segments$index.CV))
+    ## n.lines.in.groups <- table(A.indices.group.segments$index.CV) %>% as.numeric
+    A.indices.group.segments <- A.indices.group.segments %>%
+        mutate(index.CV = case_when(
+                   index.CV %in% CV.groups[wh.group.to.pool.with.previous.group] ~ (index.CV-1),
+                   TRUE ~ index.CV
+               ))
+}
+
+At.indices.group.segments <- At.indices
+while(TRUE){
+    if(length(which(diff(unique(At.indices.group.segments$index.CV)) == 1)) == 0){
+        break
+    }
+    CV.groups <- unique(At.indices.group.segments$index.CV)
+    wh.group.to.pool.with.previous.group <- which(diff(unique(At.indices.group.segments$index.CV)) == 1) + 1
+    ## n.CV.groups <- length(unique(At.indices.group.segments$index.CV))
+    ## n.lines.in.groups <- table(At.indices.group.segments$index.CV) %>% as.numeric
+    At.indices.group.segments <- At.indices.group.segments %>%
         mutate(index.CV = case_when(
                    index.CV %in% CV.groups[wh.group.to.pool.with.previous.group] ~ (index.CV-1),
                    TRUE ~ index.CV
@@ -317,8 +348,8 @@ df.prism.M0 <- Aosc.indices.group.segments %>% group_by(tk) %>%  nest %>%
     dplyr::select(-c("data"))
 
 
-df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
-                A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+df.prism.M1_M2 <- full_join(At.indices.group.segments %>% group_by(tk) %>% nest(),
+                A.indices.group.segments %>% group_by(tk) %>% nest(), by=c("tk"="tk")) %>%
     arrange(tk) %>%
     ungroup %>% 
     mutate(
@@ -329,8 +360,14 @@ df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
         coords        = I(coords.trap),
         coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
         dGamma=c(dGamma,0),
-        dGamma.lead = lead(dGamma),
-        dGamma.lag = lag(dGamma),
+        dGamma.lead   = lead(dGamma),
+        dGamma.lag    = lag(dGamma),
+        index.M1.CV    = map(data.y, function(x){
+            data.frame(index.CV=rep(unique(x$index.CV),6))
+        }),
+        index.M2.CV    = map(data.y, function(x){
+            data.frame(index.CV=rep(unique(x$index.CV),12))
+        }),
         val.M1 = pmap(list(data.y, dGamma), function(y, z) {
             oo  <- 1:nrow(y)
             ooo <- unlist(lapply(1:nrow(y), function(k) {
@@ -345,13 +382,14 @@ df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
             oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
             oooo
         })) %>%
-    dplyr::select(-c("data.x", "data.y")) 
+    dplyr::select(-c("data.x", "data.y"))
+
 
 df.prism.M0 <- df.prism.M0 %>% unnest(cols=c(val.M0, index.CV))
 df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
-    unnest(cols=c(val.M1))
+    unnest(cols=c(val.M1, index.M1.CV))
 df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
-    unnest(cols=c(val.M2))
+    unnest(cols=c(val.M2, index.M2.CV))
 
 
 
@@ -465,17 +503,39 @@ W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
 ## 24      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9924 5.669404e-02  0.22258192
 ##
 
-df.W.M1 <- rbind(df.prism.M1 %>% mutate(group=tk, dGamma.lag=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
-              df.prism.M1 %>% 
-              filter(tk!=1) %>%
-              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-                     group=tk-1,
-                     dGamma=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
-    arrange(group) %>%
-    mutate(dGamma.trap = dGamma + dGamma.lag) 
+df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest %>%
+    mutate(
+        df.W.M0 = map(data, function(x){
+            tk.min = min(x$tk)
+            rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
+                  x %>% 
+                  filter(tk!=tk.min) %>%
+                  mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                         group=tk-1,
+                         dGamma=0) %>%
+                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
+                arrange(group) %>%
+                mutate(dGamma.trap = dGamma + dGamma.lag) 
+        })) %>% dplyr::select(-c("data")) %>%
+    unnest(cols=c("df.W.M0"))
 
+df.W.M1 <- df.prism.M1 %>% group_by(index.CV) %>% nest %>%
+    mutate(
+        df.W.M1 = map(data, function(x){
+            tk.min = min(x$tk)           
+            rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
+                  x %>% 
+                  filter(tk!=tk.min) %>%
+                  mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                         group=tk-1,
+                         dGamma=0) %>%
+                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
+                arrange(group) %>%
+                mutate(dGamma.trap = dGamma + dGamma.lag)
+        })) %>%dplyr::select(-c("data")) %>%
+    unnest(cols=c("df.W.M1"))
 
 ## this matrix is formed so that we can compute the weight in the trapezoidal rule associated with
 ## one line/time/arc segment. Consider for the sake of simplicity the weight associated with the first line/time/arc segment.
@@ -511,39 +571,11 @@ W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
 ## 
 W.ipoints.M1 <- as(W.M1, "sparseMatrix")
 W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,1],
-                           coords.x1 =mapindex2space.direction_basis(W.ipoints.M1@i+1)[,2],
-                        coords.x2 =mapindex2space.direction_basis(W.ipoints.M1@i+1)[,3],
-                        weight=W.ipoints.M1@x) 
+                           coords.x1 = mapindex2space.direction_basis(W.ipoints.M1@i+1)[,2],
+                           coords.x2 = mapindex2space.direction_basis(W.ipoints.M1@i+1)[,3],
+                           weight=W.ipoints.M1@x) 
 
 
-
-## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional basis functions
-## this data frame is created to create correspondences
-## between spatio-directional basis knots with spatial basis knots, an
-## between spatio-directional basis knots with head directional basis knots, respectively.
-
-df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
-
-## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
-## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
-## and returns the coordinates and the head direction associated with the spatial basis function and the
-## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
-## instead of returning coords and angles, it returns the indices of the associated basis functions.
-
-mapindex2space.direction_index <- function(index){    
-    f<-function(index.single){
-        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
-
-mapindex2space.direction_basis <- function(index){    
-    f<-function(index.single){
-        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
 
 
 
@@ -599,17 +631,40 @@ mapindex2space.direction_basis <- function(index){
 ## 24      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192 2   9924 2.568244e-19  0.22258192
 ##
 
-df.W.M2 <- rbind(df.prism.M2 %>% mutate(group=tk, dGamma.lag=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2),
-              df.prism.M2 %>% 
-              filter(tk!=1) %>%
-              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-                     group=tk-1,
-                     dGamma=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
-    arrange(group) %>%
-    mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
-    ## select(-c(dGamma, dGamma.lead, dGamma.lag))
+## df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest %>%
+##     mutate(
+##         df.W.M0 = map(data, function(x){
+##             tk.min = min(x$tk)
+##             rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+##                   dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
+##                   x %>% 
+##                   filter(tk!=tk.min) %>%
+##                   mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+##                          group=tk-1,
+##                          dGamma=0) %>%
+##                   dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
+##                 arrange(group) %>%
+##                 mutate(dGamma.trap = dGamma + dGamma.lag) 
+##         })) %>% dplyr::select(-c("data")) %>%
+##     unnest(cols=c("df.W.M0"))
+
+df.W.M2 <- df.prism.M2 %>% group_by(index.CV) %>% nest %>%
+    mutate(
+        df.W.M2 = map(data, function(x){
+            tk.min = min(x$tk)
+            rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2),
+                  x %>% 
+                  filter(tk!=1) %>%
+                  mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                         group=tk-1,
+                         dGamma=0) %>%
+                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
+                arrange(group) %>%
+                mutate(dGamma.trap = dGamma + dGamma.lag)
+        })
+    )%>% dplyr::select(-c("data")) %>%
+    unnest(cols=c("df.W.M2"))
 
 ## this matrix is formed so that we can compute the weight in the trapezoidal rule associated with
 ## one line/time/arc segment. Consider for the sake of simplicity the weight associated with the first line/time/arc segment.
@@ -623,8 +678,6 @@ df.W.M2 <- rbind(df.prism.M2 %>% mutate(group=tk, dGamma.lag=0) %>%
 tol <- 0
 ## df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
 ##     summarize(val = sum(max(dGamma.trap*val.M2, tol)))
-
-tmp.M2 <- df.W.M2 %>% group_by(group, l, i) %>% nest
 
 df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
     summarize(val = sum(max(dGamma.trap*val.M2, tol)),
@@ -698,7 +751,7 @@ df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
 ## sum_{k=1}^N (L_k/2) * sum_{k*=k}^{k+1} [ psi_i (s(t_k*)) * psi_j (theta(t_k*)) * psi_l (t_k*) ]
 ## this is done efficiently with sparseMatrix
 
-W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2$l,
+W.M2 <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2$l,
                   j=df.dGamma.sum.k.kplus1.M2$i,
                   x=df.dGamma.sum.k.kplus1.M2$val/2)
 
@@ -707,7 +760,7 @@ W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2$l,
 ## where the animal never enters (cf a plot of spatial mesh - outer boundary). In this case, there is no contribution as there is
 ## no line segment in any  these triangles so I manually add them by appending 0 columns in the matrix W
 
-W         <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(A)-ncol(W)))
+W.M2         <- W.M2 %>% cbind(Matrix(0, nrow=nrow(W.M2), ncol=ncol(A)-ncol(W.M2)))
 
 ## 
 ## Finally, the W.ipoints.M2 matrix is created below which a format appropriate to be used in inlabru

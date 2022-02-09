@@ -822,7 +822,7 @@ source("rgeneric_models.R")
 ## temporal.rgeneric is used for M1 and M2
 oscillating.rgeneric     <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2))
 circular.rgeneric        <- inla.rgeneric.define(circular1D.model,  M = list(M0=M0.hd, M1=M1.hd, M2=M2.hd))
-temporal.rgeneric        <- inla.rgeneric.define(temporal.model,    M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal))
+temporal.rgeneric        <- inla.rgeneric.define(temporal.model,    M = list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal))
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M0.space=M0, M1.space=M1, M2.space=M2,
                                                                                M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
 

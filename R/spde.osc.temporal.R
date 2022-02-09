@@ -1,4 +1,4 @@
-qset.seed(111086) 
+set.seed(111086) 
 library(tidyverse)
 library(purrr)
 library(INLA)  
@@ -24,6 +24,23 @@ theta.nodes <- seq(0, 2*pi, len=p.theta)
 mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
+df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+
+## TODO: add description for following functions
+mapindex2space.direction_index <- function(index){    
+    f<-function(index.single){
+        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
+mapindex2space.direction_basis <- function(index){    
+    f<-function(index.single){
+        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
 
 Ypos.tmp <- data.frame(
     hd=X$hd, time=X$synced_time,
@@ -466,28 +483,13 @@ W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,
 ## between spatio-directional basis knots with spatial basis knots, an
 ## between spatio-directional basis knots with head directional basis knots, respectively.
 
-df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+
 
 ## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
 ## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
 ## and returns the coordinates and the head direction associated with the spatial basis function and the
 ## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
 ## instead of returning coords and angles, it returns the indices of the associated basis functions.
-
-mapindex2space.direction_index <- function(index){    
-    f<-function(index.single){
-        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
-
-mapindex2space.direction_basis <- function(index){    
-    f<-function(index.single){
-        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
 
 
 
@@ -567,8 +569,6 @@ df.W.M2 <- rbind(df.prism.M2 %>% mutate(group=tk, dGamma.lag=0) %>%
 tol <- 0
 ## df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
 ##     summarize(val = sum(max(dGamma.trap*val.M2, tol)))
-
-tmp.M2 <- df.W.M2 %>% group_by(group, l, i) %>% nest
 
 df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
     summarize(val = sum(max(dGamma.trap*val.M2, tol)),
@@ -733,14 +733,17 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M
 ## ----------------
 ## current implementation below is correct. Integration weights computed directly from ipoints function
 ## ipoints is invoked since samplers and domain are given
-cmp.oscillating.rgeneric <- coordinates ~ 
-    spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
-    Intercept
-fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric,
-                                 data = Y.spdf,
-                                 samplers = Ypos.sldf,
-                                 domain = list(coordinates = mesh),
-                                 options=list(verbose = TRUE))
+
+if(FALSE){
+    cmp.oscillating.rgeneric <- coordinates ~ 
+        spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
+        Intercept
+    fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric,
+                                     data = Y.spdf,
+                                     samplers = Ypos.sldf,
+                                     domain = list(coordinates = mesh),
+                                     options=list(verbose = TRUE))
+}
 
 ## below, samplers is not provided and fit is made using from integration weights computed from trapezoidal approximation
 ## weights are provided via W.ipoints.M0 in ips argument of lgcp. TODO: check the two implementations give
@@ -758,7 +761,6 @@ fit.space <- lgcp(cmp.space,
 ## ----------------
 ## NOTES: the integration points that are supplied are incorrect here but were used to verify that the code runs.
 ## A correct implementation would need to compute the W.ipoints for M1 correctly-Work in progress
-
 cmp.space.direction <- firing_times ~
     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
           mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
@@ -773,19 +775,24 @@ fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
 
 
 ## ----------------
-## Fitting M2 model
+## Fitting M2 model (computationally expensive)
 ## ----------------
-## current implementation below is correct
-cmp.space.direction.time <- firing_times ~
-    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
-    time(firing_times, model=temporal.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
+##
+## 
 
-fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(Y.spdf),
-                                 ips=W.ipoints.M2,
-                                 domain = list(firing_times = mesh1d),
-                                 options=list(
-                                     num.threads=8,
-                                     verbose = TRUE, bru_max_iter=1))
+if(FALSE){
+    ## current implementation below is correct
+    cmp.space.direction.time <- firing_times ~
+        spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+              mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
+        time(firing_times, model=temporal.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
+
+    fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(Y.spdf),
+                                     ips=W.ipoints.M2,
+                                     domain = list(firing_times = mesh1d),
+                                     options=list(
+                                         num.threads=8,
+                                         verbose = TRUE, bru_max_iter=1))
+}
 
 

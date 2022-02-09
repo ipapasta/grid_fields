@@ -80,29 +80,6 @@ ldmvnorm <- function(x, m, Q){
     return(out)
 }
 
-## theta <- xpar.theta  <- c(3, -1/2, -3.8, log(7), log(10))
-## theta.X <- theta[1:3]
-## theta.Z <- theta[4:5]    
-## QX     <- osc.precision(theta=theta.X, mesh=mesh)
-## QZ     <- temp.precision(theta=theta.Z, mesh=mesh1d) 
-
-## for(i in 1:1000){
-##     Sys.sleep(1)
-##     ## par(mfrow=c(1,2))
-##     ## plot(i1)
-##     ## plot(i2)
-##     ## i1 <- image(QZ[((i-1)*20 + 1):(i*20),((i-1)*20 + 1):(i*20)], asp=1, lwd=2)
-##     ## i2 <- image(QX[((i-1)*20 + 1):(i*20),((i-1)*20 + 1):(i*20)], asp=1, lwd=2)    
-##     plot(image(QZ[((i-1)*20 + 1):(i*20),((i-1)*20 + 1):(i*20)], asp=1, lwd=2))
-##     Sys.sleep(2)
-##     plot(image(QX[((i-1)*20 + 1):(i*20),((i-1)*20 + 1):(i*20)], asp=1, lwd=2), add=TRUE)
-##     Sys.sleep(4)
-## }
-
-## x<-Z
-## m<-matrix(rep(0, length(Z)), ncol=1)
-## Q<-QZ
-
 interpolate <- function(x, y, z){
     interp <- (x) + (cumsum((z)/sum((z))))*((y) - (x))
     Delta <- diff(c(x, interp))
@@ -571,3 +548,316 @@ if(FALSE){
 
 }
 
+
+
+## 
+## function below requires all three meshes. These are obtained from
+## the training data set and are passed on the function for the
+## computation of key quantities that are needed for the computation
+## of the integration weights.
+## 
+data_preparation_for_prediction <- function(X, Y, mesh, mesh.hd, mesh1d){
+    nodes       <- c(mesh.hd$loc, 2*pi)
+    intervals   <- head(cbind(nodes, lead(nodes)), -1)
+    ## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional basis functions
+    ## this data frame is created to create correspondences
+    ## between spatio-directional basis knots with spatial basis knots, an
+    ## between spatio-directional basis knots with head directional basis knots, respectively.
+    df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+    ## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
+    ## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
+    ## and returns the coordinates and the head direction associated with the spatial basis function and the
+    ## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
+    ## instead of returning coords and angles, it returns the indices of the associated basis functions.
+    mapindex2space.direction_index <- function(index){    
+        f<-function(index.single){
+            as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+        }
+        t((Vectorize(f, vectorize.args="index.single"))(index))
+    }
+    mapindex2space.direction_basis <- function(index){    
+        f<-function(index.single){
+            o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+            return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
+        }
+        t((Vectorize(f, vectorize.args="index.single"))(index))
+    }
+    ## 
+    Ypos.tmp <- data.frame(
+        index.CV = X$index.CV,
+        hd=X$hd, time=X$synced_time,
+        coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
+        mutate(coords.lead = lead(coords)) %>%
+        mutate(time.lead = lead(X$synced_time)) %>%
+        mutate(hd.lead = lead(X$hd)) %>%
+        head(-1)
+    ## 
+    Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs),
+                                    L.arcs = lapply(HD.split,
+                                                    function(x) apply(x, 1,
+                                                                      function(y) abs(y[2]-y[1]))),
+                                    time.split = pmap(list(time, time.lead, L.arcs), function(x,y,z){
+                                        o <- interpolate(x,y,z)
+                                        oo <- c(attr(o, "data"), y)
+                                        ooo <- head(cbind(oo, lead(oo)), -1)
+                                        colnames(ooo) <- NULL
+                                        return(ooo)
+                                    }),
+                                    coords.split=pmap(list(coords, coords.lead, L.arcs), function(x,y,z){
+                                        interpolate2(x, y, z)
+                                    }),
+                                    new.time = lapply(time.split, function(x) x[,1, drop=FALSE]),
+                                    new.time.lead= lapply(time.split, function(x) x[,2, drop=FALSE]),
+                                    new.hd = lapply(HD.split, function(x) x[,1, drop=FALSE]),
+                                    new.hd.lead = lapply(HD.split, function(x) x[,2, drop=FALSE]),
+                                    new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
+                                    new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
+                                    ) 
+    ## 
+    Ypos.tmp <- Ypos.tmp %>% dplyr::select(index.CV, new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
+        unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
+    names(Ypos.tmp) <- c("index.CV", "time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")
+    ## 
+    line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
+                                 filter.zero.length=FALSE,
+                                 ep=Ypos.tmp$coords.lead, tol=.0)
+    ## 
+    df <- data.frame(origin=line.segments$split.origin,
+                     filter.index=line.segments$filter.index,
+                     sp=I(lapply(as.list(apply(line.segments$sp, 1, as.list)), unlist)),
+                     ep=I(lapply(as.list(apply(line.segments$ep, 1, as.list)), unlist))) %>%
+        group_by(origin) %>%
+        summarize(sp=list(sp), ep=list(ep), filter.index=list(filter.index)) %>%
+        mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
+        mutate(ep = lapply(ep, function(x) do.call("rbind", x))) 
+    ## attribute named _data_ stores length of line segments, time differences and arclengths
+    Ypos <- inner_join(Ypos.tmp %>%
+                       mutate(origin=1:nrow(Ypos.tmp)), df) %>%    
+        mutate(Li = map2(sp, ep,
+                         function(x, y) apply(y-x, 1, function(z) sqrt(sum(z^2))))) %>%  
+        mutate(Ti = pmap(list(time, time.lead, Li), interpolate)) %>%
+        mutate(HDi = pmap(list(hd, hd.lead, Li), interpolate )) 
+    filter.index  <- do.call("c", Ypos$filter.index)
+    ## ------------------
+    ## Integration points
+    ## ------------------
+    coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
+    HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))
+    T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
+    index.CV     <- c(do.call("c", lapply(as.list(1:nrow(Ypos)), function(k) rep(Ypos$index.CV[k], nrow(Ypos$sp[[k]])) )), tail(Ypos$index.CV, 1))
+    ## 
+    Atilde <- inla.mesh.projector(mesh1d, loc=T.data)$proj$A
+    Aosc   <- inla.mesh.projector(mesh, loc=coords.trap)$proj$A
+    Ahd    <- inla.mesh.projector(mesh.hd, loc=HD.data)$proj$A
+    A      <- inla.row.kron(Ahd, Aosc)
+    ## 
+    dGamma <- c(do.call("c", Ypos$Li))
+    dT  <- diff(T.data)
+    ## spatial basis functions
+    Aosctmp <- as(Aosc, "dgTMatrix")
+    Aosc.indices <- cbind(cbind(Aosctmp@i+1, Aosctmp@j+1), Aosctmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+    Aosc.indices <- Aosc.indices[order(Aosc.indices[,1]),] %>% as.data.frame %>% mutate(index.CV = sort(rep(index.CV,3))) # 
+    ## spatial-directional basis functions
+    Atmp <- as(A, "dgTMatrix")
+    A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+    A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame %>% mutate(index.CV = sort(rep(index.CV,6)))#
+    ## temporal basis functions
+    Attmp <- as(Atilde, "dgTMatrix")
+    At.indices <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
+    At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame %>% mutate(index.CV = sort(rep(index.CV,2)))
+    names(Aosc.indices) <- c("tk", "i", "psi.o", "index.CV") #ot: omega 
+    names(A.indices) <- c("tk", "i", "psi.ot", "index.CV") #ot: omega x theta
+    names(At.indices) <- c("tk", "l", "psi.t", "index.CV")
+                                        #
+    Aosc.indices.group.segments <- Aosc.indices
+    while(TRUE){
+        if(length(which(diff(unique(Aosc.indices.group.segments$index.CV)) == 1)) == 0){
+            break
+        }
+        CV.groups <- unique(Aosc.indices.group.segments$index.CV)
+        wh.group.to.pool.with.previous.group <- which(diff(unique(Aosc.indices.group.segments$index.CV)) == 1) + 1
+        ## n.CV.groups <- length(unique(Aosc.indices.group.segments$index.CV))
+        ## n.lines.in.groups <- table(Aosc.indices.group.segments$index.CV) %>% as.numeric
+        Aosc.indices.group.segments <- Aosc.indices.group.segments %>%
+            mutate(index.CV = case_when(
+                       index.CV %in% CV.groups[wh.group.to.pool.with.previous.group] ~ (index.CV-1),
+                       TRUE ~ index.CV
+                   ))
+    }
+    ## 
+    A.indices.group.segments <- A.indices
+    while(TRUE){
+        if(length(which(diff(unique(A.indices.group.segments$index.CV)) == 1)) == 0){
+            break
+        }
+        CV.groups <- unique(A.indices.group.segments$index.CV)
+        wh.group.to.pool.with.previous.group <- which(diff(unique(A.indices.group.segments$index.CV)) == 1) + 1
+        ## n.CV.groups <- length(unique(A.indices.group.segments$index.CV))
+        ## n.lines.in.groups <- table(A.indices.group.segments$index.CV) %>% as.numeric
+        A.indices.group.segments <- A.indices.group.segments %>%
+            mutate(index.CV = case_when(
+                       index.CV %in% CV.groups[wh.group.to.pool.with.previous.group] ~ (index.CV-1),
+                       TRUE ~ index.CV
+                   ))
+    }
+    ## 
+    At.indices.group.segments <- At.indices
+    while(TRUE){
+        if(length(which(diff(unique(At.indices.group.segments$index.CV)) == 1)) == 0){
+            break
+        }
+        CV.groups <- unique(At.indices.group.segments$index.CV)
+        wh.group.to.pool.with.previous.group <- which(diff(unique(At.indices.group.segments$index.CV)) == 1) + 1
+        ## n.CV.groups <- length(unique(At.indices.group.segments$index.CV))
+        ## n.lines.in.groups <- table(At.indices.group.segments$index.CV) %>% as.numeric
+        At.indices.group.segments <- At.indices.group.segments %>%
+            mutate(index.CV = case_when(
+                       index.CV %in% CV.groups[wh.group.to.pool.with.previous.group] ~ (index.CV-1),
+                       TRUE ~ index.CV
+                   ))
+    }
+    df.prism.M0 <- Aosc.indices.group.segments %>% group_by(tk) %>%  nest %>% 
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma=c(dGamma,0),
+            dGamma.lead = lead(dGamma),
+            dGamma.lag = lag(dGamma),
+            index.CV   = map(data, function(x){
+                x$index.CV
+            }),
+            val.M0 = pmap(list(data, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.o[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M0=ooo)
+                oooo
+            })) %>% 
+        dplyr::select(-c("data"))
+    df.prism.M1_M2 <- full_join(At.indices.group.segments %>% group_by(tk) %>% nest(),
+                                A.indices.group.segments %>% group_by(tk) %>% nest(), by=c("tk"="tk")) %>%
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma=c(dGamma,0),
+            dGamma.lead   = lead(dGamma),
+            dGamma.lag    = lag(dGamma),
+            index.M1.CV    = map(data.y, function(x){
+                data.frame(index.CV=rep(unique(x$index.CV),6))
+            }),
+            index.M2.CV    = map(data.y, function(x){
+                data.frame(index.CV=rep(unique(x$index.CV),12))
+            }),
+            val.M1 = pmap(list(data.y, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.ot[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M1=ooo)
+                oooo
+            }),
+            val.M2 = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            })) %>%
+        dplyr::select(-c("data.x", "data.y"))
+    ## 
+    df.prism.M0 <- df.prism.M0 %>% unnest(cols=c(val.M0, index.CV))
+    df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
+        unnest(cols=c(val.M1, index.M1.CV))
+    df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
+        unnest(cols=c(val.M2, index.M2.CV))
+    df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest %>%
+        mutate(
+            df.W.M0 = map(data, function(x){
+                tk.min = min(x$tk)
+                rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                      dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
+                      x %>% 
+                      filter(tk!=tk.min) %>%
+                      mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                             group=tk-1,
+                             dGamma=0) %>%
+                      dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
+                    arrange(group) %>%
+                    mutate(dGamma.trap = dGamma + dGamma.lag) 
+            })) %>% dplyr::select(-c("data")) %>%
+        mutate(
+            W.ipoints.M0 = map(df.W.M0, function(x){
+                tol <- 0
+                df.dGamma.sum.k.kplus1.M0 <- x %>% group_by(group, i) %>%
+                    summarize(val = sum(max(dGamma.trap*val.M0, tol))/2,
+                              time = unique(time),
+                              direction=unique(direction),
+                              coords=unique(coords))  %>%
+                    ungroup %>% group_by(i) %>%
+                    summarize(val = sum(val))
+                ## 
+                W.M0 <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
+                                     x=df.dGamma.sum.k.kplus1.M0$val,
+                                     length=mesh$n)
+                ## 
+                W.ipoints.M0 <- as(W.M0, "sparseMatrix")
+                W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
+                                           coords.x2 = mesh$loc[W.ipoints.M0@i+1,2],
+                                           weight=W.ipoints.M0@x)
+                  W.ipoints.M0
+            })
+        )
+    ## 
+    df.W.M1 <- df.prism.M1 %>% group_by(index.CV) %>% nest %>%
+        mutate(
+            df.W.M1 = map(data, function(x){
+                tk.min = min(x$tk)           
+                rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                      dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
+                      x %>% 
+                      filter(tk!=tk.min) %>%
+                      mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                             group=tk-1,
+                             dGamma=0) %>%
+                      dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
+                    arrange(group) %>%
+                    mutate(dGamma.trap = dGamma + dGamma.lag)
+            })) %>%dplyr::select(-c("data")) %>%
+        mutate(
+            W.ipoints.M1 = map(df.W.M1, function(x){
+                tol <- 0    
+                df.dGamma.sum.k.kplus1.M1 <- x %>% group_by(group, i) %>%
+                    summarize(val = sum(max(dGamma.trap*val.M1, tol))/2,
+                              time = unique(time),
+                              direction=unique(direction),
+                              coords=unique(coords))  %>%
+                    ungroup %>% group_by(i) %>%
+                    summarize(val = sum(val))
+                W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
+                                     x=df.dGamma.sum.k.kplus1.M1$val,
+                                     length=mesh$n * mesh.hd$n)
+                ## 
+                W.ipoints.M1 <- as(W.M1, "sparseMatrix")
+                W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,1],
+                                           coords.x1 = mapindex2space.direction_basis(W.ipoints.M1@i+1)[,2],
+                                           coords.x2 = mapindex2space.direction_basis(W.ipoints.M1@i+1)[,3],
+                                           weight=W.ipoints.M1@x)
+                W.ipoints.M1
+            })
+        )
+    z <- list()
+    z$df.W.M0 <- df.W.M0
+    z$df.W.M1 <- df.W.M1
+    return(z)
+}

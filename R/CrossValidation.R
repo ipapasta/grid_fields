@@ -503,23 +503,6 @@ W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
 ## 24      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9924 5.669404e-02  0.22258192
 ##
 
-df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest %>%
-    mutate(
-        df.W.M0 = map(data, function(x){
-            tk.min = min(x$tk)
-            rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
-                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
-                  x %>% 
-                  filter(tk!=tk.min) %>%
-                  mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-                         group=tk-1,
-                         dGamma=0) %>%
-                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
-                arrange(group) %>%
-                mutate(dGamma.trap = dGamma + dGamma.lag) 
-        })) %>% dplyr::select(-c("data")) %>%
-    unnest(cols=c("df.W.M0"))
-
 df.W.M1 <- df.prism.M1 %>% group_by(index.CV) %>% nest %>%
     mutate(
         df.W.M1 = map(data, function(x){

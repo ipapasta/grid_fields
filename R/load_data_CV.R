@@ -81,6 +81,9 @@ if(experimental){
     train.index <- sort(sample(1:K, size = floor(K/2), replace=FALSE))
     X.train <- dat$X %>% dplyr::filter(index.CV %in% train.index)
     Y.train <- dat$Y %>% dplyr::filter(index.CV %in% train.index)
+
+    X.test <- dat$X %>% dplyr::filter(!(index.CV %in% train.index))
+    Y.test <- dat$Y %>% dplyr::filter(!(index.CV %in% train.index))
     
     ##
     ## Firing events

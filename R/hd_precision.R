@@ -6,8 +6,12 @@ hd.bsp.precision <- function(theta, mesh){
     theta2 <- theta[2]
     rho     <- exp(theta1)
     kappa   <- sqrt(8*(3/2))/rho
+    ## phi     <- (1-exp(-theta3))/(1+exp(-theta3))
+    ## sincpth <- sqrt(1-phi^2)/acos(phi)
     sigma   <- exp(theta2)
-    tausq   <- 1/(4*(sigma^2)*(kappa^3))
+    ## variance needs adjustment
+    tausq   <- (pi+(cosh(pi*kappa)*sinh(pi*kappa))/kappa)/
+        ((sigma^2)*(2*kappa)^2*sinh(pi*kappa)^2)
     fem       <- inla.mesh.fem(mesh=mesh, order = 2)
     tausq*((kappa^4)*(fem$c0) + (2*(kappa^2)*(fem$g1)) + fem$g2)
 }

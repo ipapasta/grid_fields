@@ -47,8 +47,8 @@
         sigma.direction   <- param$sigma.direction
         lrho.space    <- dlnorm(param$rho.space, log(murho), sigmaLN, log=TRUE)
         lsigma.space  <- dexp(sigma.space, 1/2, log = TRUE)
-        lpphi.space   <- prior.phi_osc(phi.space, a=1, b=20, lg=TRUE)
-        lrho.direction    <- dexp(param$rho.direction, 1/(2*pi), log=TRUE)        
+        lpphi.space   <- prior.phi_osc(phi.space, a=2, b=10, lg=TRUE)
+        lrho.direction    <- dexp(param$rho.direction, 1/(2*pi), log=TRUE)   
         lsigma.direction  <- dexp(sigma.direction, 1, log = TRUE)
         res        <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction
         return(res)
@@ -173,8 +173,6 @@ direction <- function(time){
     }
     (Vectorize(f, vectorize.args="time.scalar"))(time)
 }
-
-
 
 
 ## oscillating.rgeneric <- inla.rgeneric.define(oscillating.model) #arguments that need to be passed are M0, M1 and M2 

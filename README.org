@@ -1,5 +1,10 @@
-* Repository for statistical analysis of spike trains from grid cells using Poisson points process models
-** Code instructions
+* Repository for R code associated with manuscript on statistical analysis of spike trains from grid cells using Poisson points process models
+** Brief code instructions
 - load_data.R (do not print any object from this script in the console)
-- spde.osc.temporal is the main script for manipulating data and fiting models M0, M1 and M2
+- spde.osc.temporal is the main script for manipulating data and
+  fiting models M0, M1 and M2. Models M0 and M1 may be fit
+  "reasonably" fast on a standard computer. Model M2 is
+  computationally intensive.
 - predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
+
+** 

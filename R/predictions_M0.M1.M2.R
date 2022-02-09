@@ -172,18 +172,18 @@ lambda.M0.path        <- predict(fit.space, predict.intensity.on.path, ~ Interce
 lambda.M1.path        <- predict(fit.space.direction, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
 lambda.M2.path        <- predict(fit.space.direction.time, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
 
-T1 <- 0
-T2 <- 100
+T1 <- 450
+T2 <- 500
 
 p.M0.path.time  <- ggplot(lambda.M0.path) +
-    geom_ribbon(aes(x= time, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")
+    geom_ribbon(aes(x= time, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70") +
     geom_line(aes(x=time,y=mean)) +
     xlim(T1, T2) +
     geom_point(data=Y, aes(x=firing_times, rep(min(lambda.M0.path$q0.025, length(firing_times)))), colour="red") + 
     theme_classic() + theme(legend.text=element_text(size=11))
 
 p.M1.path.time  <- ggplot(lambda.M1.path, ) +
-    geom_ribbon(aes(x= time, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")
+    geom_ribbon(aes(x= time, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70") + 
     geom_line(aes(x=time,y=mean)) +
     xlim(T1, T2) +
         geom_point(data=Y, aes(x=firing_times, rep(min(lambda.M0.path$q0.025, length(firing_times)))), colour="red") + 

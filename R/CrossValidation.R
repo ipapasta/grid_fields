@@ -1,4 +1,4 @@
-qset.seed(111086) 
+set.seed(111086) 
 library(tidyverse)
 library(purrr)
 library(INLA)  
@@ -839,7 +839,7 @@ fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric,
 ## roughly the same output. 
 cmp.space <- firing_times ~
     spde2(cbind(coords.x1, coords.x2), model=oscillating.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
-fit.space <- lgcp(cmp.space,
+fit.space.2.train <- lgcp(cmp.space,
                   data = Y.spdf,
                   ips     = W.ipoints.M0,
                   domain  = list(firing_times = mesh1d),
@@ -856,10 +856,12 @@ cmp.space.direction <- firing_times ~
           mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
     Intercept
 
-fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
+fit.space.direction.2.train <- lgcp(cmp.space.direction, data = Y.spdf,
                             ips     = W.ipoints.M1,
                             domain  = list(firing_times = mesh1d),
                             options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
+
+
 
 
 
@@ -881,3 +883,41 @@ fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(
                                      verbose = TRUE, bru_max_iter=1))
 
 
+## ----------------------------------------------------------------
+## Predictions for the expected number of firing events in test set
+## ----------------------------------------------------------------
+## calculation of integration weight for connected line segments
+weights_test <- weights_line_segments_in_train(X.test=X.test, Y.test = Y.test, mesh=mesh, mesh.hd=mesh.hd, mesh1d=mesh1d)
+
+## ----------------------------------------------
+## estimated latent effects from models M0 and M1
+## ----------------------------------------------
+beta.M0           <- fit.space.2.train$summary.fixed$mean
+beta.M1           <- fit.space.direction.2.train$summary.fixed$mean
+x.M0              <- fit.space.2.train$summary.random$spde2$mean
+x.M1              <- fit.space.direction.2.train$summary.random$spde2$mean
+
+## ----------------------------------------------------------------
+## Model based estimates (M0) of number of events for each connected
+## line segment in the test set
+## ----------------------------------------------------------------
+EN_i.M0 <- lapply(weights_test$df.W.M0$W.ipoints.M0, function(x){    
+    exp(beta.M0) * sum(exp(x.M0)*x$W.M0)
+}) %>% unlist
+
+
+
+
+## ----------------------------------------------------------------
+## Observed number of events for each connected line segment in the
+## test set
+## ----------------------------------------------------------------
+EN_i.M1 <- lapply(weights_test$df.W.M1$W.ipoints.M1, function(x){    
+    exp(beta.M1) * sum(exp(x.M1)*x$W.M1)
+}) %>% unlist
+
+
+
+sum(EN_i.M0)
+sum(EN_i.M1)
+nrow(Y.test)

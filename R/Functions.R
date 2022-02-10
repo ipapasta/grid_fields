@@ -852,7 +852,7 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
                                      x=df.dGamma.sum.k.kplus1.M1$val,
                                      length=mesh$n * mesh.hd$n)
                 z <- list()
-                z$M1 <- W.M1
+                z$W.M1 <- W.M1
                 ## 
                 W.ipoints.M1 <- as(W.M1, "sparseMatrix")
                 W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,1],

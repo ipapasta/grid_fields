@@ -368,6 +368,10 @@ W.M0 <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
                      x=df.dGamma.sum.k.kplus1.M0$val,
                      length=mesh$n)
 
+W.M0.vector <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
+                            x=df.dGamma.sum.k.kplus1.M0$val,
+                            length=mesh$n)
+
 ## 
 ## Finally, the W.ipoints.M2 matrix is created below which is in format appropriate to be used in lgcp ipoints arg
 ## 
@@ -466,6 +470,10 @@ df.dGamma.sum.k.kplus1.M1 <- df.W.M1 %>% group_by(group, i) %>%
 W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
                      x=df.dGamma.sum.k.kplus1.M1$val,
                      length=mesh$n * mesh.hd$n)
+
+W.M1.vector <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
+                            x=df.dGamma.sum.k.kplus1.M1$val,
+                            length=mesh$n * mesh.hd$n)
 
 ## 
 ## Finally, the W.ipoints.M2 matrix is created below which is in format appropriate to be used in lgcp ipoints arg
@@ -794,5 +802,12 @@ if(FALSE){
                                          num.threads=8,
                                          verbose = TRUE, bru_max_iter=1))
 }
+
+
+## Model based estimate of expected number of points on the entire path
+
+exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
+
+exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
 
 

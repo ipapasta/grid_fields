@@ -552,11 +552,12 @@ if(FALSE){
 
 ## 
 ## function below requires all three meshes. These are obtained from
-## the training data set and are passed on the function for the
-## computation of key quantities that are needed for the computation
+## the training data set and are passed in the function computation
 ## of the integration weights.
 ## 
-data_preparation_for_prediction <- function(X, Y, mesh, mesh.hd, mesh1d){
+weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d){
+    X <- X.test
+    Y <- Y.test
     nodes       <- c(mesh.hd$loc, 2*pi)
     intervals   <- head(cbind(nodes, lead(nodes)), -1)
     ## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional basis functions
@@ -810,12 +811,15 @@ data_preparation_for_prediction <- function(X, Y, mesh, mesh.hd, mesh1d){
                 W.M0 <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
                                      x=df.dGamma.sum.k.kplus1.M0$val,
                                      length=mesh$n)
+                z <- list()
+                z$W.M0 <- W.M0
                 ## 
                 W.ipoints.M0 <- as(W.M0, "sparseMatrix")
                 W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
                                            coords.x2 = mesh$loc[W.ipoints.M0@i+1,2],
                                            weight=W.ipoints.M0@x)
-                  W.ipoints.M0
+                z$W.ipoints.M0 <- W.ipoints.M0
+                return(z)
             })
         )
     ## 
@@ -847,13 +851,16 @@ data_preparation_for_prediction <- function(X, Y, mesh, mesh.hd, mesh1d){
                 W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
                                      x=df.dGamma.sum.k.kplus1.M1$val,
                                      length=mesh$n * mesh.hd$n)
+                z <- list()
+                z$M1 <- W.M1
                 ## 
                 W.ipoints.M1 <- as(W.M1, "sparseMatrix")
                 W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,1],
                                            coords.x1 = mapindex2space.direction_basis(W.ipoints.M1@i+1)[,2],
                                            coords.x2 = mapindex2space.direction_basis(W.ipoints.M1@i+1)[,3],
                                            weight=W.ipoints.M1@x)
-                W.ipoints.M1
+                z$W.ipoints.M1 <- W.ipoints.M1
+                return(z)
             })
         )
     z <- list()

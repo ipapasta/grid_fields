@@ -40,7 +40,7 @@
             if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
             if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
         }
-        sigmaLN  <- 1
+        sigmaLN  <- 3
         murho    <- 30
         sigma.space    <- param$sigma.space
         phi.space      <- param$phi.space
@@ -128,7 +128,7 @@
             if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
             if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
         }
-        sigmaLN  <- 1
+        sigmaLN  <- 3
         murho    <- 25
         rho      <- sqrt(8)/param$kappa
         sigma    <- sqrt(param$tausq)

@@ -3,6 +3,7 @@ library(tidyverse)
 library(purrr)
 library(INLA)  
 library(inlabru)
+bru_options_set(inla.mode = "experimental") 
 library(sp)
 library(fields)
 library(nloptr)
@@ -14,14 +15,18 @@ source("osc_precision.R")
 source("hd_precision.R")
 source("temp_precision.R")
 
-k    <- 5
+k    <- 4
 mesh      <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+## plot(mesh, asp=1)
 ##
 ## size of discretized fields 
 p           <- mesh$n
 p.theta     <- 30
 theta.nodes <- seq(0, 2*pi, len=p.theta)
 mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
+## x1 <- cos(mesh.hd$loc)
+## y1 <- sin(mesh.hd$loc)
+## plot(x1, y1)
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
 df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
@@ -764,6 +769,14 @@ fit.space <- lgcp(cmp.space,
                   domain  = list(firing_times = mesh1d),
                   options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
 
+
+
+## fit.space$summary.hyperpar
+##                        mean       mean         mean
+## Theta1 for spde2  2.9597178  2.9626358    2.9644598
+## Theta2 for spde2  0.5297674  0.5308157    0.5306628
+## Theta3 for spde2 -2.6339410  -2.7731437  -2.7649695
+
 ## ----------------
 ## Fitting M1 model
 ## ----------------
@@ -779,6 +792,12 @@ fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                             domain  = list(firing_times = mesh1d),
                             options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
 
+
+## model based estimates of expected number of events on the entire path from M0 and M1
+EN.M0 <- exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
+EN.M1 <- exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
+EN.M0 - nrow(Y)
+EN.M1 - nrow(Y)
 
 
 
@@ -806,8 +825,7 @@ if(FALSE){
 
 ## Model based estimate of expected number of points on the entire path
 
-exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
 
-exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
+## exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
 
 

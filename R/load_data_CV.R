@@ -70,7 +70,7 @@ if(experimental){
     lambda.CV <- mean(diff(dat$X$synced_time))
     Z <- 0
     counter <- 0
-    while(Z[length(Z)] < max(X$synced_time)){
+    while(Z[length(Z)] < max(dat$X$synced_time)){
         print(counter)
         Z <- c(Z, Z[length(Z)]+rexp(1,lambda.CV))
         dat$X$index.CV[which(dat$X$synced_time < Z[counter+2] & dat$X$synced_time > Z[counter+1])] <- counter + 1

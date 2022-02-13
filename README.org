@@ -8,6 +8,6 @@
 - predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
 
 #+html: <p align="center"><img src="/R/animations/anim_space_direction.varying.direction.gif" /></p>
-#+html: <p align="center"><img src="/R/animations/anim_space_direction.varying.coords.gif" /></p>
+#+html: <p align="center"><img src="/R/animations/anim_space_direction.varying.coord.gif" /></p>
 
 

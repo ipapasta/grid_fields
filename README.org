@@ -7,6 +7,7 @@
   computationally intensive.
 - predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
 
-<p align="center"><img src="/R/anim_space_direction.varying.coord.gif" /></p>
+
+[[https://github.com/ipapasta/grid_fields/tree/master/R/animations/anim_space_direction.varying.coord.gif]]
 
 

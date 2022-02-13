@@ -147,7 +147,7 @@
     log.prior <- function() {        
         param = interpret.theta()        
         lrho.temporal    <- dexp(param$rho.temporal, hyperpar$rho.temporal , log=TRUE)
-        lsigma.temporal  <- dexp(param$sigma.temporal, , log = TRUE)
+        lsigma.temporal  <- dexp(param$sigma.temporal, hyperpar$sigma.temporal, log = TRUE)
         res              <- lrho.temporal + lsigma.temporal
         return(res)
     }

@@ -7,7 +7,6 @@
   computationally intensive.
 - predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
 
+<p align="center"><img src="/R/anim_space_direction.varying.coord.gif" /></p>
 
-[[/R/animations/anim_space_direction.varying.coord.gif][Model based estimate of head directional effect plotted over a mouse walking on the diagonal of the arena]]
-[[/R/animations/anim_space_direction.varying.direction.gif][Model based estimate of spatial intensity plotted as the mouse turns its head]]
 

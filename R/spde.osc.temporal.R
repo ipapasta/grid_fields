@@ -1,21 +1,36 @@
 set.seed(111086) 
 library(tidyverse)
 library(purrr)
-library(INLA)  
+## ensure latest INLA testing version is installed
+## INLA is not on CRAN:
+## https://www.r-inla.org/download-install
+library(INLA)
 library(inlabru)
-bru_options_set(inla.mode = "experimental") 
+bru_options_set(inla.mode = "experimental")
+## option "experimental" seems to implement Variational Bayes
+## correction this is useful for Poisson point process
+## likelihoods. This option is implemented in latest INLA testing version
+if(inla.pardiso.check() != "SUCCESS: PARDISO IS INSTALLED AND WORKING"){
+    ## enable openmp for parallel computing using strategy "huge".
+    ## this is going to engage all RAM and core resources of the
+    ## computer needs some care when setting this up on Eddie.
+     bru_options_set(control.compute = list(openmp.strategy="huge"))
+}else{
+    bru_options_set(control.compute = list(openmp.strategy="pardiso"))
+}
 library(sp)
 library(fields)
 library(nloptr)
 library(pals)
 inla.setOption(pardiso.license = "/Users/ipapasta/pardiso.lic")
+## Unfortunately pardiso license is discontinued for academic users.
 source("load_data.R")
 source("Functions.R")
 source("osc_precision.R")
 source("hd_precision.R")
 source("temp_precision.R")
 
-k    <- 4
+k    <- 5
 mesh      <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 ## plot(mesh, asp=1)
 ##
@@ -404,8 +419,8 @@ W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
 ## In what follows: two copies of the df.prism.M1_M2 are created
 ## the first copy has all line/time/arc segments and sets dGamma.lag = 0 everywhere
 ## the second copy removes the first line segment and relabels the line/time/arc segments to start from 1.
-## this way, data from adjacent line/time/arc segments are given the same label
-## data are grouped by line/time/arc segment. dGamma is set to 0 everywhere for the second copy
+## this way, data from adjacent line/time/arc segments are given the same label.
+## data are then grouped by line/time/arc segment. dGamma is set to 0 everywhere for the second copy.
 ## a snapshot of the data frame is shown below
 
 ##     group        time direction  coords.1  coords.2     dGamma dGamma.lag       i       val.M1  dGamma.trap
@@ -434,6 +449,8 @@ W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
 ## 23      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9924 2.641046e-17  0.22258192
 ## 24      1 0.003131200  1.365427  54.58986 101.65842 0.00000000 0.22258192    9924 5.669404e-02  0.22258192
 ##
+
+## 
 
 df.W.M1 <- rbind(df.prism.M1 %>% mutate(group=tk, dGamma.lag=0) %>%
               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),

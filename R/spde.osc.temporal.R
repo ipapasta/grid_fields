@@ -1,15 +1,13 @@
 set.seed(111086) 
-library(tidyverse)
-library(purrr)
 ## ensure latest INLA testing version is installed
 ## INLA is not on CRAN:
 ## https://www.r-inla.org/download-install
 library(INLA)
 library(inlabru)
 bru_options_set(inla.mode = "experimental")
-## option "experimental" seems to implement Variational Bayes
-## correction this is useful for Poisson point process
-## likelihoods. This option is implemented in latest INLA testing version
+## option "experimental" implements Variational Bayes correction this
+## is useful for Poisson point process likelihoods.
+## This option is implemented in latest INLA testing version
 if(inla.pardiso.check() != "SUCCESS: PARDISO IS INSTALLED AND WORKING"){
     ## enable openmp for parallel computing using strategy "huge".
     ## this is going to engage all RAM and core resources of the
@@ -18,22 +16,20 @@ if(inla.pardiso.check() != "SUCCESS: PARDISO IS INSTALLED AND WORKING"){
 }else{
     bru_options_set(control.compute = list(openmp.strategy="pardiso"))
 }
-library(sp)
-library(fields)
-library(nloptr)
-library(pals)
 inla.setOption(pardiso.license = "/Users/ipapasta/pardiso.lic")
 ## Unfortunately pardiso license is discontinued for academic users.
 source("load_data.R")
 source("Functions.R")
-source("osc_precision.R")
-source("hd_precision.R")
-source("temp_precision.R")
+## source("osc_precision.R")
+## source("hd_precision.R")
+## source("temp_precision.R")
+## library(sp)
+## library(fields)
+## library(nloptr)
 
-k    <- 5
-mesh      <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+k     <- 4
+mesh  <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 ## plot(mesh, asp=1)
-##
 ## size of discretized fields 
 p           <- mesh$n
 p.theta     <- 30
@@ -45,7 +41,6 @@ mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
 df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
-
 ## TODO: add description for following functions
 mapindex2space.direction_index <- function(index){    
     f<-function(index.single){
@@ -732,8 +727,22 @@ M2.hd = fem.mesh.hd$g2
 ## vignette("rgeneric", package="INLA")
 ## if you can't open the vignette then you probably have an older version of INLA.
 ## Install most recent _development_ version
-## Finn suggested we amend the lgcp code to include inla.mode="experimental" (recent feature of INLA)
+
+## ------------------------------------------------------
+## specification of prior distribution of hyperparameters
+## ------------------------------------------------------
+## spatial model
+sigma.range.spatial.oscillating <- 1
+mu.range.spatial.oscillating    <- 25
+sigma.spatial.oscillating       <- 1/2
+a.par.phi.prior.spatial.oscillating <- 1
+b.par.phi.prior.spatial.oscillating <- 20
+## directional model
+rho.directional   <- 1/(2*pi)
+sigma.directional <- 1
 ## 
+rho.temporal  <- 1/100
+sigma.temporal <- 1/3
 
 ## source all custom-made built models for inla.rgeneric.define
 source("rgeneric_models.R")
@@ -741,11 +750,33 @@ source("rgeneric_models.R")
 ## oscilalting.rgeneric is used for M0
 ## space.direction.rgeneric is used for M1 and M2
 ## temporal.rgeneric is used for M1 and M2
-oscillating.rgeneric     <- inla.rgeneric.define(oscillating.model, M = list(M0=M0, M1=M1, M2=M2))
-circular.rgeneric        <- inla.rgeneric.define(circular1D.model,  M = list(M0=M0.hd, M1=M1.hd, M2=M2.hd))
-temporal.rgeneric        <- inla.rgeneric.define(temporal.model,    M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal))
-space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M0.space=M0, M1.space=M1, M2.space=M2,
-                                                                               M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd))
+space.rgeneric     <- inla.rgeneric.define(oscillating.model,
+                                                 M = list(M0=M0, M1=M1, M2=M2),
+                                                 hyperpar = list(
+                                                     mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
+                                                     sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
+                                                     sigma.spatial.oscillating           = sigma.spatial.oscillating,
+                                                     a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
+                                                     b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating))
+## 
+space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
+                                                 M=list(M0.space=M0, M1.space=M1, M2.space=M2,
+                                                        M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
+                                                 hyperpar = list(
+                                                     mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
+                                                     sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
+                                                     sigma.spatial.oscillating           = sigma.spatial.oscillating,
+                                                     a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
+                                                     b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating,
+                                                     rho.directional                     = rho.directional,
+                                                     sigma.directional                   = sigma.directional))
+## 
+time.rgeneric            <- inla.rgeneric.define(temporal.model,
+                                                 M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
+                                                 hyperpar = list(
+                                                     rho.temporal   = rho.temporal,
+                                                     sigma.temporal = sigma.temporal
+                                                 ))
 
 ## some information on lgcp arguments
 ## domain: means integration domain. When integration domain is supplied together with samplers,
@@ -761,9 +792,67 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M
 ## ----------------
 ## Fitting M0 model
 ## ----------------
-## current implementation below is correct. Integration weights computed directly from ipoints function
-## ipoints is invoked since samplers and domain are given
 
+
+cmp.space <- firing_times ~
+    spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
+fit.space <- lgcp(cmp.space,
+                  data = Y.spdf,
+                  ips     = W.ipoints.M0,
+                  domain  = list(firing_times = mesh1d),
+                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
+
+
+## ----------------
+## Fitting M1 model
+## ----------------
+cmp.space.direction <- firing_times ~
+    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
+    Intercept
+
+fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
+                            ips     = W.ipoints.M1,
+                            domain  = list(firing_times = mesh1d),
+                            options = list( num.threads=8, verbose = TRUE, bru_max_iter=1) )
+
+
+## model based estimates of expected number of events on the entire path from M0 and M1
+EN.M0 <- exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
+EN.M1 <- exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
+EN.M0 - nrow(Y)
+EN.M1 - nrow(Y)
+
+
+
+## ----------------
+## Fitting M2 model (computationally expensive)
+## ----------------
+##
+if(FALSE){
+    ## current implementation below is correct
+    cmp.space.direction.time <- firing_times ~
+        spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+              mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
+        time(firing_times, model=time.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
+
+    fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(Y.spdf),
+                                     ips=W.ipoints.M2,
+                                     domain = list(firing_times = mesh1d),
+                                     options=list(
+                                         num.threads=8,
+                                         verbose = TRUE, bru_max_iter=1))
+}
+
+
+
+## ------------------------
+## old implementation of M1
+## ------------------------
+
+## current implementation below is correct. Integration weights
+## computed directly from ipoints function ipoints is invoked since
+## samplers and domain are given
 if(FALSE){
     cmp.oscillating.rgeneric <- coordinates ~ 
         spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
@@ -775,76 +864,7 @@ if(FALSE){
                                      options=list(verbose = TRUE))
 }
 
-## below, samplers is not provided and fit is made using from integration weights computed from trapezoidal approximation
-## weights are provided via W.ipoints.M0 in ips argument of lgcp. TODO: check the two implementations give
-## roughly the same output. 
-cmp.space <- firing_times ~
-    spde2(cbind(coords.x1, coords.x2), model=oscillating.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
-fit.space <- lgcp(cmp.space,
-                  data = Y.spdf,
-                  ips     = W.ipoints.M0,
-                  domain  = list(firing_times = mesh1d),
-                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
-
-
-
-## fit.space$summary.hyperpar
-##                        mean       mean         mean
-## Theta1 for spde2  2.9597178  2.9626358    2.9644598
-## Theta2 for spde2  0.5297674  0.5308157    0.5306628
-## Theta3 for spde2 -2.6339410  -2.7731437  -2.7649695
-
-## ----------------
-## Fitting M1 model
-## ----------------
-## NOTES: the integration points that are supplied are incorrect here but were used to verify that the code runs.
-## A correct implementation would need to compute the W.ipoints for M1 correctly-Work in progress
-cmp.space.direction <- firing_times ~
-    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
-    Intercept
-
-fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
-                            ips     = W.ipoints.M1,
-                            domain  = list(firing_times = mesh1d),
-                            options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
-
-
-## model based estimates of expected number of events on the entire path from M0 and M1
-EN.M0 <- exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
-EN.M1 <- exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
-EN.M0 - nrow(Y)
-EN.M1 - nrow(Y)
-
-
-
-
-
-## ----------------
-## Fitting M2 model (computationally expensive)
-## ----------------
-##
-## 
-
-if(FALSE){
-    ## current implementation below is correct
-    cmp.space.direction.time <- firing_times ~
-        spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-              mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
-        time(firing_times, model=temporal.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
-
-    fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(Y.spdf),
-                                     ips=W.ipoints.M2,
-                                     domain = list(firing_times = mesh1d),
-                                     options=list(
-                                         num.threads=8,
-                                         verbose = TRUE, bru_max_iter=1))
-}
-
-
 ## Model based estimate of expected number of points on the entire path
-
-
 ## exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
 
 

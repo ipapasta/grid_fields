@@ -1,3 +1,54 @@
+'oscillating.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
+    envir <- parent.env(environment())
+    interpret.theta <- function() {
+        rho     <- exp(theta[1L])
+        kappa   <- sqrt(8)/rho
+        sigma   <- exp(theta[2L])
+        phi     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
+        sincpth <- sqrt(1-phi^2)/acos(phi)
+        tausq   <- 1/(4*pi*(sigma^2)*(kappa^2)*sincpth)
+        z       <- list(tausq = tausq, rho  = rho, phi = phi)
+        return(z)
+    }
+    graph <- function() return(M$M2)
+    Q <- function() {
+        require(Matrix)
+        param     <- interpret.theta()
+        kappa     <- sqrt(8)/param$rho
+        precision <- param$tausq*(kappa^4 * M$M0 + 2*param$phi * kappa^2 * M$M1 + M$M2)
+        return(precision)
+    }
+    mu <- function() return(numeric(0))
+    log.norm.const <- function() return(numeric(0))
+    log.prior <- function() {        
+        param = interpret.theta()
+        prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
+            if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
+            if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
+        }
+        rho        <- sqrt(8)/param$kappa
+        sigma      <- sqrt(param$tausq)
+        phi        <- param$phi
+        ## distribution of hyperparameters 
+        sigmaLN    <- hyperpar$sigma.range.spatial.oscillating
+        murho      <- hyperpar$mu.range.spatial.oscillating
+        sigma.spatial.oscillating <- hyperpar$sigma.spatial.oscillating
+        lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
+        lsigma.sp  <- dexp(sigma, sigma.spatial.oscillating, log = TRUE)       
+        lpphi.sp   <- prior.phi_osc(phi,
+                                    a=hyperpar$a.par.phi.prior.spatial.oscillating,
+                                    b=hyperpar$b.par.phi.prior.spatial.oscillating,
+                                    lg=TRUE)
+        res        <- lpphi.sp + lrho.sp + lsigma.sp
+        return(res)
+    }
+    initial <- function()  return(c(0, 0, 0))
+    quit <- function()  return(invisible())
+    res <- do.call(match.arg(cmd), args = list())
+    return(res)
+}
+
+
 'space.direction.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
     envir <- parent.env(environment())
     interpret.theta <- function() {
@@ -12,23 +63,24 @@
         kappa.direction   <- sqrt(8*(3/2))/rho.direction
         sigma.direction   <- exp(theta[5L])
         ## 
-        z       <- list(sigma.space = sigma.space, rho.space  = rho.space, phi.space = phi.space,
-                        sigma.direction = sigma.direction, rho.direction=rho.direction)
+        z       <- list(sigma.space = sigma.space,
+                        rho.space  = rho.space,
+                        phi.space = phi.space,
+                        sigma.direction = sigma.direction,
+                        rho.direction=rho.direction)
         return(z)
     }
     graph <- function() return(kronecker(M$M2.direction, M$M2.space))
     Q <- function() {
         require(Matrix)
-        param       <- interpret.theta()
-        kappa.space <- sqrt(8)/param$rho.space
-        kappa.direction <- sqrt(8*(3/2))/param$rho.direction
-        sincpth <- sqrt(1-param$phi.space^2)/acos(param$phi.space)
-        tausq.space     <- 1/(4*pi*(param$sigma.space^2)*(kappa.space^2)*sincpth)
+        param               <- interpret.theta()
+        kappa.space         <- sqrt(8)/param$rho.space
+        kappa.direction     <- sqrt(8*(3/2))/param$rho.direction
+        sincpth             <- sqrt(1-param$phi.space^2)/acos(param$phi.space)
+        tausq.space         <- 1/(4*pi*(param$sigma.space^2)*(kappa.space^2)*sincpth)
         tausq.direction     <- 1/(4*(param$sigma.direction^2)*(kappa.direction^3))
-        precision.space     <- tausq.space*(kappa.space^4 * M$M0.space +
-                                                    2*param$phi.space * kappa.space^2 * M$M1.space + M$M2.space)
-        precision.direction <- tausq.direction*(kappa.direction^4 * M$M0.direction +
-                                                      2 * kappa.direction^2 * M$M1.direction + M$M2.direction)
+        precision.space     <- tausq.space*(kappa.space^4 * M$M0.space + 2*param$phi.space * kappa.space^2 * M$M1.space + M$M2.space)
+        precision.direction <- tausq.direction*(kappa.direction^4 * M$M0.direction + 2 * kappa.direction^2 * M$M1.direction + M$M2.direction)
         precision <- kronecker(precision.direction, precision.space)
         return(precision)
     }
@@ -42,15 +94,23 @@
         }
         sigmaLN  <- 3
         murho    <- 30
-        sigma.space    <- param$sigma.space
-        phi.space      <- param$phi.space
-        sigma.direction   <- param$sigma.direction
-        lrho.space    <- dlnorm(param$rho.space, log(murho), sigmaLN, log=TRUE)
-        lsigma.space  <- dexp(sigma.space, 1/2, log = TRUE)
-        lpphi.space   <- prior.phi_osc(phi.space, a=2, b=10, lg=TRUE)
-        lrho.direction    <- dexp(param$rho.direction, 1/(2*pi), log=TRUE)   
-        lsigma.direction  <- dexp(sigma.direction, 1, log = TRUE)
-        res        <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction
+        sigma.space               <- param$sigma.space
+        phi.space                 <- param$phi.space
+        sigma.direction           <- param$sigma.direction
+        sigmaLN                   <- hyperpar$sigma.range.spatial.oscillating
+        murho                     <- hyperpar$mu.range.spatial.oscillating
+        sigma.spatial.oscillating <- hyperpar$sigma.spatial.oscillating
+        lrho.space                <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
+        lsigma.space              <- dexp(sigma, sigma.spatial.oscillating, log = TRUE)       
+        ## lrho.space        <- dlnorm(param$rho.space, log(murho), sigmaLN, log=TRUE)
+        ## lsigma.space      <- dexp(sigma.space, 1/2, log = TRUE)
+        lpphi.space       <- prior.phi_osc(phi.space,
+                                           a=hyperpar$a.par.phi.prior.spatial.oscillating,
+                                           b=hyperpar$b.par.phi.prior.spatial.oscillating,
+                                           lg=TRUE)
+        lrho.direction    <- dexp(param$rho.direction, hyperpar$rho.directional, log=TRUE)   
+        lsigma.direction  <- dexp(sigma.direction, hyperpar$sigma.directional, log = TRUE)
+        res               <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction
         return(res)
         ## rho0     <- 30
         ## lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
@@ -70,81 +130,28 @@
         rho     <- exp(theta[1L])
         kappa   <- sqrt(8*(3/2))/rho
         sigma   <- exp(theta[2L])
-        ## 
         z       <- list(sigma.temporal = sigma, rho.temporal  = rho)
         return(z)
     }
     graph <- function() return(M$M2.temporal)
     Q <- function() {
         require(Matrix)
-        param <- interpret.theta()        
-        kappa.temporal <- sqrt(8*(3/2))/param$rho.temporal
+        param            <- interpret.theta()        
+        kappa.temporal   <- sqrt(8*(3/2))/param$rho.temporal
         tausq.temporal   <- 1/(4*(param$sigma.temporal^2)*(kappa.temporal^3))
-        precision <- tausq.temporal*(kappa.temporal^4 * M$M0.temporal + 2 * kappa.temporal^2 * M$M1.temporal + M$M2.temporal)
+        precision        <- tausq.temporal*(kappa.temporal^4 * M$M0.temporal + 2 * kappa.temporal^2 * M$M1.temporal + M$M2.temporal)
         return(precision)
     }
     mu <- function() return(numeric(0))
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
-        param = interpret.theta()
-        rho.temporal   <- param$rho.temporal
-        lrho.temporal    <- dexp(rho.temporal, 1/100, log=TRUE)
-        lsigma.temporal  <- dexp(param$sigma.temporal, 1/3, log = TRUE)
-        res        <- lrho.temporal + lsigma.temporal
+        param = interpret.theta()        
+        lrho.temporal    <- dexp(param$rho.temporal, hyperpar$rho.temporal , log=TRUE)
+        lsigma.temporal  <- dexp(param$sigma.temporal, , log = TRUE)
+        res              <- lrho.temporal + lsigma.temporal
         return(res)
     }
     initial <- function()  return(c(log(22), log(0.68)))
-    quit <- function()  return(invisible())
-    res <- do.call(match.arg(cmd), args = list())
-    return(res)
-}
-
-
-'oscillating.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
-    envir <- parent.env(environment())
-    interpret.theta <- function() {
-        rho     <- exp(theta[1L])
-        kappa   <- sqrt(8)/rho
-        sigma   <- exp(theta[2L])
-        phi     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
-        sincpth <- sqrt(1-phi^2)/acos(phi)
-        tausq   <- 1/(4*pi*(sigma^2)*(kappa^2)*sincpth)
-        z       <- list(tausq = tausq, rho  = rho, phi = phi)
-        return(z)
-    }
-    graph <- function() return(M$M2)
-    Q <- function() {
-        require(Matrix)
-        param <- interpret.theta()
-        kappa <- sqrt(8)/param$rho
-        precision <- param$tausq*(kappa^4 * M$M0 + 2*param$phi * kappa^2 * M$M1 + M$M2)
-        return(precision)
-    }
-    mu <- function() return(numeric(0))
-    log.norm.const <- function() return(numeric(0))
-    log.prior <- function() {        
-        param = interpret.theta()
-        prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
-            if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
-            if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
-        }
-        sigmaLN  <- 3
-        murho    <- 25
-        rho      <- sqrt(8)/param$kappa
-        sigma    <- sqrt(param$tausq)
-        phi      <- param$phi
-        ## rho0     <- 30
-        ## lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
-        ## alpha      <- 1-10^(-15)
-        ## lambda.rho <- -log(alpha) * rho0 
-        ## lrho.sp    <- log(lambda.rho) - 2*log(rho) -lambda.rho/rho
-        lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
-        lsigma.sp  <- dexp(sigma, 1/2, log = TRUE)
-        lpphi.sp   <- prior.phi_osc(phi, a=1, b=20, lg=TRUE)
-        res        <- lpphi.sp + lrho.sp + lsigma.sp
-        return(res)
-    }
-    initial <- function()  return(c(0, 0, 0))
     quit <- function()  return(invisible())
     res <- do.call(match.arg(cmd), args = list())
     return(res)

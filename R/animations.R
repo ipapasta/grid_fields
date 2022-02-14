@@ -64,11 +64,26 @@ p.space.direction.varying.coord <- ggplot(df.animation.varying.coordinates) +
 ##                          limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
 ##     coord_fixed()+ 
 ##     theme_classic() + theme(legend.text=element_text(size=11)) + transition_states(hd, transition_length = 2, state_length = 1)
-p.space.direction.varying.direction
-p.space.direction.varying.coord
+
+
+
+a_gif <- animate(p.space.direction.varying.direction, width = 240, height = 240)
+b_gif <- animate(p.space.direction.varying.coord, width = 240, height = 240)
+
+a_mgif <- image_read(a_gif)
+b_mgif <- image_read(b_gif)
+
+new_gif <- image_append(c(a_mgif[1], b_mgif[1]))
+for(i in 2:50){
+  combined <- image_append(c(a_mgif[i], b_mgif[i]))
+  new_gif <- c(new_gif, combined)
+}
+plot(new_gif)
 
 anim_save("anim_space_direction.varying.direction.gif", p.space.direction.varying.direction)
 anim_save("anim_space_direction.varying.coord.gif", p.space.direction.varying.coord)
+anim_save("anim_space_direction.varying.direction.test.gif", new_gif)
+
 
 
 

@@ -1,5 +1,6 @@
 library(ggplot2)
 library(gridExtra)
+library(pals)
 ## ******************************************
 ## Model M0
 ## ******************************************
@@ -61,12 +62,11 @@ grid.arrange(p.space.direction.dir.fixed, p.space.direction.coord.fixed, nrow=1)
 
 
 
-## animation
-
 ## ------------------------------------------------------------
 ## Intensity across space averaged over head direction and
 ## Intensity across direction averaged over spatial coordinates
 ## ------------------------------------------------------------
+N <- 100
 coords.dir   <- expand.grid(seq(0, 100, len=N), seq(0, 100, len=100), seq(0,2*pi,len=50)) %>% unname
 predict.data.space.direction.full  <- data.frame(hd=coords.dir[,3], coords.x1=coords.dir[,1], coords.x2=coords.dir[,2])
 lambda.space.direction.full        <- predict(fit.space.direction, predict.data.space.direction.full, ~ Intercept + spde2)
@@ -106,20 +106,6 @@ grid.arrange(p.space.direction.average.dir, p.space.direction.average.coord, nro
 grid.arrange(p.space, p.space.direction.average.dir, nrow=1)
 
 
-
-## 
-## code for animation
-## 
-df.animation <- lambda.space.direction.full %>%
-    mutate(hd=as.factor(hd))
-p.space.direction  <- ggplot(df.animation, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
-    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
-                         limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
-    coord_fixed()+ 
-    theme_classic() + theme(legend.text=element_text(size=11))
-
-
-p.space.direction + transition_states(hd, transition_length = 2, state_length = 1)
 
 
 
@@ -168,12 +154,12 @@ p2<- ggplot(pr.int.full) +
 ## extract times, coordinates and directions along the path
 
 predict.intensity.on.path  <- data.frame(coords.x1=Ypos$coords[,1], coords.x2=Ypos$coords[,2], hd=Ypos$hd, firing_times=Ypos$time)
-lambda.M0.path        <- predict(fit.space, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
-lambda.M1.path        <- predict(fit.space.direction, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
-lambda.M2.path        <- predict(fit.space.direction.time, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
+lambda.M0.path             <- predict(fit.space, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
+lambda.M1.path             <- predict(fit.space.direction, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
+## lambda.M2.path        <- predict(fit.space.direction.time, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
 
-T1 <- 450
-T2 <- 500
+T1 <- 0
+T2 <- 100
 
 p.M0.path.time  <- ggplot(lambda.M0.path) +
     geom_ribbon(aes(x= time, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70") +
@@ -196,7 +182,8 @@ p.hd  <- ggplot(lambda.M1.path, aes(x=time,y=hd)) + geom_line() +
 grid.arrange(p.M0.path.time, p.M1.path.time, p.hd)
 
 plot(lambda.M0.path$mean, lambda.M1.path$mean, pch=16, cex=0.1)
-
 abline(a=0, b=1)
 
+save(predict.data.space.direction.full, predict.intensity.on.path, lambda.M0.path, lambda.M1.path, lambda.space.direction.full, file="lambda_M0_M1.RData")
 
+load("lambda_M0_M1.RData")

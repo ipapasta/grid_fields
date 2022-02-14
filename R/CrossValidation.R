@@ -825,14 +825,16 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model, M=list(M
 ## ----------------
 ## current implementation below is correct. Integration weights computed directly from ipoints function
 ## ipoints is invoked since samplers and domain are given
-cmp.oscillating.rgeneric <- coordinates ~ 
-    spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
-    Intercept
-fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric,
-                                 data = Y.spdf,
-                                 samplers = Ypos.sldf,
-                                 domain = list(coordinates = mesh),
-                                 options=list(verbose = TRUE))
+if(FALSE){
+    cmp.oscillating.rgeneric <- coordinates ~ 
+        spde2(coordinates, model = oscillating.rgeneric, mapper=bru_mapper(mesh, indexed=TRUE)) +
+        Intercept
+    fit.oscillating.rgeneric <- lgcp(cmp.oscillating.rgeneric,
+                                     data = Y.spdf,
+                                     samplers = Ypos.sldf,
+                                     domain = list(coordinates = mesh),
+                                     options=list(verbose = TRUE))
+}
 
 ## below, samplers is not provided and fit is made using from integration weights computed from trapezoidal approximation
 ## weights are provided via W.ipoints.M0 in ips argument of lgcp. TODO: check the two implementations give
@@ -860,10 +862,6 @@ fit.space.direction.2.train <- lgcp(cmp.space.direction, data = Y.spdf,
                             ips     = W.ipoints.M1,
                             domain  = list(firing_times = mesh1d),
                             options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
-
-
-
-
 
 
 ## ----------------

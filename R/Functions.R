@@ -139,6 +139,10 @@ theta.2.rho <- function(theta){
     exp(theta)
 }
 
+theta.2.kappa.1d <- function(theta){
+    sqrt(8*(3/2))/exp(theta)       
+}
+
 ## helper functions for computing the
 ## posterior distribution of gridness score
 ## input is a fitted model with inlabru (e.g. fit.space and fit.space.direction)
@@ -175,6 +179,13 @@ posterior.directional.standard.deviation <- function(inlabru.fitted.object){
 }
 posterior.directional.range <- function(inlabru.fitted.object){
     marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta4 for spde2"]])
+    summaries             <- inla.zmarginal(marg, silent=TRUE)
+    hpd.interval          <- inla.hpdmarginal(0.95, marg)
+    attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
+    return(marg)
+}
+posterior.directional.kappa <- function(inlabru.fitted.object){
+    marg                  <- inla.tmarginal(theta.2.kappa.1d, inlabru.fitted.object$marginals.hyperpar[["Theta4 for spde2"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)

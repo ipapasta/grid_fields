@@ -166,6 +166,45 @@ posterior.spatial.range <- function(inlabru.fitted.object){
 }
 
 
+posterior.directional.standard.deviation <- function(inlabru.fitted.object){
+    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta5 for spde2"]])
+    summaries             <- inla.zmarginal(marg, silent=TRUE)
+    hpd.interval          <- inla.hpdmarginal(0.95, marg)
+    attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
+    return(marg)
+}
+posterior.directional.range <- function(inlabru.fitted.object){
+    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta4 for spde2"]])
+    summaries             <- inla.zmarginal(marg, silent=TRUE)
+    hpd.interval          <- inla.hpdmarginal(0.95, marg)
+    attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
+    return(marg)
+}
+
+
+posterior.temporal.standard.deviation <- function(inlabru.fitted.object){
+    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta6 for spde2"]])
+    summaries             <- inla.zmarginal(marg, silent=TRUE)
+    hpd.interval          <- inla.hpdmarginal(0.95, marg)
+    attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
+    return(marg)
+}
+posterior.temporal.range <- function(inlabru.fitted.object){
+    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta7 for spde4"]])
+    summaries             <- inla.zmarginal(marg, silent=TRUE)
+    hpd.interval          <- inla.hpdmarginal(0.95, marg)
+    attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
+    return(marg)
+}
+
+
+## priors of hyperparameters
+prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
+    if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
+    if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
+}
+
+
 
 
 

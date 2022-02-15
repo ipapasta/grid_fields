@@ -55,14 +55,15 @@ The firing events are stored in data frame =Y= and the positional data in data f
 #+end_src
 
  #+begin_src R :results output latex :exports none :session *R:grid_fields* 
-  svglite(file="animations/trajectory.svg", bg="transparent")
-  par(mfrow=c(1,2))
-  par(mar=rep(0.1,4))
-  par(oma=rep(0,4))
-  plot(trajectory)
-  plot(trajectory)
-  points(mycoords, col=2, pch=16, cex=0.5)
-  dev.off()
+    ## svglite(file="animations/trajectory.svg", bg="transparent")
+    svglite(file="animations/trajectory.svg", bg="white")
+    par(mfrow=c(1,2))
+    par(mar=rep(0.1,4))
+    par(oma=rep(0,4))
+    plot(trajectory)
+    plot(trajectory)
+    points(mycoords, col=2, pch=16, cex=0.5)
+    dev.off()
 #+end_src
 
 

@@ -129,10 +129,10 @@ split.segments.wrapper.function <- function(X, mesh, mesh.hd){
     Ypos.tmp <- data.frame(
     hd=X$hd, time=X$synced_time,
     coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
-    mutate(coords.lead = lead(coords)) %>%
-    mutate(time.lead = lead(X$synced_time)) %>%
-    mutate(hd.lead = lead(X$hd)) %>%
-    head(-1)
+        mutate(coords.lead = lead(coords)) %>%
+        mutate(time.lead = lead(X$synced_time)) %>%
+        mutate(hd.lead = lead(X$hd)) %>%
+        head(-1)
     Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
                                     L.arcs = lapply(HD.split,
                                                     function(x) apply(x, 1,
@@ -180,7 +180,8 @@ split.segments.wrapper.function <- function(X, mesh, mesh.hd){
     filter.index  <- do.call("c", Ypos$filter.index)
     z <- list()
     z$Ypos <- Ypos
-    z$filter.index <- filter.index
+    z$filter.index  <- filter.index
+    z$line.segments <- line.segments
     return(z)
 }
 

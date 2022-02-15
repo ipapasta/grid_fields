@@ -8,6 +8,11 @@
   computationally intensive.
 - predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
 
-
+** An illustrative example
+Firstly, we load the raw data (session id =M14_2018-05-16_11-29-05=, gridness score 0.913)
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  load(url("https://www.maths.ed.ac.uk/~ipapasta/mouse_data.RData"))
+  ls()
+#+end_src
 
 

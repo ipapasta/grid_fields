@@ -10,7 +10,7 @@
 
 ** An illustrative example
 
-*** Construction of spatial and circular mesh 
+*** Loading data
 Load packages and helper functions, and set default options for optimization with =INLA=.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   library(tidyverse)
@@ -63,8 +63,9 @@ The firing events are stored in data frame =Y= and the positional data in data f
    points(mycoords, col=2, pch=16, cex=0.5)
    dev.off()
 #+end_src
-
 #+html: <p align="center"><img src="/R/animations/trajectory.svg" /></p>
+
+*** Spatial and circular meshes
 Next we create a spatial and and a circular mesh. The parameter =k= in
 the code below controls the resolution of the spatial mesh. Smaller
 values for =k= yield finer spatial meshes. The spatial mesh is
@@ -169,7 +170,7 @@ and time) are imputed with linear interpolation.
 #+html: <p align="center"><img src="/R/animations/line_splits.svg" /></p>
 
 
-*** Creation of temporal mesh
+*** Temporal mesh
 Additionally to the spatial and circular meshes, a temporal mesh is
 also required when the effect of time on the variation of spikes is
 included in models. The temporal mesh is constructed by thinning the

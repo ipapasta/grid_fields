@@ -171,12 +171,12 @@ and time) are imputed with linear interpolation.
 
 *** Creation of temporal mesh
 Additionally to the spatial and circular meshes, a temporal mesh is
-also required for models that add a temporal effect in the variation
-of spikes. The temporal mesh is constructed by thinning the grid of
-times that are obtained from the newly derived line segments. Below we
-choose the fixed value =100= for thinning so that, if the consecutive
-times at the starting positions of the line segment (obtained via
-splitting) are denoted by =t[1],t[2], ..=, then the
+also required when the effect of time on the variation of spikes is
+included in models. The temporal mesh is constructed by thinning the
+grid of times that are obtained from the newly derived line
+segments. Below we choose the fixed value =100= for thinning so that,
+if the consecutive times at the starting positions of the line segment
+(obtained via splitting) are denoted by =t[1],t[2], ..=, then the
 temporal mesh is taken as =t[1],t[300],t[600] ..=.
 #+begin_src R :results output latex :exports none :session *R:grid_fields* 
   coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))

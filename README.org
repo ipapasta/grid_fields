@@ -9,6 +9,8 @@
 - predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
 
 ** An illustrative example
+
+*** Data formatting
 Load packages and helper functions, and set default options for optimization with =INLA=.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   library(tidyverse)
@@ -52,8 +54,8 @@ The firing events are stored in data frame =Y= and the positional data in data f
 #+end_src
 
  #+begin_src R :results output latex :exports none :session *R:grid_fields* 
-   ## svglite(file="animations/trajectory.svg", bg="transparent")
-   svglite(file="animations/trajectory.svg", bg="white")
+   ## svglite(file="R/animations/trajectory.svg", bg="transparent")
+   svglite(file="R/animations/trajectory.svg", bg="white")
    ## 
    plot(trajectory)
    points(mycoords, col=2, pch=16, cex=0.5)
@@ -62,10 +64,17 @@ The firing events are stored in data frame =Y= and the positional data in data f
 
 
 #+html: <p align="center"><img src="/R/animations/trajectory.svg" /></p>
-
+Next we create a spatial and and a circular mesh. The parameter =k= in
+the code below controls the resolution of the spatial mesh. The
+spatial mesh is constructed in such a way that the resolution is finer
+for regions where we observe more spikes and coarser otherwise. Also,
+since oscillating Gaussian random fields exhibit strong resonance
+effects, it is important to triangulate the domain outside the arena
+where the animal runs. The properties of the mesh in the region that
+is exterior to the arean can be taken to coarser. 
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
 k           <- 5
-mesh        <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+mesh        <- inla.mesh.2d(loc=mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 p           <- mesh$n
 p.theta     <- 30
 theta.nodes <- seq(0, 2*pi, len=p.theta)
@@ -73,13 +82,24 @@ mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
 #+end_src
-
-
+We visualize the spatial and circular meshes obtained from the code
+above.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   par(mfrow=c(1,2))
   plot(mesh, asp=1)
   x1 <- cos(mesh.hd$loc); y1 <- sin(mesh.hd$loc)
   plot(x1, y1)
 #+end_src
+The construction of the latent spatial and head-directional is tightly
+linked to the construction of the meshes. See Section.. 
 
-
+#+begin_src R :results output latex :exports none :session *R:grid_fields* 
+   ## svglite(file="R/animations/trajectory.svg", bg="transparent")
+   svglite(file="R/animations/meshes.svg", bg="white")
+   ## 
+   plot(mesh, asp=1)
+   x1 <- cos(mesh.hd$loc); y1 <- sin(mesh.hd$loc)
+   plot(x1, y1, pch=16, )
+   dev.off()
+#+end_src
+#+html: <p align="center"><img src="/R/animations/meshes.svg" /></p>

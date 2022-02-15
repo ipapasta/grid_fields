@@ -9,10 +9,61 @@
 - predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
 
 ** An illustrative example
-Firstly, we load the raw data (session id =M14_2018-05-16_11-29-05=, gridness score 0.913)
+Load packages and set default options for optimization with =INLA=.
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  library(tidyverse)
+  library(dplyr)
+  library(purrr)
+  library(sp)
+  library(INLA)
+  library(inlabru)
+  bru_options_set(inla.mode = "experimental")
+  ## option "experimental" implements Variational Bayes correction this
+  ## is useful for Poisson point process likelihoods.
+  ## This option is implemented in latest INLA testing version
+  if(inla.pardiso.check() != "SUCCESS: PARDISO IS INSTALLED AND WORKING"){
+    ## enable openmp for parallel computing using strategy "huge".
+    ## this is going to engage all RAM and core resources of the
+    ## computer needs some care when setting this up on Eddie.
+    bru_options_set(control.compute = list(openmp.strategy="huge"))
+  }else{
+    bru_options_set(control.compute = list(openmp.strategy="pardiso"))
+  }
+#+end_src
+We load the raw data (session id =M14_2018-05-16_11-29-05=, gridness score 0.913)
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   load(url("https://www.maths.ed.ac.uk/~ipapasta/mouse_data.RData"))
   ls()
 #+end_src
+The firing events are stored in data frame =Y= and the positional data in data frame =X=.
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  ##
+  ## Firing events and trajectory 
+  ## 
+  mycoords       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
+  Pl   <- Polygon(cbind(X$position_x, X$position_y)); ID   <- "[0,1]x[0,1]"
+  Pls  <- Polygons(list(Pl), ID=ID); SPls <- SpatialPolygons(list(Pls))
+  df   <- data.frame(value=1, row.names=ID)
+  trajectory <- SpatialPolygonsDataFrame(SPls, df)
+
+  par(mfrow=c(1,2))
+  par(mar=rep(0.1,4))
+  par(oma=rep(0,4))
+  plot(trajectory)
+  plot(trajectory)
+  points(mycoords, col=2, pch=16, cex=0.5)
+#+end_src
+
+ #+begin_src R :results output latex :exports none :session *R:grid_fields* 
+  svglite(file="animations/trajectory.svg")
+  par(mfrow=c(1,2))
+  par(mar=rep(0.1,4))
+  par(oma=rep(0,4))
+  plot(trajectory)
+  plot(trajectory)
+  points(mycoords, col=2, pch=16, cex=0.5)
+  dev.off()
+#+end_src
 
 
+#+html: <p align="center"><img src="/R/animations/trajectory.svg" /></p>

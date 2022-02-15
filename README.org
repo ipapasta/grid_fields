@@ -1,4 +1,4 @@
-* Hierarchical Poisson point process models for spike-trains 
+* Hierarchical Poisson point process models for grid cells 
 #+html: <p align="center"><img src="/R/animations/anim_space_direction.varying.direction.combined.gif" /></p>
 ** Brief code instructions
 - load_data.R (do not print any object from this script in the console)

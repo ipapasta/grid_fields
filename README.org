@@ -170,10 +170,10 @@ and time) are imputed with linear interpolation.
 
 
 *** Creation of temporal mesh
-Additionally to the spatial and the meshes, a temporal mesh is also
-required for models that add a temporal effect in the variation of
-spikes. The temporal mesh is constructed by thinning the grid of times
-that are obtained from the newly derived line segments. Below we
+Additionally to the spatial and circular meshes, a temporal mesh is
+also required for models that add a temporal effect in the variation
+of spikes. The temporal mesh is constructed by thinning the grid of
+times that are obtained from the newly derived line segments. Below we
 choose the fixed value =100= for thinning so that, if the consecutive
 times at the starting positions of the line segment (obtained via
 splitting) are denoted by $\tilde{t}_1,\dots,\tilde{t}_N$, then the

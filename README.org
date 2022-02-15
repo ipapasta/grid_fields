@@ -85,21 +85,25 @@ intervals   <- head(cbind(nodes, lead(nodes)), -1)
 We visualize the spatial and circular meshes obtained from the code
 above.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-  par(mfrow=c(1,2))
   plot(mesh, asp=1)
   x1 <- cos(mesh.hd$loc); y1 <- sin(mesh.hd$loc)
-  plot(x1, y1)
+  plot(x1, y1, pch=16, asp=1, axes=FALSE, xlab="", ylab="", main="circular mesh")
+  abline(h=0);  abline(v=0)
+  text(-.05,1, paste("1")); text(1,-.05, paste("1"))
 #+end_src
 The construction of the latent spatial and head-directional is tightly
 linked to the construction of the meshes. See Section.. 
 
 #+begin_src R :results output latex :exports none :session *R:grid_fields* 
-   ## svglite(file="R/animations/trajectory.svg", bg="transparent")
-   svglite(file="R/animations/meshes.svg", bg="white")
-   ## 
-   plot(mesh, asp=1)
-   x1 <- cos(mesh.hd$loc); y1 <- sin(mesh.hd$loc)
-   plot(x1, y1, pch=16, )
-   dev.off()
+  ## svglite(file="R/animations/trajectory.svg", bg="transparent")
+  svglite(file="R/animations/meshes.svg", bg="white")
+  ##
+  par(mfrow=c(1,2))
+  plot(mesh, asp=1)
+  x1 <- cos(mesh.hd$loc); y1 <- sin(mesh.hd$loc)
+  plot(x1, y1, pch=16, asp=1, axes=FALSE, xlab="", ylab="", main="circular mesh")
+  abline(h=0);  abline(v=0)
+  text(-.05,1, paste("1")); text(1,-.05, paste("1"))
+  dev.off()
 #+end_src
 #+html: <p align="center"><img src="/R/animations/meshes.svg" /></p>

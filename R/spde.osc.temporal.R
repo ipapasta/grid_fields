@@ -27,35 +27,15 @@ source("Functions.R")
 ## library(fields)
 ## library(nloptr)
 
-k     <- 4
+## spatial mesh
+k     <- 5
 mesh  <- inla.mesh.2d(mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
-## plot(mesh, asp=1)
-## size of discretized fields 
 p           <- mesh$n
+## circular mesh
 p.theta     <- 30
 theta.nodes <- seq(0, 2*pi, len=p.theta)
 mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
-## x1 <- cos(mesh.hd$loc)
-## y1 <- sin(mesh.hd$loc)
-## plot(x1, y1)
-nodes       <- c(mesh.hd$loc, 2*pi)
-intervals   <- head(cbind(nodes, lead(nodes)), -1)
-df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
-## TODO: add description for following functions
-mapindex2space.direction_index <- function(index){    
-    f<-function(index.single){
-        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
 
-mapindex2space.direction_basis <- function(index){    
-    f<-function(index.single){
-        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
-        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
-    }
-    t((Vectorize(f, vectorize.args="index.single"))(index))
-}
 
 Ypos.tmp <- data.frame(
     hd=X$hd, time=X$synced_time,
@@ -67,7 +47,7 @@ Ypos.tmp <- data.frame(
 
 
 
-Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs),
+Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
                                 L.arcs = lapply(HD.split,
                                                 function(x) apply(x, 1,
                                                                   function(y) abs(y[2]-y[1]))),
@@ -494,7 +474,24 @@ W.M1.vector <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
 
 ## 
 ## Finally, the W.ipoints.M2 matrix is created below which is in format appropriate to be used in lgcp ipoints arg
-## 
+##
+df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
+## TODO: add description for following functions
+mapindex2space.direction_index <- function(index){    
+    f<-function(index.single){
+        as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
+mapindex2space.direction_basis <- function(index){    
+    f<-function(index.single){
+        o <- as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
+        return(c(mesh.hd$loc[o[1]], mesh$loc[o[2],-3]))
+    }
+    t((Vectorize(f, vectorize.args="index.single"))(index))
+}
+
 W.ipoints.M1 <- as(W.M1, "sparseMatrix")
 W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,1],
                            coords.x1 =mapindex2space.direction_basis(W.ipoints.M1@i+1)[,2],

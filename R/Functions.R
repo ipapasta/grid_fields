@@ -90,7 +90,9 @@ split.lines <- function(mesh, sp, ep, filter.zero.length = TRUE, tol= 1e-8, retu
 }
 
 
-split.arcs <- function(hd, hd.lead){
+split.arcs <- function(hd, hd.lead, mesh.hd){
+    nodes       <- c(mesh.hd$loc, 2*pi)
+    intervals   <- head(cbind(nodes, lead(nodes)), -1)
     ## print(paste("hd: ",hd, "hd.lead: ",hd))
     hd.int <- which(apply(intervals, 1, function(x) (x[1] <= hd) & (hd <= x[2])))
     hd.lead.int <- which(apply(intervals, 1, function(x) (x[1] <= hd.lead) & (hd.lead <= x[2])))

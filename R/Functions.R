@@ -124,6 +124,66 @@ split.arcs <- function(hd, hd.lead, mesh.hd){
     }
 }
 
+
+split.segments.wrapper.function <- function(X, mesh, mesh.hd){
+    Ypos.tmp <- data.frame(
+    hd=X$hd, time=X$synced_time,
+    coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
+    mutate(coords.lead = lead(coords)) %>%
+    mutate(time.lead = lead(X$synced_time)) %>%
+    mutate(hd.lead = lead(X$hd)) %>%
+    head(-1)
+    Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
+                                    L.arcs = lapply(HD.split,
+                                                    function(x) apply(x, 1,
+                                                                      function(y) abs(y[2]-y[1]))),
+                                    time.split = pmap(list(time, time.lead, L.arcs), function(x,y,z){
+                                        o <- interpolate(x,y,z)
+                                        oo <- c(attr(o, "data"), y)
+                                        ooo <- head(cbind(oo, lead(oo)), -1)
+                                        colnames(ooo) <- NULL
+                                        return(ooo)
+                                    }),
+                                    coords.split=pmap(list(coords, coords.lead, L.arcs), function(x,y,z){
+                                        interpolate2(x, y, z)
+                                    }),
+                                    new.time = lapply(time.split, function(x) x[,1, drop=FALSE]),
+                                    new.time.lead= lapply(time.split, function(x) x[,2, drop=FALSE]),
+                                    new.hd = lapply(HD.split, function(x) x[,1, drop=FALSE]),
+                                    new.hd.lead = lapply(HD.split, function(x) x[,2, drop=FALSE]),
+                                    new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
+                                    new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
+                                    )
+    Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
+        unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
+    names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
+    line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
+                                 filter.zero.length=FALSE,
+                                 ep=Ypos.tmp$coords.lead, tol=.0)
+    df <- data.frame(origin=line.segments$split.origin,
+                     filter.index=line.segments$filter.index,
+                     sp=I(lapply(as.list(apply(line.segments$sp, 1, as.list)), unlist)),
+                     ep=I(lapply(as.list(apply(line.segments$ep, 1, as.list)), unlist))) %>%
+        group_by(origin) %>%
+        summarize(sp=list(sp), ep=list(ep), filter.index=list(filter.index)) %>%
+        mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
+        mutate(ep = lapply(ep, function(x) do.call("rbind", x))) 
+    ## 
+    ## 
+    ## attribute named _data_ stores length of line segments, time differences and arclengths
+    Ypos <- inner_join(Ypos.tmp %>%
+                       mutate(origin=1:nrow(Ypos.tmp)), df) %>%    
+        mutate(Li = map2(sp, ep,
+                         function(x, y) apply(y-x, 1, function(z) sqrt(sum(z^2))))) %>%  
+        mutate(Ti = pmap(list(time, time.lead, Li), interpolate)) %>%
+        mutate(HDi = pmap(list(hd, hd.lead, Li), interpolate )) 
+    filter.index  <- do.call("c", Ypos$filter.index)
+    z <- list()
+    z$Ypos <- Ypos
+    z$filter.index <- filter.index
+    return(z)
+}
+
 ## --------------
 ## link functions
 ## --------------

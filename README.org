@@ -65,13 +65,16 @@ The firing events are stored in data frame =Y= and the positional data in data f
 
 #+html: <p align="center"><img src="/R/animations/trajectory.svg" /></p>
 Next we create a spatial and and a circular mesh. The parameter =k= in
-the code below controls the resolution of the spatial mesh. The
-spatial mesh is constructed in such a way that the resolution is finer
-for regions where we observe more spikes and coarser otherwise. Also,
-since oscillating Gaussian random fields exhibit strong resonance
-effects, it is important to triangulate the domain outside the arena
-where the animal runs. The properties of the mesh in the region that
-is exterior to the arean can be taken to coarser. 
+the code below controls the resolution of the spatial mesh. Smaller
+values for =k= yield finer spatial meshes. The spatial mesh is
+constructed in such a way that the resolution is finer for regions
+where we observe more spikes and coarser otherwise. Also, since
+oscillating Gaussian random fields exhibit strong resonance effects,
+it is important to triangulate the domain outside the arena where the
+animal runs. The properties of the mesh in the region that is exterior
+to the arena can be taken to coarser. For the circular mesh, we choose
+a regular grid of of 29 vertices on the circle (the 30th is folded in
+the 1st due to cyclicity in the construction below, see =mesh.hd$n=).
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
 k           <- 5
 mesh        <- inla.mesh.2d(loc=mycoords, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
@@ -82,7 +85,7 @@ mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
 nodes       <- c(mesh.hd$loc, 2*pi)
 intervals   <- head(cbind(nodes, lead(nodes)), -1)
 #+end_src
-We visualize the spatial and circular meshes obtained from the code
+We plot the spatial and circular meshes obtained from the code
 above.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   plot(mesh, asp=1)
@@ -91,8 +94,8 @@ above.
   abline(h=0);  abline(v=0)
   text(-.05,1, paste("1")); text(1,-.05, paste("1"))
 #+end_src
-The construction of the latent spatial and head-directional is tightly
-linked to the construction of the meshes. See Section.. 
+The constructions of the latent spatial and latent head-directional
+effects are tightly linked to the design of the meshes. See Section (REF)
 
 #+begin_src R :results output latex :exports none :session *R:grid_fields* 
   ## svglite(file="R/animations/trajectory.svg", bg="transparent")

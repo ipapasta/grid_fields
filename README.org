@@ -10,7 +10,7 @@
 
 ** An illustrative example
 
-*** Data formatting
+*** Construction of spatial and circular mesh 
 Load packages and helper functions, and set default options for optimization with =INLA=.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   library(tidyverse)
@@ -62,7 +62,6 @@ The firing events are stored in data frame =Y= and the positional data in data f
    dev.off()
 #+end_src
 
-
 #+html: <p align="center"><img src="/R/animations/trajectory.svg" /></p>
 Next we create a spatial and and a circular mesh. The parameter =k= in
 the code below controls the resolution of the spatial mesh. Smaller
@@ -82,8 +81,6 @@ p           <- mesh$n
 p.theta     <- 30
 theta.nodes <- seq(0, 2*pi, len=p.theta)
 mesh.hd     <- inla.mesh.1d(theta.nodes, boundary="cyclic", degree=1)
-nodes       <- c(mesh.hd$loc, 2*pi)
-intervals   <- head(cbind(nodes, lead(nodes)), -1)
 #+end_src
 We plot the spatial and circular meshes obtained from the code
 above.
@@ -110,3 +107,77 @@ effects are tightly linked to the design of the meshes. See Section (REF)
   dev.off()
 #+end_src
 #+html: <p align="center"><img src="/R/animations/meshes.svg" /></p>
+
+
+*** Boxing line segments
+To facilitate a stable numerical integration for the integral in the
+Poisson point process likelihood, all line segments from the
+trajectory need to be further splitted so that each segment falls
+precisely
+- in one and only one triangle of the spatial mesh and;
+- in one and only one arc out of the possible 29 arcs of the circular
+  mesh.
+
+The code below splits first the line segments of the trajectory so
+that each line is boxed an arc. When a line is broken, the spatial
+coordinates, head direction and time are linearly interpolated
+
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+        Ypos.tmp <- data.frame(
+          hd=X$hd, time=X$synced_time,
+          coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
+          mutate(coords.lead = lead(coords)) %>%
+          mutate(time.lead = lead(X$synced_time)) %>%
+          mutate(hd.lead = lead(X$hd)) %>%
+          head(-1)  %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
+                               L.arcs = lapply(HD.split,
+                                               function(x) apply(x, 1,
+                                                                 function(y) abs(y[2]-y[1]))),
+                               time.split = pmap(list(time, time.lead, L.arcs), function(x,y,z){
+                                 o <- interpolate(x,y,z)
+                                 oo <- c(attr(o, "data"), y)
+                                 ooo <- head(cbind(oo, lead(oo)), -1)
+                                 colnames(ooo) <- NULL
+                                 return(ooo)
+                               }),
+                               coords.split=pmap(list(coords, coords.lead, L.arcs), function(x,y,z){
+                                 interpolate2(x, y, z)
+                               }),
+                               new.time = lapply(time.split, function(x) x[,1, drop=FALSE]),
+                               new.time.lead= lapply(time.split, function(x) x[,2, drop=FALSE]),
+                               new.hd = lapply(HD.split, function(x) x[,1, drop=FALSE]),
+                               new.hd.lead = lapply(HD.split, function(x) x[,2, drop=FALSE]),
+                               new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
+                               new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
+                               ) %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
+          unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
+        names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")
+#+end_src
+Next, the line segments are further split below so that each segment falls in precisely one triangle 
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
+                               filter.zero.length=FALSE,
+                               ep=Ypos.tmp$coords.lead, tol=.0)
+
+
+  df <- data.frame(origin=line.segments$split.origin,
+                   filter.index=line.segments$filter.index,
+                   sp=I(lapply(as.list(apply(line.segments$sp, 1, as.list)), unlist)),
+                   ep=I(lapply(as.list(apply(line.segments$ep, 1, as.list)), unlist))) %>%
+    group_by(origin) %>%
+    summarize(sp=list(sp), ep=list(ep), filter.index=list(filter.index)) %>%
+    mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
+    mutate(ep = lapply(ep, function(x) do.call("rbind", x))) 
+
+
+  ## attribute named _data_ stores length of line segments, time differences and arclengths
+  Ypos <- inner_join(Ypos.tmp %>%
+                     mutate(origin=1:nrow(Ypos.tmp)), df) %>%    
+    mutate(Li = map2(sp, ep,
+                     function(x, y) apply(y-x, 1, function(z) sqrt(sum(z^2))))) %>%  
+    mutate(Ti = pmap(list(time, time.lead, Li), interpolate)) %>%
+    mutate(HDi = pmap(list(hd, hd.lead, Li), interpolate )) 
+
+  filter.index  <- do.call("c", Ypos$filter.index)
+#+end_src
+

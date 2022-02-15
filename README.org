@@ -176,9 +176,8 @@ of spikes. The temporal mesh is constructed by thinning the grid of
 times that are obtained from the newly derived line segments. Below we
 choose the fixed value =100= for thinning so that, if the consecutive
 times at the starting positions of the line segment (obtained via
-splitting) are denoted by \(\tilde{t}_1,\dots,\tilde{t}_N\), then the
-temporal mesh is taken as \(\tilde{t}_1, \tilde{t}_300, \tilde{t}_600,
-\dots\).
+splitting) are denoted by =t[1],t[2], ..=, then the
+temporal mesh is taken as =t[1],t[300],t[600] ..=.
 #+begin_src R :results output latex :exports none :session *R:grid_fields* 
   coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
   HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))

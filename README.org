@@ -134,12 +134,12 @@ from of =split.arcs= so that every line segment is also boxed by a triangle.
 #+end_src
 This output is stored in =Ypos= and the plots below illustrate the
 effect of line splitting. The new line segments are plotted over a
-subregion of the domain of interest on the left panel below. Each
-newly derived line segment is marked by the start and end of an arrow
-whilst the raw segments are defined by adjacent blue dots. Similarly
-for the head direction on the right panel below, each newly derived
-line segment is given by adjacent black circles whilst the raw
-segments are given by adjacent blue dots.
+subregion of the spatial domain on the left panel below. Each newly
+derived line segment is given by the start and end of an arrow whilst
+the raw segments by adjacent blue dots. Similarly for the head
+direction on the right panel below, each newly derived line segment is
+given by adjacent black circles whilst the raw segments by adjacent
+blue dots.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   par(mfrow=c(1,2))
   plot(mesh, xlim=c(46, 54), ylim=c(46,54), asp=1, main="")

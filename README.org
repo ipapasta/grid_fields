@@ -139,7 +139,10 @@ derived line segment is given by the start and end of an arrow whilst
 the raw segments by contiguous blue dots. Similarly for the head
 direction on the right panel below, each newly derived line segment is
 given by contiguous black circles whilst the raw segments by blue
-dots.
+dots. If an line segment was initially boxed by a triangle and by an
+arc segment, then this line segment remains unchanged. When there is a
+split, however, the values of the covariate (location, head direction
+and time) are imputed with linear interpolation.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   par(mfrow=c(1,2))
   plot(mesh, xlim=c(46, 54), ylim=c(46,54), asp=1, main="")

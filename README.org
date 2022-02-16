@@ -178,10 +178,33 @@ grid of times that are obtained from the newly derived line
 segments. Below we choose the fixed value =100= for thinning so that,
 if the consecutive times at the starting positions of the line segment
 (obtained via splitting) are denoted by =t[1],t[2], ..=, then the
-temporal mesh is taken as =t[1],t[300],t[600] ..=.
+temporal mesh is taken as =t[1],t[300],t[600] ..=. With this
+construction, each line segment is also boxed by contiguous time
+points in the temporal mesh.
 #+begin_src R :results output latex :exports none :session *R:grid_fields* 
   coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
   HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))
   T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
   mesh1d  <- inla.mesh.1d(loc=c(T.data[seq(1, length(T.data), by = 300)], T.data[length(T.data)]), order=2)
 #+end_src
+
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  par(mfrow=c(1,2))
+  plot(trajectory)
+  points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8)
+  plot(mesh1d$loc[1:50], rep(0,50), pch=16, cex=0.6, xlab="time", ylab="", axes=FALSE); axis(1)
+  abline(h=0)
+#+end_src
+
+#+begin_src R :results output latex :exports none :session *R:grid_fields* 
+  svglite(file="R/animations/temporal_mesh.svg", bg="white")
+  plot(trajectory)
+  points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8)
+  plot(mesh1d$loc[1:50], rep(0,50), pch=16, cex=0.6, xlab="time", ylab="", axes=FALSE); axis(1)
+  abline(h=0)
+  dev.off()
+#+end_src
+The temporal mesh is shown by red crosses on the path in the spatial
+domain in the left panel of the Figure below and by black dots on the
+time axis in the right panel.
+#+html: <p align="center"><img src="/R/animations/temporal_mesh.svg" /></p>

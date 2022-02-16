@@ -198,6 +198,7 @@ points in the temporal mesh.
 
 #+begin_src R :results output latex :exports none :session *R:grid_fields* 
   svglite(file="R/animations/temporal_mesh.svg", bg="white")
+  par(mfrow=c(1,2))
   plot(trajectory)
   points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8)
   plot(mesh1d$loc[1:50], rep(0,50), pch=16, cex=0.6, xlab="time", ylab="", axes=FALSE); axis(1)

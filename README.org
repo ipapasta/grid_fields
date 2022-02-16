@@ -180,7 +180,7 @@ Additionally to the spatial and circular meshes, a temporal mesh is
 also required when the effect of time on the variation of spikes is
 included in models. The temporal mesh is constructed by thinning the
 grid of times that are obtained from the newly derived line
-segments. Below we choose the fixed value =100= for thinning so that,
+segments. Below we choose the fixed value =300= for thinning so that,
 if the consecutive times at the starting positions of the line segment
 (obtained via splitting) are denoted by =t[1],t[2], ..=, then the
 temporal mesh is taken as =t[1],t[300],t[600] ..=. With this

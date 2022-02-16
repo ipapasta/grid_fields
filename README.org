@@ -251,27 +251,22 @@ basis function evaluations (i.e., spatial, spatial-directional and
 temporal basis functions) at starting points of each line segment of
 the path. The basis functions are all 
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-  Aosctmp <- as(Aosc, "dgTMatrix")
+  ## spatial
+  Aosctmp      <- as(Aosc, "dgTMatrix")
   Aosc.indices <- cbind(cbind(Aosctmp@i+1, Aosctmp@j+1), Aosctmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
-  Aosc.indices <- Aosc.indices[order(Aosc.indices[,1]),] %>% as.data.frame # 
-  Atmp <- as(A, "dgTMatrix")
-  A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
-  A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame #
-  Attmp <- as(Atilde, "dgTMatrix")
-  At.indices <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
-  At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
-
+  Aosc.indices <- Aosc.indices[order(Aosc.indices[,1]),] %>% as.data.frame #
+  ## spatial-directional
+  Atmp         <- as(A, "dgTMatrix")
+  A.indices    <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+  A.indices    <- A.indices[order(A.indices[,1]),] %>% as.data.frame #
+  ## temporal
+  Attmp        <- as(Atilde, "dgTMatrix")
+  At.indices   <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
+  At.indices   <- At.indices[order(At.indices[,1]),] %>% as.data.frame
   ## 
-  ## dim(A)[1] == dim(Atilde)[1] is TRUE, both matrices are basis function evaluations at
-  ## the starting coordinates (A) and the starting times (Atilde) of the line segments 
-  ## (positional data), that is, rows are line/time/arc segments (properly speaking: line segments, time intervals and arcs?)
-  ## for every starting coord/time/angle of a  line/time/arc segment, there are 6 spatio-temporal basis functions that give a non-zero contribution,
-  ## that is, 3*2 (3 knots of a triangle * 2 knots of an arc) and 2 temporal basis functions that give non-zero contributions,
-  ## that is, 2 time interval knots.
-  ##
   names(Aosc.indices) <- c("tk", "i", "psi.o") #ot: omega 
-  names(A.indices) <- c("tk", "i", "psi.ot") #ot: omega x theta
-  names(At.indices) <- c("tk", "l", "psi.t")
+  names(A.indices)    <- c("tk", "i", "psi.ot") #ot: omega x theta
+  names(At.indices)   <- c("tk", "l", "psi.t")
 #+end_src
 =A.indices= and =At.indices=: first column is renamed to =tk= which
 stands for the index of the line/time/arc segment. For example, for
@@ -281,3 +276,15 @@ line/time/arc segments. In =A.indices= the second column is renamed to
 =i= which stands for the index of the spatio-directional basis
 function. In =At.indices= the second row is renamed to =l= which
 stands for the index of the temporal basis function
+
+We check =dim(A)[1] == dim(Atilde)[1]= is =TRUE=, both matrices are
+basis function evaluations at the starting coordinates and head
+directions (=A=) and the starting times (=Atilde=) of the line
+segments, that is, each row stores basis function evaluations for a
+line. For example, for the matrix of spatio-directional basis
+functions, for each starting point of a line segment, there are 6
+spatio-temporal basis functions that give a non-zero contribution,
+that is 3 knots of a triangle * 2 knots of an arc whilst for the
+matrix of temporal basis function, there are 2 temporal basis
+functions that give non-zero contributions, that is, 2 time interval
+knots.

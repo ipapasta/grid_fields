@@ -598,6 +598,9 @@ fit.space <- lgcp(cmp.space,
 #+end_src
 
 **** Fitting =M1=
+Run on a computer with at least 32GB of shared
+memory. =computationally demanding=. Specification of code below
+assumes computer has 8 cores. Switch =num.threads= accordingly.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
 cmp.space.direction <- firing_times ~
     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
@@ -610,6 +613,8 @@ fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
 #+end_src
 
 **** Fitting =M2=
+Run on a computer with at least 64GB of shared
+memory. =computationally demanding=. Switch =num.threads= accordingly
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
     cmp.space.direction.time <- firing_times ~
         spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,

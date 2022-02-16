@@ -586,15 +586,6 @@ Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypo
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 #+end_src
-Some information on lgcp arguments domain: means integration
-domain. When integration domain is supplied together with samplers,
-then lgcp constructs the integration scheme. There are options for how
-it does that. By default, .. it will first take domain and samplers,
-say for example samplers specify subintervals (time), then it
-constructs the intersection of domains and samplers and then it will
-place integration points on the remaining knots, so essentially,
-original knots inside intervals and at the endpoints of the intervals.
-Then it takes samplers which will have say one interval.
 **** Fitting =M0=
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
 cmp.space <- firing_times ~
@@ -632,3 +623,15 @@ fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                                          num.threads=8,
                                          verbose = TRUE, bru_max_iter=1))
 #+end_src
+
+*** Notes
+All models are fitted with =inlabru::lgcp=. Some information on lgcp
+arguments domain (though this is not used below): means integration
+domain. When integration domain is supplied together with samplers,
+then lgcp constructs the integration scheme. There are options for how
+it does that. By default, .. it will first take domain and samplers,
+say for example samplers specify subintervals (time), then it
+constructs the intersection of domains and samplers and then it will
+place integration points on the remaining knots, so essentially,
+original knots inside intervals and at the endpoints of the intervals.
+Then it takes samplers which will have say one interval.

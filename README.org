@@ -235,3 +235,49 @@ Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(data$Y %>% dplyr:: select
 Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, data$Y$hd)
 Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
 #+end_src
+
+
+*** Computing integration weights
+Firstly, for each line segment of the path, we need to know how much
+distance was traveled and how much time it took for the animal to
+traverse the segment. 
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  dGamma <- c(do.call("c", Ypos$Li))
+  dT  <- diff(T.data)
+#+end_src
+
+Secondly, to compute the integration weights, we need to store all
+basis function evaluations (i.e., spatial, spatial-directional and
+temporal basis functions) at starting points of each line segment of
+the path. The basis functions are all 
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  Aosctmp <- as(Aosc, "dgTMatrix")
+  Aosc.indices <- cbind(cbind(Aosctmp@i+1, Aosctmp@j+1), Aosctmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+  Aosc.indices <- Aosc.indices[order(Aosc.indices[,1]),] %>% as.data.frame # 
+  Atmp <- as(A, "dgTMatrix")
+  A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+  A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame #
+  Attmp <- as(Atilde, "dgTMatrix")
+  At.indices <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
+  At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
+
+  ## 
+  ## dim(A)[1] == dim(Atilde)[1] is TRUE, both matrices are basis function evaluations at
+  ## the starting coordinates (A) and the starting times (Atilde) of the line segments 
+  ## (positional data), that is, rows are line/time/arc segments (properly speaking: line segments, time intervals and arcs?)
+  ## for every starting coord/time/angle of a  line/time/arc segment, there are 6 spatio-temporal basis functions that give a non-zero contribution,
+  ## that is, 3*2 (3 knots of a triangle * 2 knots of an arc) and 2 temporal basis functions that give non-zero contributions,
+  ## that is, 2 time interval knots.
+  ##
+  names(Aosc.indices) <- c("tk", "i", "psi.o") #ot: omega 
+  names(A.indices) <- c("tk", "i", "psi.ot") #ot: omega x theta
+  names(At.indices) <- c("tk", "l", "psi.t")
+#+end_src
+=A.indices= and =At.indices=: first column is renamed to =tk= which
+stands for the index of the line/time/arc segment. For example, for
+the spatio-directional basis functions, each =tk= appears 6 times,
+i.e., =length(A.indices[,1])/6 = N=, where =N= is the number of
+line/time/arc segments. In =A.indices= the second column is renamed to
+=i= which stands for the index of the spatio-directional basis
+function. In =At.indices= the second row is renamed to =l= which
+stands for the index of the temporal basis function

@@ -185,6 +185,65 @@ split.segments.wrapper.function <- function(X, mesh, mesh.hd){
     return(z)
 }
 
+
+
+df.prism.M0.wrapper <- function(Aosc.indices, dGamma, T.data, HD.data, coords.trap) {
+    df.prism.M0 <- Aosc.indices %>% group_by(tk) %>% nest() %>%
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma=c(dGamma,0),
+            dGamma.lead = lead(dGamma),
+            dGamma.lag = lag(dGamma),
+            val.M0 = pmap(list(data, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.o[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M0=ooo)
+                oooo
+            })) %>% 
+        dplyr::select(-c("data"))
+    return(df.prism.M0)
+}
+
+df.prism.M1.M2.wrapper <- function(At.indices, A.indices, T.data, dGamma, HD.data, coords.trap){
+    df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
+                                A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma=c(dGamma,0),
+            dGamma.lead = lead(dGamma),
+            dGamma.lag = lag(dGamma),
+            val.M1 = pmap(list(data.y, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.ot[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M1=ooo)
+                oooo
+            }),
+            val.M2 = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            })) %>%
+        dplyr::select(-c("data.x", "data.y")) 
+}
+
 ## --------------
 ## link functions
 ## --------------

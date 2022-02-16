@@ -266,7 +266,7 @@ traverse the segment.
 Secondly, to compute the integration weights, we need to store all
 basis function evaluations (i.e., spatial, spatial-directional and
 temporal basis functions) at starting points of each line segment of
-the path. The basis functions are all 
+the path. 
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   ## spatial
   Aosctmp      <- as(Aosc, "dgTMatrix")
@@ -305,3 +305,66 @@ that is 3 knots of a triangle * 2 knots of an arc whilst for the
 matrix of temporal basis function, there are 2 temporal basis
 functions that give non-zero contributions, that is, 2 time interval
 knots.
+
+Below we use helper functions to compute quantities that are necessary
+for the integration weights. For example, the helper function
+=df.prism.M1.M2.wrapper= used to get df.prism.M1_M2 first groups
+=At.indices= and =A.indices= by line segment and then nests them so
+each row of the nested data frame contains all basis function
+evaluation data a each line segment.  During nesting, information on
+the index of the basis functions and its associated value is stored in
+new column variables named as =data.x= for the temporal basis
+functions, and as =data.y= for the spatio.directional basis functions.
+Then information on times, head directions, and coordinates is
+appended to the nested data frame, that is, for every line segment
+(indexed by variable =tk=), information about the coordinate, the time
+and the head direction is appended. Information on lags and leads is
+also included because these are subsequently used to get the weights
+for the numerical integration scheme based on the trapezoidal
+rule. For the computation of the weights, the lengths of the line
+segments (=dGamma=) together with their lags and leads are also
+appended.  Finally, for the code in the last column variable named
+=val=. Fix a line segment, say the first one =tk=1=.  Then, for
+example, the first elements of the column variables =data.x= and
+=data.y= (these are lists due to the nest operation) are:
+
+## 
+## > data.y[[1]]
+## # A tibble: 6 x 2
+##       i psi.ot
+##   <dbl>  <dbl>
+## 1  7660 0.0475
+## 2  7726 0.405 
+## 3  8037 0.246 
+## 4  8932 0.0205
+## 5  8998 0.175 
+## 6  9309 0.106
+## 
+## > data.x[[1]]
+##       l psi.t
+##   <dbl> <dbl>
+## 1     1     1
+## 2     2     0
+##
+
+# The following code creates the Cartesian product {1,2} X {7660, 7726,
+# 8037, 8932, 8998, 9309}, that is, the set of all ordered pairs (a,b)
+# where a \in {1,2} and b \in {7660, 7726, 8037, 8932, 8998, 9309} with
+# expand.grid, and calculates, for each pair, the product of the basis
+# functions \psi_{T} * \psi_{Omega x Theta} Lastly, the function returns
+# a data.frame that has the index of the temporal basis function l, the
+# index of the spatio-directional basis function i, and the product of
+# the basis functions _val_ this data framed is stored in the column
+# variable named val. The final commands discard data.x and data.y which
+# are no longer used and unnest the data frame to bring it back to
+# standard form
+
+
+
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+df.prism.M0    <- df.prism.M0.wrapper(Aosc.indices = Aosc.indices, dGamma=dGamma, T.data=T.data, HD.data=HD.data,
+                                      coords.trap=coords.trap) %>% unnest(cols=c(val.M0))
+df.prism.M1_M2 <- df.prism.M1.M2.wrapper(At.indices= At.indices, A.indices=A.indices, dGamma=dGamma, T.data=T.data, HD.data=HD.data, coords.trap=coords.trap)
+df.prism.M1    <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% unnest(cols=c(val.M1))
+df.prism.M2    <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>% unnest(cols=c(val.M2))
+#+end_src 

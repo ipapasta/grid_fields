@@ -40,7 +40,7 @@ Y <- dat$Y
 ##
 ## Firing events and trajectory
 ## 
-mycoords       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
+spikes       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
 Pl   <- Polygon(cbind(X$position_x, X$position_y))
 ID   <- "[0,1]x[0,1]"
 Pls  <- Polygons(list(Pl), ID=ID)

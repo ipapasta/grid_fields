@@ -220,20 +220,37 @@ time axis in the right panel.
 
 **** Matrix of basis function evaluations for positional data
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-
-Atilde <- inla.mesh.projector(mesh1d, loc=T.data)$proj$A
-Aosc   <- inla.mesh.projector(mesh, loc=coords.trap)$proj$A
-Ahd    <- inla.mesh.projector(mesh.hd, loc=HD.data)$proj$A
-A      <- inla.row.kron(Ahd, Aosc)
+  Aosc   <- inla.mesh.projector(mesh, loc=coords.trap)$proj$A
+  Ahd    <- inla.mesh.projector(mesh.hd, loc=HD.data)$proj$A
+  A      <- inla.row.kron(Ahd, Aosc)
+  Atilde <- inla.mesh.projector(mesh1d, loc=T.data)$proj$A
 #+end_src
 
 
 **** Matrix of basis function evaluations for observed firing events
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-Atildeobs <- inla.spde.make.A(mesh=mesh1d, data$Y$firing_times)
-Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(data$Y %>% dplyr:: select(position_x, position_y)))
-Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, data$Y$hd)
-Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
+  Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(data$Y %>% dplyr:: select(position_x, position_y)))
+  Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, data$Y$hd)
+  Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
+  Atildeobs <- inla.spde.make.A(mesh=mesh1d, data$Y$firing_times)
+#+end_src
+
+**** Illustration of =Aosc=, =A= and =Atilde= matrices
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  par(mfrow=c(1,3))
+  image(Aosc, lwd=2, asp=1)
+  image(A, lwd=2, asp=1)
+  image(Atilde, lwd=2, asp=1)
+#+end_src
+
+#+begin_src R :results output latex :exports none :session *R:grid_fields* 
+  svglite(file="R/animations/temporal_mesh.svg", bg="white")
+  par(mfrow=c(1,2))
+  plot(trajectory)
+  points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8, asp=1)
+  plot(mesh1d$loc[1:50], rep(0,50), pch=16, cex=0.6, xlab="time", ylab="", axes=FALSE); axis(1)
+  abline(h=0)
+  dev.off()
 #+end_src
 
 

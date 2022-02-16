@@ -517,25 +517,28 @@ vignette("rgeneric", package="INLA") if you can't open the vignette
 then you probably have an older version of INLA.  Install most recent
 development version
 **** Specifying the prior distribution of hyperparameters
-Below we assign a prior distribution to each hyperparameter of models =M0, M1= and =M2=.
+Below we assign a prior distribution to each hyperparameter of models
+=M0, M1= and =M2=.  The priors are defined in the
+=R/rgeneric_models.R= but the specification of the hyperparameters is
+given externally below.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
 ## spatial model
-sigma.range.spatial.oscillating <- 1
-mu.range.spatial.oscillating    <- 25
-sigma.spatial.oscillating       <- 1/2
-a.par.phi.prior.spatial.oscillating <- 1
-b.par.phi.prior.spatial.oscillating <- 20
+sigma.range.spatial.oscillating      <- 1
+mu.range.spatial.oscillating         <- 25
+sigma.spatial.oscillating            <- 1/2
+a.par.phi.prior.spatial.oscillating  <- 1
+b.par.phi.prior.spatial.oscillating  <- 20
 ## directional model
 rho.directional   <- 1/(2*pi)
 sigma.directional <- 1
 ## 
-rho.temporal  <- 1/100
-sigma.temporal <- 1/3
+rho.temporal      <- 1/100
+sigma.temporal    <- 1/3
 #+end_src
 and we all custom-made built models and use them in
 =inla.rgeneric.define= to define our models.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-source("rgeneric_models.R")
+source("R/rgeneric_models.R")
 ## define models
 ## oscilalting.rgeneric is used for M0
 ## space.direction.rgeneric is used for M1 and M2

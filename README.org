@@ -168,7 +168,12 @@ and time) are imputed with linear interpolation.
   dev.off()
 #+end_src
 #+html: <p align="center"><img src="/R/animations/line_splits.svg" /></p>
-
+Lastly, we save the covariate in objects =coords.trap=, =HD.data= and =T.data=.
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
+HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))
+T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
+#+end_src
 
 *** Temporal mesh
 Additionally to the spatial and circular meshes, a temporal mesh is
@@ -191,7 +196,7 @@ points in the temporal mesh.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   par(mfrow=c(1,2))
   plot(trajectory)
-  points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8)
+  points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8, asp=1)
   plot(mesh1d$loc[1:50], rep(0,50), pch=16, cex=0.6, xlab="time", ylab="", axes=FALSE); axis(1)
   abline(h=0)
 #+end_src
@@ -200,7 +205,7 @@ points in the temporal mesh.
   svglite(file="R/animations/temporal_mesh.svg", bg="white")
   par(mfrow=c(1,2))
   plot(trajectory)
-  points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8)
+  points(coords.trap[seq(1, length(T.data), by = 300), 1], coords.trap[seq(1, length(T.data), by = 300), 2], pch=4, col=2, cex=.8, asp=1)
   plot(mesh1d$loc[1:50], rep(0,50), pch=16, cex=0.6, xlab="time", ylab="", axes=FALSE); axis(1)
   abline(h=0)
   dev.off()
@@ -209,3 +214,24 @@ The temporal mesh is shown by red crosses on the path in the spatial
 domain in the left panel of the Figure below and by black dots on the
 time axis in the right panel.
 #+html: <p align="center"><img src="/R/animations/temporal_mesh.svg" /></p>
+
+
+*** Matrices of basis function evaluations
+
+**** Matrix of basis function evaluations for positional data
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+
+Atilde <- inla.mesh.projector(mesh1d, loc=T.data)$proj$A
+Aosc   <- inla.mesh.projector(mesh, loc=coords.trap)$proj$A
+Ahd    <- inla.mesh.projector(mesh.hd, loc=HD.data)$proj$A
+A      <- inla.row.kron(Ahd, Aosc)
+#+end_src
+
+
+**** Matrix of basis function evaluations for observed firing events
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+Atildeobs <- inla.spde.make.A(mesh=mesh1d, data$Y$firing_times)
+Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(data$Y %>% dplyr:: select(position_x, position_y)))
+Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, data$Y$hd)
+Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
+#+end_src

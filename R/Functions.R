@@ -385,7 +385,7 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
         mutate(hd.lead = lead(X$hd)) %>%
         head(-1)
     ## 
-    Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs),
+    Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs, mesh.hd=mesh.hd),
                                     L.arcs = lapply(HD.split,
                                                     function(x) apply(x, 1,
                                                                       function(y) abs(y[2]-y[1]))),

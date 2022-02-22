@@ -42,7 +42,7 @@
         res        <- lpphi.sp + lrho.sp + lsigma.sp
         return(res)
     }
-    initial <- function()  return(c(0, 0, 0))
+    initial <- function()  return(c(-5, 0, 0))
     quit <- function()  return(invisible())
     res <- do.call(match.arg(cmd), args = list())
     return(res)

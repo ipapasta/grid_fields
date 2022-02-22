@@ -22,6 +22,7 @@ posterior.directional.kappa.M1          <- posterior.directional.kappa(fit.space
 ## 
 ##
 pdf("posterior_hyperparameters.pdf")
+
 par(mfrow=c(4,2))
 plot(posterior.gridness.score.M0, type="l", xlim=c(-1,1), ylim=c(0, 10), xlab="phi", ylab="density", main="M0")
 lines(seq(-.99, 1, len=1000), prior.phi_osc(seq(-.99, 1, len=1000), a=2, b=10, lg=FALSE), lty=2)
@@ -42,6 +43,7 @@ plot(posterior.directional.range.M1, type="l", xlim=c(0,10), ylim=c(0, 4), xlab=
 lines(seq(0, 10, len=1000), dexp(seq(0, 10, len=1000), rho.directional), lty=2)
 plot(posterior.directional.stdev.M1, type="l", xlim=c(0,10), ylim=c(0, 2), xlab="sigma.directional", ylab="density", main="M1")
 lines(seq(0, 10, len=1000), dexp(seq(0, 10, len=1000), sigma.directional), lty=2)
+
 dev.off()
 
 

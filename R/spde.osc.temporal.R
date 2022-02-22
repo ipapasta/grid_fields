@@ -32,69 +32,69 @@ k       <- 5
 mesh    <- inla.mesh.2d(spikes, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 p       <- mesh$n
 ## circular mesh
-mesh.hd <- inla.mesh.1d(seq(0, 2*pi, len=30), boundary="cyclic", degree=1)
+mesh.hd <- inla.mesh.1d(seq(0, 2*pi, len=20), boundary="cyclic", degree=1)
 p.hd    <- mesh.hd$n
 
 
 ## line splits
-Ypos.ls      <- split.segments.wrapper.function(X=X, mesh=mesh, mesh.hd =mesh.hd)
-Ypos         <- Ypos.tmp.ls$Ypos
+Ypos.tmp.ls      <- split.segments.wrapper.function(X=X, mesh=mesh, mesh.hd =mesh.hd)
+Ypos             <- Ypos.tmp.ls$Ypos
 filter.index <- Ypos.tmp.ls$filter.index
 
 
-## VERIFY CODE ABOVE AND REPLACE BELOW  
-if(FALSE){
-    Ypos.tmp <- data.frame(
-        hd=X$hd, time=X$synced_time,
-        coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
-        mutate(coords.lead = lead(coords)) %>%
-        mutate(time.lead = lead(X$synced_time)) %>%
-        mutate(hd.lead = lead(X$hd)) %>%
-        head(-1)
-    Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
-                                    L.arcs = lapply(HD.split,
-                                                    function(x) apply(x, 1,
-                                                                      function(y) abs(y[2]-y[1]))),
-                                    time.split = pmap(list(time, time.lead, L.arcs), function(x,y,z){
-                                        o <- interpolate(x,y,z)
-                                        oo <- c(attr(o, "data"), y)
-                                        ooo <- head(cbind(oo, lead(oo)), -1)
-                                        colnames(ooo) <- NULL
-                                        return(ooo)
-                                    }),
-                                    coords.split=pmap(list(coords, coords.lead, L.arcs), function(x,y,z){
-                                        interpolate2(x, y, z)
-                                    }),
-                                    new.time = lapply(time.split, function(x) x[,1, drop=FALSE]),
-                                    new.time.lead= lapply(time.split, function(x) x[,2, drop=FALSE]),
-                                    new.hd = lapply(HD.split, function(x) x[,1, drop=FALSE]),
-                                    new.hd.lead = lapply(HD.split, function(x) x[,2, drop=FALSE]),
-                                    new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
-                                    new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
-                                    )
-    Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
-        unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
-    names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
-    line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
-                                 filter.zero.length=FALSE,
-                                 ep=Ypos.tmp$coords.lead, tol=.0)
-    df <- data.frame(origin=line.segments$split.origin,
-                     filter.index=line.segments$filter.index,
-                     sp=I(lapply(as.list(apply(line.segments$sp, 1, as.list)), unlist)),
-                     ep=I(lapply(as.list(apply(line.segments$ep, 1, as.list)), unlist))) %>%
-        group_by(origin) %>%
-        summarize(sp=list(sp), ep=list(ep), filter.index=list(filter.index)) %>%
-        mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
-        mutate(ep = lapply(ep, function(x) do.call("rbind", x))) 
-    ## attribute named _data_ stores length of line segments, time differences and arclengths
-    Ypos <- inner_join(Ypos.tmp %>%
-                       mutate(origin=1:nrow(Ypos.tmp)), df) %>%    
-        mutate(Li = map2(sp, ep,
-                         function(x, y) apply(y-x, 1, function(z) sqrt(sum(z^2))))) %>%  
-        mutate(Ti = pmap(list(time, time.lead, Li), interpolate)) %>%
-        mutate(HDi = pmap(list(hd, hd.lead, Li), interpolate )) 
-    filter.index  <- do.call("c", Ypos$filter.index)
-}
+## ## VERIFY CODE ABOVE AND REPLACE BELOW  
+## if(FALSE) {
+##     Ypos.tmp <- data.frame(
+##         hd=X$hd, time=X$synced_time,
+##         coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
+##         mutate(coords.lead = lead(coords)) %>%
+##         mutate(time.lead = lead(X$synced_time)) %>%
+##         mutate(hd.lead = lead(X$hd)) %>%
+##         head(-1)
+##     Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
+##                                     L.arcs = lapply(HD.split,
+##                                                     function(x) apply(x, 1,
+##                                                                       function(y) abs(y[2]-y[1]))),
+##                                     time.split = pmap(list(time, time.lead, L.arcs), function(x,y,z){
+##                                         o <- interpolate(x,y,z)
+##                                         oo <- c(attr(o, "data"), y)
+##                                         ooo <- head(cbind(oo, lead(oo)), -1)
+##                                         colnames(ooo) <- NULL
+##                                         return(ooo)
+##                                     }),
+##                                     coords.split=pmap(list(coords, coords.lead, L.arcs), function(x,y,z){
+##                                         interpolate2(x, y, z)
+##                                     }),
+##                                     new.time = lapply(time.split, function(x) x[,1, drop=FALSE]),
+##                                     new.time.lead= lapply(time.split, function(x) x[,2, drop=FALSE]),
+##                                     new.hd = lapply(HD.split, function(x) x[,1, drop=FALSE]),
+##                                     new.hd.lead = lapply(HD.split, function(x) x[,2, drop=FALSE]),
+##                                     new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
+##                                     new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
+##                                     )
+##     Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
+##         unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
+##     names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
+##     line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
+##                                  filter.zero.length=FALSE,
+##                                  ep=Ypos.tmp$coords.lead, tol=.0)
+##     df <- data.frame(origin=line.segments$split.origin,
+##                      filter.index=line.segments$filter.index,
+##                      sp=I(lapply(as.list(apply(line.segments$sp, 1, as.list)), unlist)),
+##                      ep=I(lapply(as.list(apply(line.segments$ep, 1, as.list)), unlist))) %>%
+##         group_by(origin) %>%
+##         summarize(sp=list(sp), ep=list(ep), filter.index=list(filter.index)) %>%
+##         mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
+##         mutate(ep = lapply(ep, function(x) do.call("rbind", x))) 
+##     ## attribute named _data_ stores length of line segments, time differences and arclengths
+##     Ypos <- inner_join(Ypos.tmp %>%
+##                        mutate(origin=1:nrow(Ypos.tmp)), df) %>%    
+##         mutate(Li = map2(sp, ep,
+##                          function(x, y) apply(y-x, 1, function(z) sqrt(sum(z^2))))) %>%  
+##         mutate(Ti = pmap(list(time, time.lead, Li), interpolate)) %>%
+##         mutate(HDi = pmap(list(hd, hd.lead, Li), interpolate )) 
+##     filter.index  <- do.call("c", Ypos$filter.index)
+## }
 
 
 ## ------------------
@@ -122,9 +122,9 @@ A      <- inla.row.kron(Ahd, Aosc)
 
 
 ## ## Matrix of basis function evaluations for observed firing events (SUM term of Poisson likelihood)
-Atildeobs <- inla.spde.make.A(mesh=mesh1d, data$Y$firing_times)
-Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(data$Y %>% dplyr:: select(position_x, position_y)))
-Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, data$Y$hd)
+Atildeobs <- inla.spde.make.A(mesh=mesh1d, Y$firing_times)
+Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(Y %>% dplyr:: select(position_x, position_y)))
+Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, Y$hd)
 Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
 
 
@@ -275,43 +275,43 @@ df.prism.M2    <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>% unnest(cols=c(va
 ##             oooo
 ##         })) %>% 
 ##     dplyr::select(-c("data")) 
-if(FALSE){
-df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
-                A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
-    arrange(tk) %>%
-    ungroup %>% 
-    mutate(
-        time          = T.data,
-        time.lag      = c(0, time[-length(time)]),
-        direction     = HD.data,
-        direction.lag = c(0, HD.data[-length(direction)]),
-        coords        = I(coords.trap),
-        coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
-        dGamma=c(dGamma,0),
-        dGamma.lead = lead(dGamma),
-        dGamma.lag = lag(dGamma),
-        val.M1 = pmap(list(data.y, dGamma), function(y, z) {
-            oo  <- 1:nrow(y)
-            ooo <- unlist(lapply(1:nrow(y), function(k) {
-                y$psi.ot[oo[k]]}))
-            oooo <- data.frame(i=y$i[oo],val.M1=ooo)
-            oooo
-        }),
-        val.M2 = pmap(list(data.x, data.y, dGamma), function(x, y, z){
-            oo  <- expand.grid(1:nrow(x), 1:nrow(y))
-            ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
-                x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
-            oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
-            oooo
-        })) %>%
-    dplyr::select(-c("data.x", "data.y")) 
+## if(FALSE){
+## df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
+##                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+##     arrange(tk) %>%
+##     ungroup %>% 
+##     mutate(
+##         time          = T.data,
+##         time.lag      = c(0, time[-length(time)]),
+##         direction     = HD.data,
+##         direction.lag = c(0, HD.data[-length(direction)]),
+##         coords        = I(coords.trap),
+##         coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+##         dGamma=c(dGamma,0),
+##         dGamma.lead = lead(dGamma),
+##         dGamma.lag = lag(dGamma),
+##         val.M1 = pmap(list(data.y, dGamma), function(y, z) {
+##             oo  <- 1:nrow(y)
+##             ooo <- unlist(lapply(1:nrow(y), function(k) {
+##                 y$psi.ot[oo[k]]}))
+##             oooo <- data.frame(i=y$i[oo],val.M1=ooo)
+##             oooo
+##         }),
+##         val.M2 = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+##             oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+##             ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+##                 x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+##             oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+##             oooo
+##         })) %>%
+##     dplyr::select(-c("data.x", "data.y")) 
 
-df.prism.M0 <- df.prism.M0 %>% unnest(cols=c(val.M0))
-df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
-    unnest(cols=c(val.M1))
-df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
-    unnest(cols=c(val.M2))
-}
+## df.prism.M0 <- df.prism.M0 %>% unnest(cols=c(val.M0))
+## df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
+##     unnest(cols=c(val.M1))
+## df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
+##     unnest(cols=c(val.M2))
+## }
 
 
 ## ------------------------------------------------
@@ -710,6 +710,24 @@ M2.hd = fem.mesh.hd$g2
 ## if you can't open the vignette then you probably have an older version of INLA.
 ## Install most recent _development_ version
 
+## data for inlabru
+## ---------------------------------------
+## SpatialPointsDataFrame and SpatialLines
+## ---------------------------------------
+## inlabru accepts below formats for the data
+## Y.spdf is Y data frame except that coords are encoded as SpatialPoints
+## Ypos.sldf Ypos data frame except for coords and coords.lead are encoded as SpatialLines
+Y.spdf    <- SpatialPointsDataFrame(coords = SpatialPoints(cbind(Y$position_x, Y$position_y)),
+                                    data   = as.data.frame(Y%>%dplyr::select(-c(position_x, position_y))))
+Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypos)),
+                                                              function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
+                                                                                                  Ypos$coords.lead[k,1]),
+                                                                                                c(Ypos$coords[k,2],
+                                                                                                  Ypos$coords.lead[k,2])))), ID=k))),
+                                   data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
+
+data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
+
 ## ------------------------------------------------------
 ## specification of prior distribution of hyperparameters
 ## ------------------------------------------------------
@@ -759,24 +777,6 @@ time.rgeneric            <- inla.rgeneric.define(temporal.model,
                                                      rho.temporal   = rho.temporal,
                                                      sigma.temporal = sigma.temporal
                                                  ))
-
-## data for inlabru
-## ---------------------------------------
-## SpatialPointsDataFrame and SpatialLines
-## ---------------------------------------
-## inlabru accepts below formats for the data
-## Y.spdf is Y data frame except that coords are encoded as SpatialPoints
-## Ypos.sldf Ypos data frame except for coords and coords.lead are encoded as SpatialLines
-Y.spdf    <- SpatialPointsDataFrame(coords = SpatialPoints(cbind(Y$position_x, Y$position_y)),
-                                    data   = as.data.frame(Y%>%dplyr::select(-c(position_x, position_y))))
-Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypos)),
-                                                              function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
-                                                                                                  Ypos$coords.lead[k,1]),
-                                                                                                c(Ypos$coords[k,2],
-                                                                                                  Ypos$coords.lead[k,2])))), ID=k))),
-                                   data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
-
-data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
 
 

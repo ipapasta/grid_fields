@@ -5,6 +5,7 @@ set.seed(111086)
 library(INLA)
 library(inlabru)
 bru_options_set(inla.mode = "experimental")
+## bru_options_set(control.inla = list(strategy="simplified.laplace"))
 ## option "experimental" implements Variational Bayes correction this
 ## is useful for Poisson point process likelihoods.
 ## This option is implemented in latest INLA testing version
@@ -719,12 +720,12 @@ M2.hd = fem.mesh.hd$g2
 ## Ypos.sldf Ypos data frame except for coords and coords.lead are encoded as SpatialLines
 Y.spdf    <- SpatialPointsDataFrame(coords = SpatialPoints(cbind(Y$position_x, Y$position_y)),
                                     data   = as.data.frame(Y%>%dplyr::select(-c(position_x, position_y))))
-Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypos)),
-                                                              function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
-                                                                                                  Ypos$coords.lead[k,1]),
-                                                                                                c(Ypos$coords[k,2],
-                                                                                                  Ypos$coords.lead[k,2])))), ID=k))),
-                                   data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
+## Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypos)),
+##                                                               function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
+##                                                                                                   Ypos$coords.lead[k,1]),
+##                                                                                                 c(Ypos$coords[k,2],
+##                                                                                                   Ypos$coords.lead[k,2])))), ID=k))),
+##                                    data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
@@ -732,20 +733,34 @@ data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 ## specification of prior distribution of hyperparameters
 ## ------------------------------------------------------
 ## spatial model
-sigma.range.spatial.oscillating <- 1
-mu.range.spatial.oscillating    <- 25
+sigma.range.spatial.oscillating <- .4
+mu.range.spatial.oscillating    <- 20
 sigma.spatial.oscillating       <- 1/2
-a.par.phi.prior.spatial.oscillating <- 1
-b.par.phi.prior.spatial.oscillating <- 20
+a.par.phi.prior.spatial.oscillating <- 2^0
+b.par.phi.prior.spatial.oscillating <- 2^0
 ## directional model
 rho.directional   <- 1/(2*pi)
 sigma.directional <- 1
 ## 
 rho.temporal  <- 1/100
 sigma.temporal <- 1/3
+initial.space <- list(theta1=10,theta2=0, theta3=0)
+## initial.space2 <- list(theta1=0,theta2=0,theta3=-2)
+## initial.space3 <- list(theta1=0,theta2=0,theta3=-3)
+## initial.space4 <- list(theta1=0,theta2=0,theta3=-4)
 
+
+par(mfrow=c(2,2))
+plot(seq(-.997,.99,len=100), prior.phi_osc(seq(-.997,.99,len=100), a=a.par.phi.prior.spatial.oscillating, b=b.par.phi.prior.spatial.oscillating, l=(-0.998), u=1, lg=FALSE))
+plot(seq(-.997,.99,len=100), prior.phi_osc(seq(-.997,.99,len=100), a=a.par.phi.prior.spatial.oscillating, b=b.par.phi.prior.spatial.oscillating, l=(-0.998), u=1, lg=TRUE))
+plot(seq(10.1,100,len=100), dlnorm(seq(10.1,60,len=100) - 10, log(mu.range.spatial.oscillating), sigma.range.spatial.oscillating, log=FALSE))
+plot(seq(10.1,100,len=100), dlnorm(seq(10.1,60,len=100) - 10, log(mu.range.spatial.oscillating), sigma.range.spatial.oscillating, log=TRUE))
+
+
+## plot(seq(-.99, .99, len=100), prior.phi_osc(seq(-.99, .99, len=100), 5, 30) %>% exp %>% log)
 ## source all custom-made built models for inla.rgeneric.define
 source("rgeneric_models.R")
+
 ## define models
 ## oscilalting.rgeneric is used for M0
 ## space.direction.rgeneric is used for M1 and M2
@@ -757,7 +772,8 @@ space.rgeneric     <- inla.rgeneric.define(oscillating.model,
                                                      sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
                                                      sigma.spatial.oscillating           = sigma.spatial.oscillating,
                                                      a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
-                                                     b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating))
+                                                     b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating),
+                                           initial.space=initial.space)
 ## 
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                  M=list(M0.space=M0, M1.space=M1, M2.space=M2,
@@ -805,6 +821,9 @@ fit.space <- lgcp(cmp.space,
                   options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
 
 
+
+
+
 ## ----------------
 ## Fitting M1 model
 ## ----------------
@@ -819,11 +838,11 @@ fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                             options = list( num.threads=8, verbose = TRUE, bru_max_iter=1) )
 
 
-## model based estimates of expected number of events on the entire path from M0 and M1
-EN.M0 <- exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
-EN.M1 <- exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
-EN.M0 - nrow(Y)
-EN.M1 - nrow(Y)
+## ## model based estimates of expected number of events on the entire path from M0 and M1
+## EN.M0 <- exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
+## EN.M1 <- exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
+## EN.M0 - nrow(Y)
+## EN.M1 - nrow(Y)
 
 
 

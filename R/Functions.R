@@ -250,7 +250,8 @@ df.prism.M1.M2.wrapper <- function(At.indices, A.indices, T.data, dGamma, HD.dat
 
 ## oscillating parameter 
 theta.2.phi <- function(theta){
-    (1-exp(-theta))/(1+exp(-theta))
+    ## (1-exp(-theta))/(1+exp(-theta))
+    (1/(1+exp(-theta)))-1
 }
 ## 
 theta.2.sigma <- function(theta){
@@ -258,7 +259,7 @@ theta.2.sigma <- function(theta){
 }
 ##
 theta.2.rho <- function(theta){
-    exp(theta)
+    exp(theta) + 5
 }
 
 theta.2.kappa.1d <- function(theta){

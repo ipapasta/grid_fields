@@ -1,10 +1,11 @@
 'oscillating.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
     envir <- parent.env(environment())
     interpret.theta <- function() {
-        rho     <- exp(theta[1L])
+        rho     <- 5 + exp(theta[1L])
         kappa   <- sqrt(8)/rho
         sigma   <- exp(theta[2L])
-        phi     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
+        ## phi     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
+        phi     <- 1/(1+exp(-theta[3L]))-1
         sincpth <- sqrt(1-phi^2)/acos(phi)
         tausq   <- 1/(4*pi*(sigma^2)*(kappa^2)*sincpth)
         z       <- list(tausq = tausq, rho  = rho, phi = phi)
@@ -22,27 +23,26 @@
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
         param = interpret.theta()
-        prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
+        prior.phi_osc <- function(phi, a, b, l=(-0.998), u=0, lg=TRUE){
             if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
             if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
         }
         rho        <- sqrt(8)/param$kappa
         sigma      <- sqrt(param$tausq)
         phi        <- param$phi
-        ## distribution of hyperparameters 
-        sigmaLN    <- hyperpar$sigma.range.spatial.oscillating
-        murho      <- hyperpar$mu.range.spatial.oscillating
+        ## distribution of hyperparameters         
         sigma.spatial.oscillating <- hyperpar$sigma.spatial.oscillating
-        lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
-        lsigma.sp  <- dexp(sigma, sigma.spatial.oscillating, log = TRUE)       
-        lpphi.sp   <- prior.phi_osc(phi,
-                                    a=hyperpar$a.par.phi.prior.spatial.oscillating,
-                                    b=hyperpar$b.par.phi.prior.spatial.oscillating,
-                                    lg=TRUE)
+        lrho.sp    <- dlnorm(rho-5, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
+        lsigma.sp  <- dexp(sigma, sigma.spatial.oscillating, log = TRUE)
+        lpphi.sp <- dunif(phi, -1, 0)
+        ## lpphi.sp   <- prior.phi_osc(phi,
+        ##                             a=hyperpar$a.par.phi.prior.spatial.oscillating,
+        ##                             b=hyperpar$b.par.phi.prior.spatial.oscillating,
+        ##                             lg=TRUE)
         res        <- lpphi.sp + lrho.sp + lsigma.sp
         return(res)
     }
-    initial <- function()  return(c(-5, 0, 0))
+    initial <- function()  return(c(initial.space$theta1, initial.space$theta2, initial.space$theta3))
     quit <- function()  return(invisible())
     res <- do.call(match.arg(cmd), args = list())
     return(res)

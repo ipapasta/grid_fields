@@ -4,6 +4,7 @@ library(pals)
 ## ******************************************
 ## Model M0
 ## ******************************************
+
 N       <- 100
 coords  <- expand.grid(seq(0, 100, len=N), seq(0, 100, len=100)) %>% unname
 predict.data.space  <- data.frame(coords.x1=coords[,1], coords.x2=coords[,2])

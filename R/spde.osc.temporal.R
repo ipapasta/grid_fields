@@ -679,11 +679,13 @@ W.ipoints.M2 <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2@i+1], hd=mapinde
 ## inla.spde2.generic provides support for matern models (this includes oscillating models too)
 ## inla.rgeneric.define allows user to build the model from scratch - this includes priors of hyperparameters
 ## Ideally, we need all models below to be fit with inla.rgeneric.define.
-B.phi0.matern = matrix(c(0,1,0), nrow=1)
-B.phi1.matern = matrix(c(0,0,1), nrow=1)
-B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
-B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
-B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
+if(FALSE){
+    B.phi0.matern = matrix(c(0,1,0), nrow=1)
+    B.phi1.matern = matrix(c(0,0,1), nrow=1)
+    B.phi0.oscillating = matrix(c(0,1,0,0), nrow=1)
+    B.phi1.oscillating = matrix(c(0,0,1,0), nrow=1)
+    B.phi2.oscillating = matrix(c(0,0,0,1), nrow=1)
+}
 
 ## the following commands implement the finite element method and can
 ## be used to obtain the M matrices  (defined in
@@ -693,9 +695,9 @@ fem.mesh    <- inla.mesh.fem(mesh, order = 2)
 fem.mesh.hd <- inla.mesh.fem(mesh.hd, order = 2)
 fem.mesh.temporal <- inla.mesh.fem(mesh1d, order = 2)
 ## M matrices for spatial oscillating model
-M0 = fem.mesh$c0
-M1 = fem.mesh$g1
-M2 = fem.mesh$g2
+M0.space = fem.mesh$c0
+M1.space = fem.mesh$g1
+M2.space = fem.mesh$g2
 ## M matrices for temporal model
 M0.temporal = fem.mesh.temporal$c0
 M1.temporal = fem.mesh.temporal$g1
@@ -725,7 +727,7 @@ Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypo
                                                                                                   Ypos$coords.lead[k,1]),
                                                                                                 c(Ypos$coords[k,2],
                                                                                                   Ypos$coords.lead[k,2])))), ID=k))),
-##                                    data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
+                                   data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
@@ -740,11 +742,12 @@ a.par.phi.prior.spatial.oscillating <- 10
 b.par.phi.prior.spatial.oscillating <- 10
 ## directional model
 rho.directional   <- 1/(2*pi)
-sigma.directional <- 1
+sigma.directional <- pi
 ## 
 rho.temporal  <- 1/100
 sigma.temporal <- 1/3
-initial.space <- list(theta1=4,theta2=0, theta3=1)
+initial.space <- list(theta1=log(21-5), theta2=-2, theta3=-3)
+initial.space.direction <- list(theta1=log(21-5),theta2=-2, theta3=-3, theta4=log(pi), theta5=-3)
 l = -0.98
 u = 0
 weights.domain <- ipoints(domain=mesh)
@@ -756,7 +759,7 @@ source("rgeneric_models.R")
 ## space.direction.rgeneric is used for M1 and M2
 ## temporal.rgeneric is used for M1 and M2
 space.rgeneric     <- inla.rgeneric.define(oscillating.model,
-                                           M = list(M0=M0, M1=M1, M2=M2),
+                                           M = list(M0=M0.space, M1=M1.space, M2=M2.space),
                                            theta.functions = list(theta.2.phi   = theta.2.phi,
                                                                   theta.2.sigma = theta.2.sigma,
                                                                   theta.2.rho   = theta.2.rho,
@@ -771,11 +774,13 @@ space.rgeneric     <- inla.rgeneric.define(oscillating.model,
                                            initial.space=initial.space)
 ## 
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
-                                                 M=list(M0.space=M0, M1.space=M1, M2.space=M2,
+                                                 M=list(M0.space=M0.space, M1.space=M1.space, M2.space=M2.space,
                                                         M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
-                                                 theta.functions = list(theta.2.phi   = theta.2.phi,
-                                                                        theta.2.sigma = theta.2.sigma,
-                                                                        theta.2.rho   = theta.2.rho),
+                                                 theta.functions = list(theta.2.phi           = theta.2.phi,
+                                                                        theta.2.sigma         = theta.2.sigma,
+                                                                        theta.2.rho           = theta.2.rho,
+                                                                        theta.2.rho.direction = theta.2.rho.direction,
+                                                                        l=l, u=u),
                                                  hyperpar = list(
                                                      mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
                                                      sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
@@ -783,7 +788,9 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                      a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
                                                      b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating,
                                                      rho.directional                     = rho.directional,
-                                                     sigma.directional                   = sigma.directional))
+                                                     sigma.directional                   = sigma.directional),
+                                                 prior.functions = list(prior.phi_osc = prior.phi_osc),
+                                                 initial.space.direction=initial.space.direction)
 ## 
 time.rgeneric            <- inla.rgeneric.define(temporal.model,
                                                  M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
@@ -822,9 +829,13 @@ fit.space <- lgcp(cmp.space,
 ## Fitting M1 model
 ## ----------------
 cmp.space.direction <- firing_times ~
+    f(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+      mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
+      extraconstr=list(A=as.matrix(kronecker(Diagonal(mesh.hd$n), t(weights.domain$weight))), e=rep(0,mesh.hd$n))) + Intercept
+
+cmp.space.direction <- firing_times ~
     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
-    Intercept
+          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) + Intercept
 
 fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                             ips     = W.ipoints.M1,

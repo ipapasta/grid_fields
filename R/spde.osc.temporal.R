@@ -23,7 +23,7 @@ source("load_data.R")
 source("Functions.R")
 ## source("osc_precision.R")
 ## source("hd_precision.R")
-## source("temp_precision.R")
+## source("temp_precision.R")o
 ## library(sp)
 ## library(fields)
 ## library(nloptr)
@@ -720,11 +720,11 @@ M2.hd = fem.mesh.hd$g2
 ## Ypos.sldf Ypos data frame except for coords and coords.lead are encoded as SpatialLines
 Y.spdf    <- SpatialPointsDataFrame(coords = SpatialPoints(cbind(Y$position_x, Y$position_y)),
                                     data   = as.data.frame(Y%>%dplyr::select(-c(position_x, position_y))))
-## Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypos)),
-##                                                               function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
-##                                                                                                   Ypos$coords.lead[k,1]),
-##                                                                                                 c(Ypos$coords[k,2],
-##                                                                                                   Ypos$coords.lead[k,2])))), ID=k))),
+Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypos)),
+                                                              function(k) Lines(list(Line(cbind(c(Ypos$coords[k,1],
+                                                                                                  Ypos$coords.lead[k,1]),
+                                                                                                c(Ypos$coords[k,2],
+                                                                                                  Ypos$coords.lead[k,2])))), ID=k))),
 ##                                    data = Ypos %>% dplyr::select(-c(coords, coords.lead)))
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
@@ -733,51 +733,49 @@ data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 ## specification of prior distribution of hyperparameters
 ## ------------------------------------------------------
 ## spatial model
-sigma.range.spatial.oscillating <- .4
-mu.range.spatial.oscillating    <- 20
+sigma.range.spatial.oscillating <- 1
+mu.range.spatial.oscillating    <- 15
 sigma.spatial.oscillating       <- 1/2
-a.par.phi.prior.spatial.oscillating <- 2^0
-b.par.phi.prior.spatial.oscillating <- 2^0
+a.par.phi.prior.spatial.oscillating <- 10
+b.par.phi.prior.spatial.oscillating <- 10
 ## directional model
 rho.directional   <- 1/(2*pi)
 sigma.directional <- 1
 ## 
 rho.temporal  <- 1/100
 sigma.temporal <- 1/3
-initial.space <- list(theta1=10,theta2=0, theta3=0)
-## initial.space2 <- list(theta1=0,theta2=0,theta3=-2)
-## initial.space3 <- list(theta1=0,theta2=0,theta3=-3)
-## initial.space4 <- list(theta1=0,theta2=0,theta3=-4)
-
-
-par(mfrow=c(2,2))
-plot(seq(-.997,.99,len=100), prior.phi_osc(seq(-.997,.99,len=100), a=a.par.phi.prior.spatial.oscillating, b=b.par.phi.prior.spatial.oscillating, l=(-0.998), u=1, lg=FALSE))
-plot(seq(-.997,.99,len=100), prior.phi_osc(seq(-.997,.99,len=100), a=a.par.phi.prior.spatial.oscillating, b=b.par.phi.prior.spatial.oscillating, l=(-0.998), u=1, lg=TRUE))
-plot(seq(10.1,100,len=100), dlnorm(seq(10.1,60,len=100) - 10, log(mu.range.spatial.oscillating), sigma.range.spatial.oscillating, log=FALSE))
-plot(seq(10.1,100,len=100), dlnorm(seq(10.1,60,len=100) - 10, log(mu.range.spatial.oscillating), sigma.range.spatial.oscillating, log=TRUE))
-
-
+initial.space <- list(theta1=4,theta2=0, theta3=1)
+l = -0.98
+u = 0
+weights.domain <- ipoints(domain=mesh)
 ## plot(seq(-.99, .99, len=100), prior.phi_osc(seq(-.99, .99, len=100), 5, 30) %>% exp %>% log)
 ## source all custom-made built models for inla.rgeneric.define
 source("rgeneric_models.R")
-
 ## define models
 ## oscilalting.rgeneric is used for M0
 ## space.direction.rgeneric is used for M1 and M2
 ## temporal.rgeneric is used for M1 and M2
 space.rgeneric     <- inla.rgeneric.define(oscillating.model,
-                                                 M = list(M0=M0, M1=M1, M2=M2),
-                                                 hyperpar = list(
-                                                     mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
-                                                     sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
-                                                     sigma.spatial.oscillating           = sigma.spatial.oscillating,
-                                                     a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
-                                                     b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating),
+                                           M = list(M0=M0, M1=M1, M2=M2),
+                                           theta.functions = list(theta.2.phi   = theta.2.phi,
+                                                                  theta.2.sigma = theta.2.sigma,
+                                                                  theta.2.rho   = theta.2.rho,
+                                                                  l=l, u=u),
+                                           hyperpar = list(
+                                               mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
+                                               sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
+                                               sigma.spatial.oscillating           = sigma.spatial.oscillating,
+                                               a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
+                                               b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating),
+                                           prior.functions = list(prior.phi_osc = prior.phi_osc),                                           
                                            initial.space=initial.space)
 ## 
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                  M=list(M0.space=M0, M1.space=M1, M2.space=M2,
                                                         M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
+                                                 theta.functions = list(theta.2.phi   = theta.2.phi,
+                                                                        theta.2.sigma = theta.2.sigma,
+                                                                        theta.2.rho   = theta.2.rho),
                                                  hyperpar = list(
                                                      mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
                                                      sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
@@ -810,19 +808,15 @@ time.rgeneric            <- inla.rgeneric.define(temporal.model,
 ## ----------------
 ## Fitting M0 model
 ## ----------------
-
-
 cmp.space <- firing_times ~
-    spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
+    f(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE),
+      extraconstr=list(A=t(weights.domain$weight), e=0)) + Intercept
+
 fit.space <- lgcp(cmp.space,
                   data = Y.spdf,
                   ips     = W.ipoints.M0,
                   domain  = list(firing_times = mesh1d),
                   options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
-
-
-
-
 
 ## ----------------
 ## Fitting M1 model
@@ -868,7 +862,7 @@ if(FALSE){
 
 
 ## ------------------------
-## old implementation of M1
+## old implementation of M0/M1
 ## ------------------------
 
 ## current implementation below is correct. Integration weights
@@ -887,5 +881,16 @@ if(FALSE){
 
 ## Model based estimate of expected number of points on the entire path
 ## exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
-
-
+## internal parameterizations
+## initial.space2 <- list(theta1=0,theta2=0,theta3=-2)
+## initial.space3 <- list(theta1=0,theta2=0,theta3=-3)
+## initial.space4 <- list(theta1=0,theta2=0,theta3=-4)
+## par(mfrow=c(2,2))
+## plot(seq(-.997,.99,len=100), prior.phi_osc(seq(-.997,.99,len=100), a=a.par.phi.prior.spatial.oscillating, b=b.par.phi.prior.spatial.oscillating, l=(-0.998), u=1, lg=FALSE))
+## plot(seq(-.997,.99,len=100), prior.phi_osc(seq(-.997,.99,len=100), a=a.par.phi.prior.spatial.oscillating, b=b.par.phi.prior.spatial.oscillating, l=(-0.998), u=1, lg=TRUE))
+## plot(seq(10.1,100,len=100), dlnorm(seq(10.1,60,len=100) - 10, log(mu.range.spatial.oscillating), sigma.range.spatial.oscillating, log=FALSE))
+## plot(seq(10.1,100,len=100), dlnorm(seq(10.1,60,len=100) - 10, log(mu.range.spatial.oscillating), sigma.range.spatial.oscillating, log=TRUE))
+## test.spde2 <- t(weights.domain$weight) %*% fit.space$summary.random$spde2$mean
+## test.f     <- t(weights.domain$weight) %*% fit.space$summary.random$f$mean
+## cmp.space <- firing_times ~
+##     spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept

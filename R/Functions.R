@@ -248,11 +248,20 @@ df.prism.M1.M2.wrapper <- function(At.indices, A.indices, T.data, dGamma, HD.dat
 ## link functions
 ## --------------
 
-## oscillating parameter 
-theta.2.phi <- function(theta){
-    ## (1-exp(-theta))/(1+exp(-theta))
-    (1/(1+exp(-theta)))-1
+
+
+theta.2.phi   <- function(theta, l=NULL, u=NULL) {
+    if(is.null(l)) l <- get("l", envir = .GlobalEnv)
+    if(is.null(u)) u <- get("u", envir = .GlobalEnv)
+    res <- l + (u-l)*pcauchy(theta, location=0, scale=1)## (1/(1+exp(-theta)))
+    attr(res, "jacobian") <- (u-l)*dcauchy(theta, location=0, scale=1)
+    return(res)
 }
+
+## theta.2.phi <- function(theta){
+##     ## (1-exp(-theta))/(1+exp(-theta))
+##     (1/(1+exp(-theta)))-1
+## }
 ## 
 theta.2.sigma <- function(theta){
     exp(theta)
@@ -261,7 +270,7 @@ theta.2.sigma <- function(theta){
 theta.2.rho <- function(theta){
     exp(theta) + 5
 }
-
+## 
 theta.2.kappa.1d <- function(theta){
     sqrt(8*(3/2))/exp(theta)       
 }
@@ -270,22 +279,22 @@ theta.2.kappa.1d <- function(theta){
 ## posterior distribution of gridness score
 ## input is a fitted model with inlabru (e.g. fit.space and fit.space.direction)
 ## object returns attributes for summaries of the posterior
-posterior.spatial.gridness.score <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.phi, inlabru.fitted.object$marginals.hyperpar[["Theta3 for spde2"]])
+posterior.spatial.gridness.score <- function(inlabru.fitted.object, theta.mapping){    
+    marg                  <- inla.tmarginal(theta.mapping, inlabru.fitted.object$marginals.hyperpar[["Theta3 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
     return(marg)
 }
 posterior.spatial.standard.deviation <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta2 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta2 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
     return(marg)
 }
 posterior.spatial.range <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta1 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta1 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
@@ -294,21 +303,21 @@ posterior.spatial.range <- function(inlabru.fitted.object){
 
 
 posterior.directional.standard.deviation <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta5 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta5 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
     return(marg)
 }
 posterior.directional.range <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta4 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta4 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
     return(marg)
 }
 posterior.directional.kappa <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.kappa.1d, inlabru.fitted.object$marginals.hyperpar[["Theta4 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.kappa.1d, inlabru.fitted.object$marginals.hyperpar[["Theta4 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
@@ -317,14 +326,14 @@ posterior.directional.kappa <- function(inlabru.fitted.object){
 
 
 posterior.temporal.standard.deviation <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta6 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta6 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
     return(marg)
 }
 posterior.temporal.range <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta7 for spde4"]])
+    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta7 for spde2"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
@@ -333,6 +342,11 @@ posterior.temporal.range <- function(inlabru.fitted.object){
 
 
 ## priors of hyperparameters
+## prior.phi_osc <- function(phi, a, b, l, u, lg=TRUE){
+##     if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
+##     if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
+## }
+
 prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
     if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
     if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))

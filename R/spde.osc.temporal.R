@@ -738,8 +738,8 @@ data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 sigma.range.spatial.oscillating <- .5
 mu.range.spatial.oscillating    <- 20
 sigma.spatial.oscillating       <- 1/5
-a.par.phi.prior.spatial.oscillating <- 1
-b.par.phi.prior.spatial.oscillating <- 3
+a.par.phi.prior.spatial.oscillating <- 2
+b.par.phi.prior.spatial.oscillating <- 20
 ## directional model
 rho.directional   <- 1
 sigma.directional <- .1
@@ -747,17 +747,17 @@ sigma.directional <- .1
 rho.temporal  <- 1/100
 sigma.temporal <- 1/3
 initial.space <- list(theta1=log(21-5), theta2=-2, theta3=-3)
-initial.space.direction <- list(theta1=log(21-5),theta2=-2, theta3=-3, theta4=0, theta5=-3)
+initial.space.direction <- list(theta1=log(21-5),theta2=-2, theta3=-3, theta4=log(3), theta5=-3)
 l = -0.98
 u = 1
 weights.domain <- ipoints(domain=mesh)
 ## plot(seq(-.99, .99, len=100), prior.phi_osc(seq(-.99, .99, len=100), 5, 30) %>% exp %>% log)
 ## source all custom-made built models for inla.rgeneric.define
 source("rgeneric_models.R")
-## define models
-## oscilalting.rgeneric is used for M0
-## space.direction.rgeneric is used for M1 and M2
-## temporal.rgeneric is used for M1 and M2
+
+## ----------------
+## Fitting M0 model
+## ----------------
 space.rgeneric     <- inla.rgeneric.define(oscillating.model,
                                            M = list(M0=M0.space, M1=M1.space, M2=M2.space),
                                            theta.functions = list(theta.2.phi   = theta.2.phi,
@@ -772,7 +772,20 @@ space.rgeneric     <- inla.rgeneric.define(oscillating.model,
                                                b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating),
                                            prior.functions = list(prior.phi_osc = prior.phi_osc),                                           
                                            initial.space=initial.space)
-## 
+
+cmp.space <- firing_times ~
+    f(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE),
+      extraconstr=list(A=t(weights.domain$weight), e=0)) + Intercept
+
+fit.space <- lgcp(cmp.space,
+                  data = Y.spdf,
+                  ips     = W.ipoints.M0,
+                  domain  = list(firing_times = mesh1d),
+                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
+
+## ----------------
+## Fitting M1 model
+## ----------------
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                  M=list(M0.space=M0.space, M1.space=M1.space, M2.space=M2.space,
                                                         M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
@@ -791,47 +804,22 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                      sigma.directional                   = sigma.directional),
                                                  prior.functions = list(prior.phi_osc = prior.phi_osc),
                                                  initial.space.direction=initial.space.direction)
-## 
-time.rgeneric            <- inla.rgeneric.define(temporal.model,
-                                                 M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
-                                                 hyperpar = list(
-                                                     rho.temporal   = rho.temporal,
-                                                     sigma.temporal = sigma.temporal
-                                                 ))
+
+A.spatial.field_constr     <- as.matrix(kronecker(Diagonal(mesh.hd$n), t(weights.domain$weight)))
+A.directional.field_constr <- circulant(rep(rep(c(diff(mesh.hd$loc)[1], rep(0,(mesh$n)-1))), mesh.hd$n))[1:mesh$n, ]
+A.directional.field.and.spatial.field_constr <- rbind(A.spatial.field_constr, A.directional.field_constr)
 
 
-
-## some information on lgcp arguments
-## domain: means integration domain. When integration domain is supplied together with samplers,
-## then lgcp constructs the integration scheme. There are options for
-## how it does that. By default, .. it will first take domain and
-## samplers, say for example samplers specify subintervals (time),
-## then it constructs the intersection of domains and samplers and
-## then it will place integration points on the remaining knots, so
-## essentially, original knots inside intervals and at the endpoints
-## of the intervals.  Then it takes samplers which will have say one
-## interval.
-
-## ----------------
-## Fitting M0 model
-## ----------------
-cmp.space <- firing_times ~
-    f(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE),
-      extraconstr=list(A=t(weights.domain$weight), e=0)) + Intercept
-
-fit.space <- lgcp(cmp.space,
-                  data = Y.spdf,
-                  ips     = W.ipoints.M0,
-                  domain  = list(firing_times = mesh1d),
-                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
-
-## ----------------
-## Fitting M1 model
-## ----------------
 cmp.space.direction <- firing_times ~
     f(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
       mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
-      extraconstr=list(A=as.matrix(kronecker(Diagonal(mesh.hd$n), t(weights.domain$weight))), e=rep(0,mesh.hd$n))) + Intercept
+      extraconstr=list(A=A.spatial.field_constr, e=rep(0, nrow(A.spatial.field_constr)))) + Intercept
+
+## cmp.space.direction <- firing_times ~
+##     f(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+##       mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
+##       extraconstr=list(A=as.matrix(A.directional.field.and.spatial.field_constr),
+##                        e=rep(0,nrow(A.directional.field.and.spatial.field_constr)))) + Intercept
 
 fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                             ips     = W.ipoints.M1,
@@ -843,6 +831,15 @@ fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
 ## Fitting M2 model (computationally expensive)
 ## ----------------
 ##
+## TODO: update time.rgeneric to include theta mappings, priors,
+## etc. as arguments.
+time.rgeneric            <- inla.rgeneric.define(temporal.model,
+                                                 M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
+                                                 hyperpar = list(
+                                                     rho.temporal   = rho.temporal,
+                                                     sigma.temporal = sigma.temporal
+                                                 ))
+
 if(FALSE){
     ## current implementation below is correct
     cmp.space.direction.time <- firing_times ~
@@ -896,3 +893,16 @@ if(FALSE){
 ## cmp.space.direction <- firing_times ~
 ##     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
 ##           mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) + Intercept
+
+
+
+## some information on lgcp arguments
+## domain: means integration domain. When integration domain is supplied together with samplers,
+## then lgcp constructs the integration scheme. There are options for
+## how it does that. By default, .. it will first take domain and
+## samplers, say for example samplers specify subintervals (time),
+## then it constructs the intersection of domains and samplers and
+## then it will place integration points on the remaining knots, so
+## essentially, original knots inside intervals and at the endpoints
+## of the intervals.  Then it takes samplers which will have say one
+## interval.

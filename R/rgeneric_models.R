@@ -90,23 +90,21 @@
     mu <- function() return(numeric(0))
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
-        param = interpret.theta()
-        sigma.space               <- param$sigma.space
-        phi.space                 <- param$phi.space
-        sigma.direction           <- param$sigma.direction
-        lrho.space                <- dlnorm(rho.space-5, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)       
-        lsigma.space              <- dexp(sigma.space, hyperpar$sigma.spatial.oscillating, log = TRUE)
-        lpphi.space               <- prior.functions$prior.phi_osc(phi.space,
-                                                                   a=hyperpar$a.par.phi.prior.spatial.oscillating,
-                                                                   b=hyperpar$b.par.phi.prior.spatial.oscillating,
-                                                                   l=theta.functions$l, u=theta.functions$u,
-                                                                   lg=TRUE)
+        param = interpret.theta()        
+        lrho.space          <- dlnorm(param$rho.space-5,
+                                      log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)       
+        lsigma.space        <- dexp(param$sigma.space, hyperpar$sigma.spatial.oscillating, log = TRUE)
+        lpphi.space         <- prior.functions$prior.phi_osc(param$phi.space,
+                                                             a=hyperpar$a.par.phi.prior.spatial.oscillating,
+                                                             b=hyperpar$b.par.phi.prior.spatial.oscillating,
+                                                             l=theta.functions$l, u=theta.functions$u,
+                                                             lg=TRUE)
         ljac.rho.space        <- theta[1L]
         ljac.sigma.space      <- theta[2L]
         ljac.phi.space        <- log(attr(theta.functions$theta.2.phi(theta[3L], l=theta.functions$l, u=theta.functions$u), "jacobian"))
         ## 
         lrho.direction        <- dexp(param$rho.direction, hyperpar$rho.directional, log=TRUE)
-        lsigma.direction      <- dexp(sigma.direction, hyperpar$sigma.directional, log = TRUE)
+        lsigma.direction      <- dexp(param$sigma.direction, hyperpar$sigma.directional, log = TRUE)
         ljac.rho.direction    <- theta[4L]
         ljac.sigma.direction  <- theta[5L]
         ## 

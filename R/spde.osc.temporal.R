@@ -735,21 +735,21 @@ data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 ## specification of prior distribution of hyperparameters
 ## ------------------------------------------------------
 ## spatial model
-sigma.range.spatial.oscillating <- 1
-mu.range.spatial.oscillating    <- 15
-sigma.spatial.oscillating       <- 1/2
-a.par.phi.prior.spatial.oscillating <- 10
-b.par.phi.prior.spatial.oscillating <- 10
+sigma.range.spatial.oscillating <- .5
+mu.range.spatial.oscillating    <- 20
+sigma.spatial.oscillating       <- 1/5
+a.par.phi.prior.spatial.oscillating <- 1
+b.par.phi.prior.spatial.oscillating <- 3
 ## directional model
-rho.directional   <- 1/(2*pi)
-sigma.directional <- pi
+rho.directional   <- 1
+sigma.directional <- .1
 ## 
 rho.temporal  <- 1/100
 sigma.temporal <- 1/3
 initial.space <- list(theta1=log(21-5), theta2=-2, theta3=-3)
-initial.space.direction <- list(theta1=log(21-5),theta2=-2, theta3=-3, theta4=log(pi), theta5=-3)
+initial.space.direction <- list(theta1=log(21-5),theta2=-2, theta3=-3, theta4=0, theta5=-3)
 l = -0.98
-u = 0
+u = 1
 weights.domain <- ipoints(domain=mesh)
 ## plot(seq(-.99, .99, len=100), prior.phi_osc(seq(-.99, .99, len=100), 5, 30) %>% exp %>% log)
 ## source all custom-made built models for inla.rgeneric.define
@@ -833,22 +833,10 @@ cmp.space.direction <- firing_times ~
       mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
       extraconstr=list(A=as.matrix(kronecker(Diagonal(mesh.hd$n), t(weights.domain$weight))), e=rep(0,mesh.hd$n))) + Intercept
 
-cmp.space.direction <- firing_times ~
-    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) + Intercept
-
 fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                             ips     = W.ipoints.M1,
                             domain  = list(firing_times = mesh1d),
                             options = list( num.threads=8, verbose = TRUE, bru_max_iter=1) )
-
-
-## ## model based estimates of expected number of events on the entire path from M0 and M1
-## EN.M0 <- exp(fit.space$summary.fixed$mean) * sum(W.M0.vector*exp(fit.space$summary.random$spde2$mean))
-## EN.M1 <- exp(fit.space.direction$summary.fixed$mean) * sum(W.M1.vector*exp(fit.space.direction$summary.random$spde2$mean))
-## EN.M0 - nrow(Y)
-## EN.M1 - nrow(Y)
-
 
 
 ## ----------------
@@ -905,3 +893,6 @@ if(FALSE){
 ## test.f     <- t(weights.domain$weight) %*% fit.space$summary.random$f$mean
 ## cmp.space <- firing_times ~
 ##     spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
+## cmp.space.direction <- firing_times ~
+##     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+##           mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) + Intercept

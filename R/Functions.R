@@ -270,6 +270,9 @@ theta.2.sigma <- function(theta){
 theta.2.rho <- function(theta){
     exp(theta) + 5
 }
+theta.2.rho.direction <- function(theta){
+    exp(theta) 
+}
 ## 
 theta.2.kappa.1d <- function(theta){
     sqrt(8*(3/2))/exp(theta)       
@@ -333,7 +336,7 @@ posterior.temporal.standard.deviation <- function(inlabru.fitted.object){
     return(marg)
 }
 posterior.temporal.range <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta7 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta7 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)

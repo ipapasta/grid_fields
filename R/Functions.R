@@ -313,7 +313,7 @@ posterior.directional.standard.deviation <- function(inlabru.fitted.object){
     return(marg)
 }
 posterior.directional.range <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta4 for f"]])
+    marg                  <- inla.tmarginal(theta.2.rho.direction, inlabru.fitted.object$marginals.hyperpar[["Theta4 for f"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
@@ -355,9 +355,12 @@ prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
     if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
 }
 
-
-
-
+circulant <-function(x) {
+    n <- length(x)
+    suppressWarnings( 
+        Matrix(matrix(x[matrix(1:n,n+1,n+1,byrow=T)[c(1,n:2),1:n]],n,n), sparse=TRUE)
+    )
+}
 
 
 ## 
@@ -370,16 +373,7 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
     Y <- Y.test
     nodes       <- c(mesh.hd$loc, 2*pi)
     intervals   <- head(cbind(nodes, lead(nodes)), -1)
-    ## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional basis functions
-    ## this data frame is created to create correspondences
-    ## between spatio-directional basis knots with spatial basis knots, an
-    ## between spatio-directional basis knots with head directional basis knots, respectively.
     df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
-    ## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
-    ## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
-    ## and returns the coordinates and the head direction associated with the spatial basis function and the
-    ## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
-    ## instead of returning coords and angles, it returns the indices of the associated basis functions.
     mapindex2space.direction_index <- function(index){    
         f<-function(index.single){
             as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
@@ -478,8 +472,7 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
     At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame %>% mutate(index.CV = sort(rep(index.CV,2)))
     names(Aosc.indices) <- c("tk", "i", "psi.o", "index.CV") #ot: omega 
     names(A.indices) <- c("tk", "i", "psi.ot", "index.CV") #ot: omega x theta
-    names(At.indices) <- c("tk", "l", "psi.t", "index.CV")
-                                        #
+    names(At.indices) <- c("tk", "l", "psi.t", "index.CV")                                        #
     Aosc.indices.group.segments <- Aosc.indices
     while(TRUE){
         if(length(which(diff(unique(Aosc.indices.group.segments$index.CV)) == 1)) == 0){
@@ -732,11 +725,6 @@ hd.bsp.precision <- function(theta, mesh){
     tausq*((kappa^4)*(fem$c0) + (2*(kappa^2)*(fem$g1)) + fem$g2)
 }
 
-## theta <- seq(0, 2*pi, len=10)
-## mesh.cyclic <- inla.mesh.1d(theta, boundary="cyclic", degree=1)
-## fem <- inla.mesh.1d.fem(mesh.cyclic)
-
-
 ## precision matrix of temporal field
 ##
 ## Input: 
@@ -777,42 +765,5 @@ temp.precision <- function(theta, mesh, o=2){
 
 
 
-
-
-
-## split.lines <- function(mesh, sp, ep, filter.zero.length = TRUE, tol= 1e-8) {
-##                                         # locations for splitting
-##         loc = as.matrix(rbind(sp,ep))
-##         idx = 1:dim(sp)[1]
-##                                         # Filter out segments not on the mesh
-##         t1 = INLA::inla.fmesher.smorg(loc=mesh$loc,tv=mesh$graph$tv,points2mesh=as.matrix(data.frame(sp,z=0)))$p2m.t
-##         t2 = INLA::inla.fmesher.smorg(loc=mesh$loc,tv=mesh$graph$tv,points2mesh=as.matrix(data.frame(ep,z=0)))$p2m.t
-##                                         # if (any(t1==0) | any(t2==0)) { warning("points outside boundary! filtering...")}
-##         sp = matrix(sp[!((t1==0) | (t2==0)),], ncol=2)
-##         ep = matrix(ep[!((t1==0) | (t2==0)),], ncol=2)
-##         idx = idx[!((t1==0) | (t2==0))]
-##         loc = as.matrix(rbind(sp,ep))
-##                                         # Split them segments into parts
-##         if ( dim(loc)[2] == 2 ) {loc = cbind(loc,rep(0,dim(loc)[1]))}
-##         np = dim(sp)[1]
-##         sp.idx = t(rbind(1:np,np+1:np))
-##         splt = INLA::inla.fmesher.smorg(mesh$loc,mesh$graph$tv, splitlines=list(loc=loc, idx=sp.idx))
-##                                         #plot(data$mesh)
-##                                         #points(loc)
-##                                         #points(splt$split.loc,col="blue)
-##         sp = matrix(splt$split.loc[splt$split.idx[,1],1:dim(sp)[2]], ncol=2) # Start point of new segments
-##         ep = matrix(splt$split.loc[splt$split.idx[,2],1:dim(ep)[2]], ncol=2) # End points of new segments
-##         idx = idx[splt$split.idx[,1]]
-##         origin = splt$split.origin
-##                                         # Filter out zero length segments
-##         if ( filter.zero.length ) {
-##             sl = apply((ep-sp)^2,MARGIN=1,sum)
-##             sp = sp[!(sl<tol^2),]
-##             ep = ep[!(sl<tol^2),]
-##             origin = origin[!(sl<tol^2)]
-##             idx = idx[!(sl<tol^2)]
-##         }
-##         return(list(sp=sp,ep=ep,split.origin=origin,idx=idx,split.loc=splt$split.loc))
-##     }
 
 

@@ -11,7 +11,6 @@
         z       <- list(tausq = tausq, rho  = rho, phi = phi)
         return(z)
     }
-    graph <- function() return(M$M2)
     Q <- function() {
         require(Matrix)
         param     <- interpret.theta()
@@ -19,7 +18,8 @@
         precision <- param$tausq*(kappa^4 * M$M0 + 2*param$phi * kappa^2 * M$M1 + M$M2)
         return(precision)
     }
-    mu <- function() return(numeric(0))
+    graph <- function() return(M$M2)
+    mu    <- function() return(numeric(0))
     log.norm.const <- function() return(numeric(0))
     log.prior <- function(){        
         param      = interpret.theta()        
@@ -29,6 +29,7 @@
         ## distribution of hyperparameters         
         sigma.spatial.oscillating <- hyperpar$sigma.spatial.oscillating
         lrho.sp    <- dlnorm(rho-5, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
+        ## lrho.sp    <- dexp(rho-5, 1/10, log=TRUE)
         ## lrho.sp    <- dexp(rho-5, 1/5, log=TRUE)
         lsigma.sp  <- dexp(sigma, sigma.spatial.oscillating, log = TRUE)
         lpphi.sp   <- prior.functions$prior.phi_osc(phi,
@@ -40,6 +41,51 @@
         ljac.sigma <- theta[2L]
         ljac.rho   <- theta[1L]
         res        <- lpphi.sp + lrho.sp + lsigma.sp + ljac.phi + ljac.sigma + ljac.rho
+        ## print(paste("theta.phi: ", theta[3L], "theta.rho: ", ljac.rho, "theta.sigma: ", ljac.sigma))
+        return(res)
+    }
+    initial <- function()  return(c(initial.space$theta1, initial.space$theta2, initial.space$theta3))
+    quit <- function()  return(invisible())
+    res <- do.call(match.arg(cmd), args = list())
+    return(res)
+}
+
+'oscillating.model.fixed.phi' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
+    envir <- parent.env(environment())
+    interpret.theta <- function() {
+        rho     <- theta.functions$theta.2.rho(theta=theta[1L])
+        kappa   <- sqrt(8)/rho
+        sigma   <- theta.functions$theta.2.sigma(theta=theta[2L])
+        ## phi     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
+        ## phi     <- theta.functions$theta.2.phi(theta[3L], l=theta.functions$l, u=theta.functions$u)
+        sincpth <- sqrt(1-hyperpar$phi^2)/acos(hyperpar$phi)
+        tausq   <- 1/(4*pi*(sigma^2)*(kappa^2)*sincpth)
+        z       <- list(tausq = tausq, rho  = rho)
+        return(z)
+    }
+    Q <- function() {
+        require(Matrix)
+        param     <- interpret.theta()
+        kappa     <- sqrt(8)/param$rho
+        precision <- param$tausq*(kappa^4 * M$M0 + 2*hyperpar$phi * kappa^2 * M$M1 + M$M2)
+        return(precision)
+    }
+    graph <- function() return(M$M2)
+    mu <- function() return(numeric(0))
+    log.norm.const <- function() return(numeric(0))
+    log.prior <- function(){        
+        param      = interpret.theta()        
+        rho        <- sqrt(8)/param$kappa
+        sigma      <- sqrt(param$tausq)
+        ## distribution of hyperparameters         
+        sigma.spatial.oscillating <- hyperpar$sigma.spatial.oscillating
+        lrho.sp    <- dlnorm(rho-5, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
+        ## lrho.sp    <- dexp(rho-5, 1/10, log=TRUE)
+        ## lrho.sp    <- dexp(rho-5, 1/5, log=TRUE)
+        lsigma.sp  <- dexp(sigma, sigma.spatial.oscillating, log = TRUE)
+        ljac.sigma <- theta[2L]
+        ljac.rho   <- theta[1L]
+        res        <- lrho.sp + lsigma.sp + ljac.sigma + ljac.rho
         ## print(paste("theta.phi: ", theta[3L], "theta.rho: ", ljac.rho, "theta.sigma: ", ljac.sigma))
         return(res)
     }

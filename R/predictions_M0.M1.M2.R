@@ -8,7 +8,7 @@ library(pals)
 N       <- 100
 coords  <- expand.grid(seq(0, 100, len=N), seq(0, 100, len=100)) %>% unname
 predict.data.space  <- data.frame(coords.x1=coords[,1], coords.x2=coords[,2])
-lambda.space        <- predict(fit.space, predict.data.space, ~ Intercept + spde2)
+lambda.space        <- predict(fit.space, predict.data.space, ~ Intercept + f)
 
 p.space  <- ggplot(lambda.space, aes(coords.x1,coords.x2)) +
     geom_raster(aes(fill=mean), interpolate=TRUE) +
@@ -36,8 +36,8 @@ dir.fixed    <- rep(fixed.dir, length=100*100)
 
 predict.data.space.direction.dir.fixed     <- data.frame(hd=dir.fixed, coords.x1=coords[,1], coords.x2=coords[,2])
 predict.data.space.direction.coords.fixed  <- data.frame(hd=dir, coords.x1=coords.fixed[,1], coords.x2=coords.fixed[,2])
-lambda.space.direction.dir.fixed       <- predict(fit.space.direction, predict.data.space.direction.dir.fixed, ~ Intercept + spde2)
-lambda.space.direction.coords.fixed    <- predict(fit.space.direction, predict.data.space.direction.coords.fixed, ~ Intercept + spde2)
+lambda.space.direction.dir.fixed       <- predict(fit.space.direction, predict.data.space.direction.dir.fixed, ~ Intercept + f)
+lambda.space.direction.coords.fixed    <- predict(fit.space.direction, predict.data.space.direction.coords.fixed, ~ Intercept + f)
 
 
 p.space.direction.dir.fixed  <- ggplot(lambda.space.direction.dir.fixed, aes(coords.x1,coords.x2)) +
@@ -155,12 +155,12 @@ p2<- ggplot(pr.int.full) +
 ## extract times, coordinates and directions along the path
 
 predict.intensity.on.path  <- data.frame(coords.x1=Ypos$coords[,1], coords.x2=Ypos$coords[,2], hd=Ypos$hd, firing_times=Ypos$time)
-lambda.M0.path             <- predict(fit.space, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
-lambda.M1.path             <- predict(fit.space.direction, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
+lambda.M0.path             <- predict(fit.space, predict.intensity.on.path, ~ Intercept + f) %>% mutate(time = Ypos$time)
+lambda.M1.path             <- predict(fit.space.direction, predict.intensity.on.path, ~ Intercept + f) %>% mutate(time = Ypos$time)
 ## lambda.M2.path        <- predict(fit.space.direction.time, predict.intensity.on.path, ~ Intercept + spde2) %>% mutate(time = Ypos$time)
 
-T1 <- 0
-T2 <- 100
+T1 <- 600
+T2 <- 650
 
 p.M0.path.time  <- ggplot(lambda.M0.path) +
     geom_ribbon(aes(x= time, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70") +
@@ -168,21 +168,21 @@ p.M0.path.time  <- ggplot(lambda.M0.path) +
     xlim(T1, T2) +
     geom_point(data=Y, aes(x=firing_times, rep(min(lambda.M0.path$q0.025, length(firing_times)))), colour="red") + 
     theme_classic() + theme(legend.text=element_text(size=11))
-
+## 
 p.M1.path.time  <- ggplot(lambda.M1.path, ) +
     geom_ribbon(aes(x= time, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70") + 
     geom_line(aes(x=time,y=mean)) +
     xlim(T1, T2) +
         geom_point(data=Y, aes(x=firing_times, rep(min(lambda.M0.path$q0.025, length(firing_times)))), colour="red") + 
     theme_classic() + theme(legend.text=element_text(size=11))
-
+## 
 p.hd  <- ggplot(lambda.M1.path, aes(x=time,y=hd)) + geom_line() +
     xlim(T1, T2) +
     theme_classic() + theme(legend.text=element_text(size=11))
 
 grid.arrange(p.M0.path.time, p.M1.path.time, p.hd)
 
-plot(lambda.M0.path$mean, lambda.M1.path$mean, pch=16, cex=0.1)
+plot(lambda.M0.path$mean, lambda.M1.path$mean, pch=16, cex=0.5)
 abline(a=0, b=1)
 
 save(predict.data.space.direction.full, predict.intensity.on.path, lambda.M0.path, lambda.M1.path, lambda.space.direction.full, file="lambda_M0_M1.RData")

@@ -36,7 +36,7 @@ lines(seq(5, 60, len=1000), dlnorm(seq(5, 60, len=1000)-5, log(mu.range.spatial.
 
 
 
-pdf("posterior_hyperparameters3.pdf")
+pdf("posterior_hyperparameters2.pdf")
 
 par(mfrow=c(4,2))
 plot(posterior.gridness.score.M0, type="l", xlim=c(-1,1), ylim=c(0, 10), xlab="phi", ylab="density", main="M0")

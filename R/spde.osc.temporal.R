@@ -30,7 +30,17 @@ source("Functions.R")
 
 ## spatial mesh
 k       <- 5
+set.seed(111086)
+
+loc.bnd.inner  <- expand.grid(c(min(X$position_x),max(X$position_x)), c(min(X$position_y),max(X$position_y)))[c(1,2,4,3),]
+loc.bnd.outer  <- expand.grid(c(min(X$position_x)-100,max(X$position_x)+100), c(min(X$position_y)-100,max(X$position_y)+100))[c(1,2,4,3),]
+segm.bnd.inner <- inla.mesh.segment(loc.bnd.inner)
+segm.bnd.outer <- inla.mesh.segment(loc.bnd.outer)
+mesh    <- inla.mesh.2d(spikes, max.edge=c(k, 25*k), offset=c(10, 120), cutoff=k/2,
+                        boundary=list(segm.bnd.inner, segm.bnd.outer))
 mesh    <- inla.mesh.2d(spikes, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+
+plot(mesh,asp=1)
 p       <- mesh$n
 ## circular mesh
 mesh.hd <- inla.mesh.1d(seq(0, 2*pi, len=20), boundary="cyclic", degree=1)
@@ -40,7 +50,7 @@ p.hd    <- mesh.hd$n
 ## line splits
 Ypos.tmp.ls      <- split.segments.wrapper.function(X=X, mesh=mesh, mesh.hd =mesh.hd)
 Ypos             <- Ypos.tmp.ls$Ypos
-filter.index <- Ypos.tmp.ls$filter.index
+filter.index     <- Ypos.tmp.ls$filter.index
 
 
 ## ## VERIFY CODE ABOVE AND REPLACE BELOW  
@@ -141,7 +151,7 @@ Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
 ## ((d x(t)/dt)^2 + (d y(t)/dt)^2)^(1/2)
 ## 
 dGamma <- c(do.call("c", Ypos$Li))
-dT  <- diff(T.data)
+dT     <- diff(T.data)
 
 ## spatial basis functions
 Aosctmp <- as(Aosc, "dgTMatrix")
@@ -318,14 +328,17 @@ df.prism.M2    <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>% unnest(cols=c(va
 ## ------------------------------------------------
 ## M0 model:  Integration weights integration knots 
 ## ------------------------------------------------
-df.W.M0 <- rbind(df.prism.M0 %>% mutate(group=tk, dGamma.lag=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
-              df.prism.M0 %>% 
-              filter(tk!=1) %>%
-              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-                     group=tk-1,
-                     dGamma=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
+df.W.M0 <- rbind(
+    ## 
+    df.prism.M0 %>% mutate(group=tk, dGamma.lag=0) %>%
+    dplyr::select(group, time, coords, dGamma, dGamma.lag, i, val.M0),
+    ## 
+    df.prism.M0 %>% 
+    filter(tk!=1) %>%
+    mutate(time=time.lag, coords=coords.lag,
+           group=tk-1,
+           dGamma=0) %>%
+    dplyr::select(group, time, coords, dGamma, dGamma.lag, i, val.M0)) %>%
     arrange(group) %>%
     mutate(dGamma.trap = dGamma + dGamma.lag) 
 
@@ -335,14 +348,11 @@ tol <- 0
 ## tmp <- df.W.M0 %>% group_by(group, i) %>% nest
 
 df.dGamma.sum.k.kplus1.M0 <- df.W.M0 %>% group_by(group, i) %>%
-    summarize(val = sum(max(dGamma.trap*val.M0, tol))/2,
+    summarize(val = sum(pmax(dGamma.trap*val.M0, tol))/2,
               time = unique(time),
-              direction=unique(direction),
               coords=unique(coords))  %>%
     ungroup %>% group_by(i) %>%
     summarize(val = sum(val))
-
-## fit.space.direction$summary.random$spde2$mean
     
 
 W.M0 <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
@@ -361,6 +371,10 @@ W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
                            coords.x2 = mesh$loc[W.ipoints.M0@i+1,2],
                         weight=W.ipoints.M0@x) 
 
+
+## unit test
+## df1 <- data.frame(coords.x1=ips.inlabru@coords[,1], coords.x2=ips.inlabru@coords[,2], weight=ips.inlabru@data$weight) %>% arrange(coords.x1, coords.x2)
+## df2 <- W.ipoints.M0 %>% arrange(coords.x1, coords.x2)
 
 ## ------------------------------------------------
 ## M1 model:  Integration weights integration knots 
@@ -440,7 +454,7 @@ tol <- 0
 ## tmp <- df.W.M1 %>% group_by(group, i) %>% nest
 
 df.dGamma.sum.k.kplus1.M1 <- df.W.M1 %>% group_by(group, i) %>%
-    summarize(val = sum(max(dGamma.trap*val.M1, tol))/2,
+    summarize(val = sum(pmax(dGamma.trap*val.M1, tol))/2,
               time = unique(time),
               direction=unique(direction),
               coords=unique(coords))  %>%
@@ -579,7 +593,7 @@ tol <- 0
 ##     summarize(val = sum(max(dGamma.trap*val.M2, tol)))
 
 df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
-    summarize(val = sum(max(dGamma.trap*val.M2, tol)),
+    summarize(val = sum(pmax(dGamma.trap*val.M2, tol)),
               time = unique(time),
               direction=unique(direction),
               coords=unique(coords))
@@ -750,10 +764,28 @@ initial.space <- list(theta1=log(21-5), theta2=-2, theta3=-3)
 initial.space.direction <- list(theta1=log(21-5),theta2=-2, theta3=-3, theta4=log(3), theta5=-3)
 l = -0.98
 u = 1
-weights.domain <- ipoints(domain=mesh)
+
+debugonce(ipoints2)
+weights.domain <- ipoints2(domain=mesh, samplers=SPls.Omega)
+
+locs <- weights.domain@coords
+rownames(locs) <- NULL
+
+
+A.spatial.field_constr <- inla.spde.make.A(mesh=mesh, loc=locs,
+                                           weights=weights.domain@data[,1],
+                                           block=rep(1, nrow(weights.domain@coords)))
+
+## weights.domain2 <- ipoints(samplers=mesh)
+## weights.domain3 <- ipoints(mesh)
 ## plot(seq(-.99, .99, len=100), prior.phi_osc(seq(-.99, .99, len=100), 5, 30) %>% exp %>% log)
 ## source all custom-made built models for inla.rgeneric.define
 source("rgeneric_models.R")
+
+ggplot() +
+    gg(mesh)+
+    gg(weights.domain3, aes(size = weight)) + coord_fixed() +
+    theme_classic()
 
 ## ----------------
 ## Fitting M0 model

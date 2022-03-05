@@ -589,30 +589,66 @@ Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypo
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 #+end_src
-**** Fitting =M0=
+Next, we define a rectangular area using =SpatialPolygons= (object
+=SPls.Omega=) which is needed for constraining the the spatial field
+to integrate to zero (see next section). This rectangle corresponds to
+the arena within which the animal explores space and is defined by the
+coordinate wise minima and maxima of the visited positions.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-cmp.space <- firing_times ~
-    spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
-fit.space <- lgcp(cmp.space,
-                  data = Y.spdf,
-                  ips     = W.ipoints.M0,
-                  domain  = list(firing_times = mesh1d),
-                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
+Pl.Omega       <- Polygon(expand.grid(c(min(X$position_x),max(X$position_x)), c(min(X$position_y),max(X$position_y)))[c(1,2,4,3),])
+ID.Omega       <- "Omega"
+Pls.Omega      <- Polygons(list(Pl.Omega), ID=ID.Omega)
+SPls.Omega     <- SpatialPolygons(list(Pls.Omega))
+weights.domain <- ipoints(domain=mesh, samplers=SPls.Omega)
+locs           <- weights.domain@coords
+rownames(locs) <- NULL
+#+end_src
+**** Fitting =M0=
+To ensure identifiability between the intercept and the oscillating
+field, we impose integral-to-zero constraints for the spatial field,
+that is, we enforce the spatial oscillating field in the arena
+integrates to 0. This is implemented via the following matrix of
+contraints.
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  A.spatial.field_constr <- inla.spde.make.A(mesh=mesh, loc=locs,
+                                             weights=weights.domain@data[,1],
+                                             block=rep(1, nrow(weights.domain@coords)))
+#+end_src
+With this in place, we can fit =M0= as follows
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  cmp.space <- firing_times ~
+      spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
+  fit.space <- lgcp(cmp.space,
+                    data = Y.spdf,
+                    ips     = W.ipoints.M0,
+                    domain  = list(firing_times = mesh1d),
+                    options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
 #+end_src
 
 **** Fitting =M1=
 Run on a computer with at least 32GB of shared
 memory. =computationally demanding=. Specification of code below
 assumes computer has 8 cores. Switch =num.threads= accordingly.
+
+For this model, we impose similar constraints for the spatial field as
+in =M0= but for each direction knot in the circular mesh. To do so, we
+construct the matrix of constraints as follows
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-cmp.space.direction <- firing_times ~
-    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
-    Intercept
-fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
-                            ips     = W.ipoints.M1,
-                            domain  = list(firing_times = mesh1d),
-                            options = list( num.threads=8, verbose = TRUE, bru_max_iter=1) )
+  A.spatial.field_constr_along.directions     <- as.matrix(kronecker(Diagonal(mesh.hd$n),
+                                                                     as.matrix(inla.spde.make.A(mesh=mesh, loc=locs,
+                                                                                      weights=weights.domain@data[,1],
+                                                                                      block=rep(1, nrow(weights.domain@coords))), nrow=1)))
+#+end_src
+With this in place, we can fit model =M1= as follows:
+#+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+  cmp.space.direction <- firing_times ~
+      spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
+            mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
+      Intercept
+  fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
+                              ips     = W.ipoints.M1,
+                              domain  = list(firing_times = mesh1d),
+                              options = list( num.threads=8, verbose = TRUE, bru_max_iter=1) )
 #+end_src
 
 **** Fitting =M2=

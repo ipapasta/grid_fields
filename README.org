@@ -522,40 +522,52 @@ Below we assign a prior distribution to each hyperparameter of models
 =R/rgeneric_models.R= but the specification of the hyperparameters is
 given externally below.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
+## ------------------------------------------------------
+## specification of prior distribution of hyperparameters
+## ------------------------------------------------------
 ## spatial model
-sigma.range.spatial.oscillating      <- 1
-mu.range.spatial.oscillating         <- 25
-sigma.spatial.oscillating            <- 1/2
-a.par.phi.prior.spatial.oscillating  <- 1
-b.par.phi.prior.spatial.oscillating  <- 20
+sigma.range.spatial.oscillating <- .4
+mu.range.spatial.oscillating    <- 20
+sigma.spatial.oscillating       <- 1/2
+a.par.phi.prior.spatial.oscillating <- 2
+b.par.phi.prior.spatial.oscillating <- 20
 ## directional model
 rho.directional   <- 1/(2*pi)
 sigma.directional <- 1
 ## 
-rho.temporal      <- 1/100
-sigma.temporal    <- 1/3
+rho.temporal  <- 1/100
+sigma.temporal <- 1/3
+initial.space <- list(theta1=-3,theta2=0, theta3=0) 
+l = -0.98
+u = 1
 #+end_src
 and we all custom-made built models and use them in
 =inla.rgeneric.define= to define our models.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
-source("R/rgeneric_models.R")
-## define models
-## oscilalting.rgeneric is used for M0
-## space.direction.rgeneric is used for M1 and M2
-## temporal.rgeneric is used for M1 and M2
-space.rgeneric     <- inla.rgeneric.define(oscillating.model,
-                                                 M = list(M0=M0, M1=M1, M2=M2),
-                                                 hyperpar = list(
-                                                     mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
-                                                     sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
-                                                     sigma.spatial.oscillating           = sigma.spatial.oscillating,
-                                                     a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
-                                                     b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating))
-## 
-space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
-                                                 M=list(M0.space=M0, M1.space=M1, M2.space=M2,
-                                                        M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
-                                                 hyperpar = list(
+  source("R/rgeneric_models.R")
+  ## define models
+  ## oscilalting.rgeneric is used for M0
+  ## space.direction.rgeneric is used for M1 and M2
+  ## temporal.rgeneric is used for M1 and M2
+  space.rgeneric     <- inla.rgeneric.define(oscillating.model,
+                                             M = list(M0=M0, M1=M1, M2=M2),
+                                             theta.functions = list(theta.2.phi   = theta.2.phi,
+                                                                    theta.2.sigma = theta.2.sigma,
+                                                                    theta.2.rho   = theta.2.rho,
+                                                                    l=l, u=u),
+                                             hyperpar = list(
+                                               mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
+                                               sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
+                                               sigma.spatial.oscillating           = sigma.spatial.oscillating,
+                                               a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
+                                               b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating),
+                                             prior.functions = list(prior.phi_osc = prior.phi_osc),
+                                             initial.space=initial.space)
+  ##
+  space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
+                                                   M=list(M0.space=M0, M1.space=M1, M2.space=M2,
+                                                          M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
+                                                   hyperpar = list(
                                                      mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
                                                      sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
                                                      sigma.spatial.oscillating           = sigma.spatial.oscillating,
@@ -563,13 +575,13 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                      b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating,
                                                      rho.directional                     = rho.directional,
                                                      sigma.directional                   = sigma.directional))
-## 
-time.rgeneric            <- inla.rgeneric.define(temporal.model,
-                                                 M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
-                                                 hyperpar = list(
+  ## 
+  time.rgeneric            <- inla.rgeneric.define(temporal.model,
+                                                   M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
+                                                   hyperpar = list(
                                                      rho.temporal   = rho.temporal,
                                                      sigma.temporal = sigma.temporal
-                                                 ))
+                                                   ))
 #+end_src
 **** Format of firing event data for =inlabru=
 Below =Y.spdf= is the =Y= data frame except that =coords= are encoded
@@ -617,7 +629,8 @@ contraints.
 With this in place, we can fit =M0= as follows
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   cmp.space <- firing_times ~
-      spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE)) + Intercept
+      spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE),
+            extraconstr=list(A=as.matrix(A.spatial.field_constr,nrow=1), e=0)) + Intercept
   fit.space <- lgcp(cmp.space,
                     data = Y.spdf,
                     ips     = W.ipoints.M0,
@@ -643,7 +656,8 @@ With this in place, we can fit model =M1= as follows:
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   cmp.space.direction <- firing_times ~
       spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
-            mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE)))) +
+            mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
+            extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=19), e=rep(0,19))) +
       Intercept
   fit.space.direction <- lgcp(cmp.space.direction, data = Y.spdf,
                               ips     = W.ipoints.M1,

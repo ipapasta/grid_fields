@@ -39,13 +39,45 @@ Y <- dat$Y
 
 ##
 ## Firing events and trajectory
-## 
-spikes       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
-Pl   <- Polygon(cbind(X$position_x, X$position_y))
+##
 ID   <- "[0,1]x[0,1]"
+spikes       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
+Pl           <- Polygon(cbind(X$position_x, X$position_y))
+Pl.Omega     <- Polygon(expand.grid(c(min(X$position_x),max(X$position_x)), c(min(X$position_y),max(X$position_y)))[c(1,2,4,3),])
+ID.Omega     <- "Omega"
+Pls.Omega    <- Polygons(list(Pl.Omega), ID=ID.Omega)
+SPls.Omega   <- SpatialPolygons(list(Pls.Omega))
 Pls  <- Polygons(list(Pl), ID=ID)
 SPls <- SpatialPolygons(list(Pls))
 df   <- data.frame(value=1, row.names=ID)
 SPDF       <- SpatialPolygonsDataFrame(SPls, df)                                         
 trajectory <- SpatialPolygonsDataFrame(SPls, df) 
 
+
+theta_precession <- FALSE
+if(theta_precession){
+    install.packages('arrow')
+    library(arrow)
+
+    theta_position <- read_feather(file.path(getwd(), "data", "position_theta_cluster_7.feather")) %>%
+        dplyr::mutate(hd = theta_angle_3) %>% dplyr::select(-theta_angle_3)
+    theta_firing <- read_feather(file.path(getwd(), "data/", "spatial_firing_theta_cluster_7.feather")) %>%
+            dplyr::mutate(firing_times = firing_times/30000) %>%
+        dplyr::mutate(hd = theta_angle) %>% dplyr::select(-theta_angle)
+
+    X <- theta_position
+    Y <- theta_firing
+    spikes       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
+    Pl           <- Polygon(cbind(X$position_x, X$position_y))
+    Pl.Omega     <- Polygon(expand.grid(c(min(X$position_x),max(X$position_x)), c(min(X$position_y),max(X$position_y)))[c(1,2,4,3),])
+    ID.Omega     <- "Omega"
+    Pls.Omega    <- Polygons(list(Pl.Omega), ID=ID)
+    SPls.Omega   <- SpatialPolygons(list(Pls.Omega))
+    ID   <- "[0,1]x[0,1]"
+    Pls  <- Polygons(list(Pl), ID=ID)
+    SPls <- SpatialPolygons(list(Pls))
+    df   <- data.frame(value=1, row.names=ID)
+    SPDF       <- SpatialPolygonsDataFrame(SPls, df)                                         
+    trajectory <- SpatialPolygonsDataFrame(SPls, df)
+    domain <- SpatialPolygons(list(, "s1"))
+}

@@ -256,7 +256,6 @@ theta.2.phi   <- function(theta, l=NULL, u=NULL) {
     attr(res, "ljacobian") <- log(u-l) + dnorm(theta, 0, 1, log=TRUE)
     return(res)
 }
-
 theta.2.sigma <- function(theta){
     res <- exp(theta)
     attr(res, "ljacobian") <- theta
@@ -271,6 +270,18 @@ theta.2.rho <- function(theta){
 
 theta.2.kappa.1d <- function(theta){
     sqrt(8*(3/2))/exp(theta)       
+}
+
+##
+theta.2.rho.direction <- function(theta){
+    res <- exp(theta)
+    attr(res, "ljacobian") <- theta
+    return(res)
+}
+theta.2.sigma.direction <- function(theta){
+    res <- exp(theta)
+    attr(res, "ljacobian") <- theta
+    return(res)
 }
 
 ## helper functions for computing the

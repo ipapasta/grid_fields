@@ -96,7 +96,7 @@
         rho.direction        <- theta.functions$theta.2.rho.direction(theta[4L])
         kappa.direction      <- sqrt(8*(3/2))/rho.direction
         sigma.direction      <- theta.functions$theta.2.sigma.direction(theta[5L])
-        tausq.direction      <- 1/(4*(param$sigma.direction^2)*(kappa.direction^3))
+        tausq.direction      <- 1/(4*(sigma.direction^2)*(kappa.direction^3))
         ljac.rho.direction   <- attr(rho.direction, "ljacobian")
         ljac.sigma.direction <- attr(sigma.direction, "ljacobian")
         ## 
@@ -129,7 +129,7 @@
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
         param = interpret.theta()
-        lrho.space                   <- dlnorm(param$rho, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
+        lrho.space                   <- dlnorm(param$rho.space, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
         lsigma.space                 <- dexp(param$sigma.space, hyperpar$sigma.spatial.oscillating, log = TRUE)       
         lpphi.space       <- prior.functions$prior.phi_osc(param$phi.space,
                                                            a=hyperpar$a.par.phi.prior.spatial.oscillating,
@@ -142,7 +142,7 @@
             param$ljac.rho.direction + param$ljac.sigma.direction 
         return(res)
     }
-    initial <- function()  return(c(initial.space$theta1, initial.space$theta2, initial.space$theta3, initial.direction$theta1, initial.direction$theta2))
+    initial <- function()  return(c(initial.space$theta1, initial.space$theta2, initial.space$theta3, initial.direction$theta4, initial.direction$theta5))
     quit    <- function()  return(invisible())
     res     <- do.call(match.arg(cmd), args = list())
     return(res)

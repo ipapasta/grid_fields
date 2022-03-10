@@ -80,39 +80,48 @@
     return(res)
 }
 
-
 'space.direction.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
     envir <- parent.env(environment())
     interpret.theta <- function() {
         ## space parameters
-        rho.space     <- exp(theta[1L])
-        kappa.space   <- sqrt(8)/rho.space
-        sigma.space   <- exp(theta[2L])
-        phi.space     <- (1-exp(-theta[3L]))/(1+exp(-theta[3L]))
-        ## tausq.space   <- 1/(4*pi*(sigma.space^2)*(kappa.space^2)*sincpth)
-        ## direction parameters
-        rho.direction     <- exp(theta[4L])
-        kappa.direction   <- sqrt(8*(3/2))/rho.direction
-        sigma.direction   <- exp(theta[5L])
+        rho.space            <- theta.functions$theta.2.rho(theta[1L])
+        sigma.space          <- theta.functions$theta.2.sigma(theta[2L])
+        phi.space            <- theta.functions$theta.2.phi(theta[3L], l=theta.functions$l, u=theta.functions$u)
+        kappa.space          <- sqrt(8)/rho.space
+        sincpth              <- sqrt(1-phi.space^2)/acos(phi.space)
+        tausq.space          <- 1/(4*pi*(kappa.space^2)*(sigma.space^2)*sincpth)
+        ljac.rho.space       <- attr(rho.space, "ljacobian")
+        ljac.sigma.space     <- attr(sigma.space, "ljacobian")
+        ljac.phi.space       <- attr(phi.space, "ljacobian")
+        rho.direction        <- theta.functions$theta.2.rho.direction(theta[4L])
+        kappa.direction      <- sqrt(8*(3/2))/rho.direction
+        sigma.direction      <- theta.functions$theta.2.sigma.direction(theta[5L])
+        tausq.direction      <- 1/(4*(param$sigma.direction^2)*(kappa.direction^3))
+        ljac.rho.direction   <- attr(rho.direction, "ljacobian")
+        ljac.sigma.direction <- attr(sigma.direction, "ljacobian")
         ## 
-        z       <- list(sigma.space = sigma.space,
-                        rho.space  = rho.space,
-                        phi.space = phi.space,
-                        sigma.direction = sigma.direction,
-                        rho.direction=rho.direction)
+        z       <- list(sigma.space           = sigma.space,
+                        rho.space             = rho.space,
+                        phi.space             = phi.space,
+                        kappa.space           = kappa.space,
+                        tausq.space           = tausq.space,
+                        sigma.direction       = sigma.direction,
+                        rho.direction         = rho.direction,
+                        kappa.direction       = kappa.direction,
+                        tausq.direction       = tausq.direction,
+                        ljac.rho.space        = ljac.rho.space,
+                        ljac.sigma.space      = ljac.sigma.space,
+                        ljac.phi.space        = ljac.phi.space,
+                        ljac.rho.direction    = ljac.rho.direction, 
+                        ljac.sigma.direction  = ljac.sigma.direction)
         return(z)
     }
     graph <- function() return(kronecker(M$M2.direction, M$M2.space))
     Q <- function() {
         require(Matrix)
         param               <- interpret.theta()
-        kappa.space         <- sqrt(8)/param$rho.space
-        kappa.direction     <- sqrt(8*(3/2))/param$rho.direction
-        sincpth             <- sqrt(1-param$phi.space^2)/acos(param$phi.space)
-        tausq.space         <- 1/(4*pi*(param$sigma.space^2)*(kappa.space^2)*sincpth)
-        tausq.direction     <- 1/(4*(param$sigma.direction^2)*(kappa.direction^3))
-        precision.space     <- tausq.space*(kappa.space^4 * M$M0.space + 2*param$phi.space * kappa.space^2 * M$M1.space + M$M2.space)
-        precision.direction <- tausq.direction*(kappa.direction^4 * M$M0.direction + 2 * kappa.direction^2 * M$M1.direction + M$M2.direction)
+        precision.space     <- param$tausq.space*(param$kappa.space^4 * M$M0.space + 2*param$phi.space * param$kappa.space^2 * M$M1.space + M$M2.space)
+        precision.direction <- param$tausq.direction*(param$kappa.direction^4 * M$M0.direction + 2 * param$kappa.direction^2 * M$M1.direction + M$M2.direction)
         precision <- kronecker(precision.direction, precision.space)
         return(precision)
     }
@@ -120,39 +129,22 @@
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
         param = interpret.theta()
-        prior.phi_osc <- function(phi, a, b, l=(-0.998), u=1, lg=TRUE){
-            if(lg)  return(-log(u-l)+dbeta((phi-l)/(u-l), shape1=a, shape2=b, log=TRUE))
-            if(!lg)  return((1/(u-l))*dbeta((phi-l)/(u-l), shape1=a, shape2=b))
-        }
-        sigmaLN  <- 3
-        murho    <- 30
-        sigma.space               <- param$sigma.space
-        phi.space                 <- param$phi.space
-        sigma.direction           <- param$sigma.direction
-        sigmaLN                   <- hyperpar$sigma.range.spatial.oscillating
-        murho                     <- hyperpar$mu.range.spatial.oscillating
-        sigma.spatial.oscillating <- hyperpar$sigma.spatial.oscillating
-        lrho.space                <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
-        lsigma.space              <- dexp(sigma, sigma.spatial.oscillating, log = TRUE)       
-        ## lrho.space        <- dlnorm(param$rho.space, log(murho), sigmaLN, log=TRUE)
-        ## lsigma.space      <- dexp(sigma.space, 1/2, log = TRUE)
-        lpphi.space       <- prior.phi_osc(phi.space,
-                                           a=hyperpar$a.par.phi.prior.spatial.oscillating,
-                                           b=hyperpar$b.par.phi.prior.spatial.oscillating,
-                                           lg=TRUE)
+        lrho.space                   <- dlnorm(param$rho, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
+        lsigma.space                 <- dexp(param$sigma.space, hyperpar$sigma.spatial.oscillating, log = TRUE)       
+        lpphi.space       <- prior.functions$prior.phi_osc(param$phi.space,
+                                                           a=hyperpar$a.par.phi.prior.spatial.oscillating,
+                                                           b=hyperpar$b.par.phi.prior.spatial.oscillating,
+                                                           lg=TRUE)
         lrho.direction    <- dexp(param$rho.direction, hyperpar$rho.directional, log=TRUE)   
-        lsigma.direction  <- dexp(sigma.direction, hyperpar$sigma.directional, log = TRUE)
-        res               <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction
+        lsigma.direction  <- dexp(param$sigma.direction, hyperpar$sigma.directional, log = TRUE)
+        res               <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction +
+            param$ljac.phi.space + param$ljac.sigma.space + param$ljac.rho.space +
+            param$ljac.rho.direction + param$ljac.sigma.direction 
         return(res)
-        ## rho0     <- 30
-        ## lrho.sp    <- dlnorm(rho, log(murho), sigmaLN, log=TRUE)
-        ## alpha      <- 1-10^(-15)
-        ## lambda.rho <- -log(alpha) * rho0 
-        ## lrho.sp    <- log(lambda.rho) - 2*log(rho) -lambda.rho/rho
     }
-    initial <- function()  return(c(log(21), log(0.8), atanh(-.92), log(3.22), log(1.86)))
-    quit <- function()  return(invisible())
-    res <- do.call(match.arg(cmd), args = list())
+    initial <- function()  return(c(initial.space$theta1, initial.space$theta2, initial.space$theta3, initial.direction$theta1, initial.direction$theta2))
+    quit    <- function()  return(invisible())
+    res     <- do.call(match.arg(cmd), args = list())
     return(res)
 }
 
@@ -524,3 +516,19 @@ direction <- function(time){
 
 ## ## circular1D <- inla.rgeneric.define(circular1D.model, M0=NULL, M1=NULL, M2=NULL) 
 
+
+## kappa.space         <- sqrt(8)/param$rho.space
+## kappa.direction     <- sqrt(8*(3/2))/param$rho.direction
+## tausq.space         <- 1/(4*pi*(param$sigma.space^2)*(kappa.space^2)*sincpth)
+## sincpth             <- sqrt(1-param$phi.space^2)/acos(param$phi.space)
+## tausq.direction     <- 1/(4*(param$sigma.direction^2)*(param$kappa.direction^3))
+## sigmaLN  <- 3
+## murho    <- 30
+## sigma.space               <- param$sigma.space
+## phi.space                 <- param$phi.space
+## sigma.direction           <- param$sigma.direction
+## sigmaLN                   <- hyperpar$sigma.range.spatial.oscillating
+## murho                     <- hyperpar$mu.range.spatial.oscillating
+## sigma.spatial.oscillating <- hyperpar$sigma.spatial.oscillating
+## lrho.space        <- dlnorm(param$rho.space, log(murho), sigmaLN, log=TRUE)
+## lsigma.space      <- dexp(sigma.space, 1/2, log = TRUE)

@@ -738,9 +738,10 @@ b.par.phi.prior.spatial.oscillating <- 20
 rho.directional   <- 1/(2*pi)
 sigma.directional <- 1
 ## 
-rho.temporal  <- 1/100
-sigma.temporal <- 1/3
-initial.space <- list(theta1=10,theta2=0, theta3=0)
+rho.temporal      <- 1/100
+sigma.temporal    <- 1/3
+initial.space     <- list(theta1=2.6,theta2=0.5, theta3=-1.4)
+initial.direction <- list(theta4=log(pi), theta5=0)
 l = -0.98
 u = 1
 ## initial.space2 <- list(theta1=0,theta2=0,theta3=-2)
@@ -819,7 +820,8 @@ fit.space <- lgcp(cmp.space,
                   data    = Y.spdf,
                   ips     = W.ipoints.M0,
                   domain  = list(firing_times = mesh1d),
-                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) )
+                  options = list( num.threads=8,verbose = TRUE, bru_max_iter=1) ) %>%
+    bru_rerun()
 
 ## check constraints. NOTE: (INLA bug? with "classic" constraints are not implemented)
 sum(fit.space$summary.random$spde2$mean * A.spatial.field_constr)
@@ -833,6 +835,12 @@ sum(fit.space$summary.random$spde2$mean * A.spatial.field_constr)
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                  M=list(M0.space=M0, M1.space=M1, M2.space=M2,
                                                         M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
+                                                 theta.functions = list(theta.2.rho   = theta.2.rho,
+                                                                        theta.2.sigma = theta.2.sigma,
+                                                                        theta.2.phi   = theta.2.phi,           
+                                                                        theta.2.rho.direction = theta.2.rho.direction,
+                                                                        theta.2.sigma.direction = theta.2.sigma.direction,
+                                                                        l=l, u=u),
                                                  hyperpar = list(
                                                      mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
                                                      sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
@@ -840,24 +848,28 @@ space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                      a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
                                                      b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating,
                                                      rho.directional                     = rho.directional,
-                                                     sigma.directional                   = sigma.directional))
+                                                     sigma.directional                   = sigma.directional),
+                                                 prior.functions = list(prior.phi_osc = prior.phi_osc),
+                                                 initial.space=initial.space,
+                                                 initial.direction = initial.direction)
 
 A.spatial.field_constr_along.directions     <- as.matrix(kronecker(Diagonal(mesh.hd$n),
                                                                    as.matrix(inla.spde.make.A(mesh=mesh, loc=locs,
-                                                                                    weights=weights.domain@data[,1],
-                                                                                    block=rep(1, nrow(weights.domain@coords))), nrow=1)))
+                                                                                              weights=weights.domain@data[,1],
+                                                                                              block=rep(1, nrow(weights.domain@coords))), nrow=1)))
 
 cmp.space.direction <- firing_times ~
     spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction.rgeneric,
           mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
-          extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=19), e=rep(0,19))) +
+          extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=mesh.hd$n), e=rep(0,mesh.hd$n))) +
     Intercept
 
 fit.space.direction <- lgcp(cmp.space.direction,
-                            data = Y.spdf,
+                            data    = Y.spdf,
                             ips     = W.ipoints.M1,
                             domain  = list(firing_times = mesh1d),
-                            options = list( num.threads=8, verbose = TRUE, bru_max_iter=1) )
+                            options = list( num.threads=8, verbose = TRUE, bru_max_iter=1) ) %>%
+    bru_rerun()
 
 
 ## ## model based estimates of expected number of events on the entire path from M0 and M1

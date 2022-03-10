@@ -796,6 +796,7 @@ SPls.Omega     <- SpatialPolygons(list(Pls.Omega))
 weights.domain <- ipoints(domain=mesh, samplers=SPls.Omega)
 locs           <- weights.domain@coords
 rownames(locs) <- NULL
+
 A.spatial.field_constr <- inla.spde.make.A(mesh=mesh, loc=locs,
                                            weights=weights.domain@data[,1],
                                            block=rep(1, nrow(weights.domain@coords)))

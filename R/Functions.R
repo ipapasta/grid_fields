@@ -253,20 +253,20 @@ theta.2.phi   <- function(theta, l=NULL, u=NULL) {
     if(is.null(l)) l <- get("l", envir = .GlobalEnv)
     if(is.null(u)) u <- get("u", envir = .GlobalEnv)
     res <- l + (u-l)*pnorm(theta, 0, 1)## (1/(1+exp(-theta)))
-    attr(res, "jacobian") <- (u-l)*dnorm(theta, 0, 1)
+    attr(res, "ljacobian") <- log(u-l) + dnorm(theta, 0, 1, log=TRUE)
     return(res)
 }
-## theta.2.phi <- function(theta){
-##     ## (1-exp(-theta))/(1+exp(-theta))
-##     (1/(1+exp(-theta)))-1
-## }
-## 
+
 theta.2.sigma <- function(theta){
-    exp(theta)
+    res <- exp(theta)
+    attr(res, "ljacobian") <- theta
+    return(res)
 }
 ##
 theta.2.rho <- function(theta){
-    exp(theta) + 5
+    res <- exp(theta) + 5
+    attr(res, "ljacobian") <- theta
+    return(res)
 }
 
 theta.2.kappa.1d <- function(theta){

@@ -1,3 +1,4 @@
+library(arrow)
 library(tidyverse)
 library(dplyr)
 library(purrr)
@@ -56,15 +57,12 @@ trajectory <- SpatialPolygonsDataFrame(SPls, df)
 
 theta_precession <- FALSE
 if(theta_precession){
-    install.packages('arrow')
-    library(arrow)
-
+    ## install.packages('arrow')
     theta_position <- read_feather(file.path(getwd(), "data", "position_theta_cluster_7.feather")) %>%
-        dplyr::mutate(hd = theta_angle_3) %>% dplyr::select(-theta_angle_3)
+        dplyr::mutate(hd = theta_angle_3 + pi) %>% dplyr::select(-theta_angle_3)
     theta_firing <- read_feather(file.path(getwd(), "data/", "spatial_firing_theta_cluster_7.feather")) %>%
             dplyr::mutate(firing_times = firing_times/30000) %>%
-        dplyr::mutate(hd = theta_angle) %>% dplyr::select(-theta_angle)
-
+        dplyr::mutate(hd = theta_angle + pi) %>% dplyr::select(-theta_angle)
     X <- theta_position
     Y <- theta_firing
     spikes       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
@@ -79,5 +77,5 @@ if(theta_precession){
     df   <- data.frame(value=1, row.names=ID)
     SPDF       <- SpatialPolygonsDataFrame(SPls, df)                                         
     trajectory <- SpatialPolygonsDataFrame(SPls, df)
-    domain <- SpatialPolygons(list(, "s1"))
+    ## domain <- SpatialPolygons(list(, "s1"))
 }

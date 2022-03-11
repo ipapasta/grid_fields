@@ -313,14 +313,14 @@ posterior.spatial.range <- function(inlabru.fitted.object){
 
 
 posterior.directional.standard.deviation <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta5 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.sigma.directional, inlabru.fitted.object$marginals.hyperpar[["Theta5 for spde2"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
     return(marg)
 }
 posterior.directional.range <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta4 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.rho.direction, inlabru.fitted.object$marginals.hyperpar[["Theta4 for spde2"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)

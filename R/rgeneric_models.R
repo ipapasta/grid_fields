@@ -148,6 +148,119 @@
     return(res)
 }
 
+
+
+'space.direction2.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
+    envir <- parent.env(environment())
+    interpret.theta <- function() {
+        ## space parameters
+        rho.space            <- theta.functions$theta.2.rho(theta[1L])
+        sigma.space          <- theta.functions$theta.2.sigma(theta[2L])
+        phi.space            <- theta.functions$theta.2.phi(theta[3L], l=theta.functions$l, u=theta.functions$u)
+        kappa.space          <- sqrt(8)/rho.space
+        sincpth              <- sqrt(1-phi.space^2)/acos(phi.space)
+        tausq.space          <- 1/(4*pi*(kappa.space^2)*(sigma.space^2)*sincpth)
+        ljac.rho.space       <- attr(rho.space, "ljacobian")
+        ljac.sigma.space     <- attr(sigma.space, "ljacobian")
+        ljac.phi.space       <- attr(phi.space, "ljacobian")
+        rho.direction        <- theta.functions$theta.2.rho.direction(theta[4L])
+        kappa.direction      <- sqrt(8*(3/2))/rho.direction
+        sigma.direction      <- theta.functions$theta.2.sigma.direction(theta[5L])
+        phi.direction        <- theta.functions$theta.2.phi(theta[6L], l=theta.functions$l, u=theta.functions$u)
+        ## -----------------------------------
+        ## variance of dampened circular field
+        ## -----------------------------------
+        a                    <- -phi.direction
+        b                    <- -(1-phi.direction^2)^(1/2)        
+        x                    <- cos(atan2(y=b, x=a)/2)
+        y                    <- sin(atan2(y=b, x=a)/2)
+        tausq.direction      <- ((y*sin(2*kappa.direction*pi*x)+x*sinh(2*kappa.direction*pi*y)))/
+            (2*b*(kappa.direction^3)*sigma.direction*(cosh(2*kappa.direction*pi*y)-cos(2*kappa.direction*pi*x)))         
+        ## tausq.direction      <- 1/(4*(sigma.direction^2)*(kappa.direction^3))
+        ljac.rho.direction   <- attr(rho.direction, "ljacobian")
+        ljac.sigma.direction <- attr(sigma.direction, "ljacobian")
+        ljac.phi.direction   <- attr(phi.direction, "ljacobian")
+        ## 
+        z       <- list(sigma.space           = sigma.space,
+                        rho.space             = rho.space,
+                        phi.space             = phi.space,
+                        kappa.space           = kappa.space,
+                        tausq.space           = tausq.space,
+                        sigma.direction       = sigma.direction,
+                        rho.direction         = rho.direction,
+                        phi.direction         = phi.direction,
+                        kappa.direction       = kappa.direction,
+                        tausq.direction       = tausq.direction,
+                        ljac.rho.space        = ljac.rho.space,
+                        ljac.sigma.space      = ljac.sigma.space,
+                        ljac.phi.space        = ljac.phi.space,
+                        ljac.rho.direction    = ljac.rho.direction, 
+                        ljac.sigma.direction  = ljac.sigma.direction,
+                        ljac.phi.direction    = ljac.phi.direction)
+        return(z)
+    }
+    graph <- function() return(kronecker(M$M2.direction, M$M2.space))
+    Q <- function() {
+        require(Matrix)
+        param               <- interpret.theta()
+        precision.space     <- param$tausq.space*(param$kappa.space^4 * M$M0.space +
+                                                  2*param$phi.space * param$kappa.space^2 * M$M1.space +
+                                                  M$M2.space)
+        precision.direction <- param$tausq.direction*(param$kappa.direction^4 * M$M0.direction +
+                                                      2 * param$phi.direction * param$kappa.direction^2 * M$M1.direction +
+                                                      M$M2.direction)
+        precision <- kronecker(precision.direction, precision.space)
+        return(precision)
+    }
+    mu <- function() return(numeric(0))
+    log.norm.const <- function() return(numeric(0))
+    log.prior <- function() {        
+        param = interpret.theta()
+        lrho.space        <- dlnorm(param$rho.space, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
+        lsigma.spa        <- dexp(param$sigma.space, hyperpar$sigma.spatial.oscillating, log = TRUE)       
+        lpphi.space       <- prior.functions$prior.phi_osc(param$phi.space,
+                                                           a=hyperpar$a.par.phi.prior.spatial.oscillating,
+                                                           b=hyperpar$b.par.phi.prior.spatial.oscillating,
+                                                           lg=TRUE)
+        lrho.direction    <- dexp(param$rho.direction, hyperpar$rho.directional, log=TRUE)   
+        lsigma.direction  <- dexp(param$sigma.direction, hyperpar$sigma.directional, log = TRUE)
+        lpphi.direction   <- prior.functions$prior.phi_osc(param$phi.direction,
+                                                           a=1,
+                                                           b=1,
+                                                           lg=TRUE)
+        res               <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction +
+            param$ljac.phi.space + param$ljac.sigma.space + param$ljac.rho.space +
+            param$ljac.rho.direction + param$ljac.sigma.direction + param$ljac.phi.direction 
+        return(res)
+    }
+    initial <- function()  return(c(initial.space$theta1, initial.space$theta2, initial.space$theta3,
+                                    initial.direction$theta4, initial.direction$theta5, initial.direction$theta6))
+    quit    <- function()  return(invisible())
+    res     <- do.call(match.arg(cmd), args = list())
+    return(res)
+}
+
+
+## oscillatory circular field
+## cot <- function(x) 1/tan(x)
+## phi_test <- -0.5
+## a <- -phi_test
+## b <- -(1-phi_test^2)^(1/2)
+
+## x <- Re(complex(real=a,imaginary=b)^(1/2))
+## y <- Im(complex(real=a,imaginary=b)^(1/2))
+
+## x <- cos(atan2(y=b, x=a)/2)
+## y <- sin(atan2(y=b, x=a)/2)
+
+## a_test <- cos(atan2(y=b, x=a))
+## b_test <- sin(atan2(y=b, x=a))
+
+## ((cot(pi*sqrt(complex(real=a, imaginary=b)))/sqrt(complex(real=a, imaginary=b)))-
+##  (cot(pi*sqrt(complex(real=a, imaginary=-b)))/sqrt(complex(real=a, imaginary=-b))))/(complex(real=0,imaginary=-4*b))
+## 2*((y*sin(2*pi*x)+x*sinh(2*pi*y)))/(4*b*(cosh(2*pi*y)-cos(2*pi*x))) 
+
+
 'temporal.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
     envir <- parent.env(environment())
     interpret.theta <- function() {

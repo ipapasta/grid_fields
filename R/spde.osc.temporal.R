@@ -21,12 +21,7 @@ inla.setOption(pardiso.license = "/Users/ipapasta/pardiso.lic")
 ## Unfortunately pardiso license is discontinued for academic users.
 source("load_data.R")
 source("Functions.R")
-## source("osc_precision.R")
-## source("hd_precision.R")
-## source("temp_precision.R")
-## library(sp)
-## library(fields)
-## library(nloptr)
+
 
 ## spatial mesh
 k       <- 5
@@ -41,62 +36,6 @@ p.hd    <- mesh.hd$n
 Ypos.tmp.ls      <- split.segments.wrapper.function(X=X, mesh=mesh, mesh.hd =mesh.hd)
 Ypos             <- Ypos.tmp.ls$Ypos
 filter.index     <- Ypos.tmp.ls$filter.index
-
-
-## ## VERIFY CODE ABOVE AND REPLACE BELOW  
-## if(FALSE) {
-##     Ypos.tmp <- data.frame(
-##         hd=X$hd, time=X$synced_time,
-##         coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
-##         mutate(coords.lead = lead(coords)) %>%
-##         mutate(time.lead = lead(X$synced_time)) %>%
-##         mutate(hd.lead = lead(X$hd)) %>%
-##         head(-1)
-##     Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
-##                                     L.arcs = lapply(HD.split,
-##                                                     function(x) apply(x, 1,
-##                                                                       function(y) abs(y[2]-y[1]))),
-##                                     time.split = pmap(list(time, time.lead, L.arcs), function(x,y,z){
-##                                         o <- interpolate(x,y,z)
-##                                         oo <- c(attr(o, "data"), y)
-##                                         ooo <- head(cbind(oo, lead(oo)), -1)
-##                                         colnames(ooo) <- NULL
-##                                         return(ooo)
-##                                     }),
-##                                     coords.split=pmap(list(coords, coords.lead, L.arcs), function(x,y,z){
-##                                         interpolate2(x, y, z)
-##                                     }),
-##                                     new.time = lapply(time.split, function(x) x[,1, drop=FALSE]),
-##                                     new.time.lead= lapply(time.split, function(x) x[,2, drop=FALSE]),
-##                                     new.hd = lapply(HD.split, function(x) x[,1, drop=FALSE]),
-##                                     new.hd.lead = lapply(HD.split, function(x) x[,2, drop=FALSE]),
-##                                     new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
-##                                     new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
-##                                     )
-##     Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
-##         unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
-##     names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
-##     line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
-##                                  filter.zero.length=FALSE,
-##                                  ep=Ypos.tmp$coords.lead, tol=.0)
-##     df <- data.frame(origin=line.segments$split.origin,
-##                      filter.index=line.segments$filter.index,
-##                      sp=I(lapply(as.list(apply(line.segments$sp, 1, as.list)), unlist)),
-##                      ep=I(lapply(as.list(apply(line.segments$ep, 1, as.list)), unlist))) %>%
-##         group_by(origin) %>%
-##         summarize(sp=list(sp), ep=list(ep), filter.index=list(filter.index)) %>%
-##         mutate(sp = lapply(sp, function(x) do.call("rbind", x))) %>%
-##         mutate(ep = lapply(ep, function(x) do.call("rbind", x))) 
-##     ## attribute named _data_ stores length of line segments, time differences and arclengths
-##     Ypos <- inner_join(Ypos.tmp %>%
-##                        mutate(origin=1:nrow(Ypos.tmp)), df) %>%    
-##         mutate(Li = map2(sp, ep,
-##                          function(x, y) apply(y-x, 1, function(z) sqrt(sum(z^2))))) %>%  
-##         mutate(Ti = pmap(list(time, time.lead, Li), interpolate)) %>%
-##         mutate(HDi = pmap(list(hd, hd.lead, Li), interpolate )) 
-##     filter.index  <- do.call("c", Ypos$filter.index)
-## }
-
 
 ## ------------------
 ## Integration points
@@ -128,18 +67,9 @@ Aosc.obs  <- inla.spde.make.A(mesh=mesh, loc=as.matrix(Y %>% dplyr:: select(posi
 Ahd.obs   <- inla.spde.make.A(mesh=mesh.hd, Y$hd)
 Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
 
-
-## nrow(A)==nrow(At); 92264 each row of above matrices contains
-## non-zero values at knots wrapping a distinct line segment.
-## Ck <- sapply(dGamma, function(x) rep(x, 6))
-## (coords.trap, HD.data, T.data)
-
-
 ## Line segment lengths and Time interval lengths
 ## ----------------------------------------------
-## NOTE: head direction arclengths are not used since dGamma(t)/d(t) is defined as:
-## ((d x(t)/dt)^2 + (d y(t)/dt)^2)^(1/2)
-## 
+
 dGamma <- c(do.call("c", Ypos$Li))
 dT  <- diff(T.data)
 
@@ -831,7 +761,11 @@ sum(fit.space$summary.random$spde2$mean * A.spatial.field_constr)
 ## ----------------
 ## Fitting M1 model
 ## ----------------
-## 
+##
+
+## ------------------------------------------------
+## under-damped spatial field x critically damped circular field
+## ------------------------------------------------
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                  M=list(M0.space=M0, M1.space=M1, M2.space=M2,
                                                         M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
@@ -872,6 +806,59 @@ fit.space.direction <- lgcp(cmp.space.direction,
                             domain  = list(firing_times = mesh1d),
                             options = list( num.threads=8, verbose = FALSE, bru_max_iter=1) ) %>%
     bru_rerun()
+
+
+## --------------------------------------------------------
+## under-damped spatial field x under-damped circular field
+## --------------------------------------------------------
+space.direction2.rgeneric <- inla.rgeneric.define(space.direction2.model,
+                                                  M=list(M0.space=M0, M1.space=M1, M2.space=M2,
+                                                         M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
+                                                  theta.functions = list(theta.2.rho             = theta.2.rho,
+                                                                         theta.2.sigma           = theta.2.sigma,
+                                                                         theta.2.phi             = theta.2.phi,           
+                                                                         theta.2.rho.direction   = theta.2.rho.direction,
+                                                                         theta.2.sigma.direction = theta.2.sigma.direction,
+                                                                         l=l, u=u),
+                                                  hyperpar = list(
+                                                      mu.range.spatial.oscillating        = mu.range.spatial.oscillating,
+                                                      sigma.range.spatial.oscillating     = sigma.range.spatial.oscillating,
+                                                      sigma.spatial.oscillating           = sigma.spatial.oscillating,
+                                                      a.par.phi.prior.spatial.oscillating = a.par.phi.prior.spatial.oscillating,
+                                                      b.par.phi.prior.spatial.oscillating = b.par.phi.prior.spatial.oscillating,
+                                                      rho.directional                     = rho.directional,
+                                                      sigma.directional                   = sigma.directional),
+                                                  prior.functions = list(prior.phi_osc = prior.phi_osc),
+                                                  initial.space     = list(theta1 = fit.space.direction$summary.hyperpar$mean[1],
+                                                                           theta2 = fit.space.direction$summary.hyperpar$mean[2],
+                                                                           theta3 = fit.space.direction$summary.hyperpar$mean[3]),
+                                                  initial.direction = list(theta4 = fit.space.direction$summary.hyperpar$mean[4],
+                                                                           theta5 = fit.space.direction$summary.hyperpar$mean[5],
+                                                                           theta6 = -2))
+
+
+A.spatial.field_constr_along.directions     <- as.matrix(kronecker(Diagonal(mesh.hd$n),
+                                                                   as.matrix(inla.spde.make.A(mesh=mesh, loc=locs,
+                                                                                              weights=weights.domain@data[,1],
+                                                                                              block=rep(1, nrow(weights.domain@coords))), nrow=1)))
+
+cmp.space.direction2 <- firing_times ~
+    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction2.rgeneric,
+          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
+          extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=mesh.hd$n), e=rep(0,mesh.hd$n))) +
+    Intercept
+
+fit.space.direction2 <- lgcp(cmp.space.direction2,
+                             data    = Y.spdf,
+                             ips     = W.ipoints.M1,
+                             domain  = list(firing_times = mesh1d),
+                             options = list( num.threads=8, verbose = FALSE, bru_max_iter=1) ) %>%
+    bru_rerun()
+
+
+
+
+
 
 ## ----------------
 ## Fitting M2 model (computationally expensive)

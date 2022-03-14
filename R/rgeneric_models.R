@@ -168,12 +168,10 @@
         sigma.direction      <- theta.functions$theta.2.sigma.direction(theta[5L])
         phi.direction        <- theta.functions$theta.2.phi(theta[6L], l=theta.functions$l, u=theta.functions$u)
         ## -----------------------------------
-        ## variance of dampened circular field
+        ## variance of damped circular field
         ## -----------------------------------
-        a                    <- -phi.direction
-        b                    <- -(1-phi.direction^2)^(1/2)        
-        x                    <- cos(atan2(y=b, x=a)/2)
-        y                    <- sin(atan2(y=b, x=a)/2)
+        a                    <- -phi.direction; b          <- -(1-phi.direction^2)^(1/2)        
+        x                    <- cos(atan2(y=b, x=a)/2); y  <- sin(atan2(y=b, x=a)/2)
         tausq.direction      <- ((y*sin(2*kappa.direction*pi*x)+x*sinh(2*kappa.direction*pi*y)))/
             (2*b*(kappa.direction^3)*sigma.direction*(cosh(2*kappa.direction*pi*y)-cos(2*kappa.direction*pi*x)))         
         ## tausq.direction      <- 1/(4*(sigma.direction^2)*(kappa.direction^3))
@@ -216,8 +214,8 @@
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
         param = interpret.theta()
-        lrho.space        <- dlnorm(param$rho.space, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
-        lsigma.spa        <- dexp(param$sigma.space, hyperpar$sigma.spatial.oscillating, log = TRUE)       
+        lrho.space          <- dlnorm(param$rho.space, log(hyperpar$mu.range.spatial.oscillating), hyperpar$sigma.range.spatial.oscillating, log=TRUE)
+        lsigma.space        <- dexp(param$sigma.space, hyperpar$sigma.spatial.oscillating, log = TRUE)       
         lpphi.space       <- prior.functions$prior.phi_osc(param$phi.space,
                                                            a=hyperpar$a.par.phi.prior.spatial.oscillating,
                                                            b=hyperpar$b.par.phi.prior.spatial.oscillating,
@@ -228,7 +226,7 @@
                                                            a=1,
                                                            b=1,
                                                            lg=TRUE)
-        res               <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction +
+        res               <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction + lpphi.direction +
             param$ljac.phi.space + param$ljac.sigma.space + param$ljac.rho.space +
             param$ljac.rho.direction + param$ljac.sigma.direction + param$ljac.phi.direction 
         return(res)

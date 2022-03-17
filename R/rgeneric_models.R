@@ -223,8 +223,8 @@
         lrho.direction    <- dexp(param$rho.direction, hyperpar$rho.directional, log=TRUE)   
         lsigma.direction  <- dexp(param$sigma.direction, hyperpar$sigma.directional, log = TRUE)
         lpphi.direction   <- prior.functions$prior.phi_osc(param$phi.direction,
-                                                           a=1,
-                                                           b=1,
+                                                           a=12,
+                                                           b=4,
                                                            lg=TRUE)
         res               <- lpphi.space + lrho.space + lsigma.space + lrho.direction + lsigma.direction + lpphi.direction +
             param$ljac.phi.space + param$ljac.sigma.space + param$ljac.rho.space +
@@ -262,31 +262,92 @@
 'temporal.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
     envir <- parent.env(environment())
     interpret.theta <- function() {
-        rho     <- exp(theta[1L])
-        kappa   <- sqrt(8*(3/2))/rho
-        sigma   <- exp(theta[2L])
-        z       <- list(sigma.temporal = sigma, rho.temporal  = rho)
+        theta.pars      <- tail(theta, 2)
+        rho.time        <- theta.functions$theta.2.rho.time(theta.pars[1])
+        kappa.time      <- sqrt(8*(3/2))/rho.time        
+        sigma.time      <- theta.functions$theta.2.sigma.time(theta.pars[2])
+        ljac.rho.time   <- attr(rho.time, "ljacobian")
+        ljac.sigma.time <- attr(sigma.time, "ljacobian")
+        z          <- list(sigma.time           = sigma.time,
+                           rho.time             = rho.time,
+                           kappa.time           = kappa.time,
+                           ljac.rho.time        = ljac.rho.time,
+                           ljac.sigma.time      = ljac.sigma.time)
         return(z)
     }
     graph <- function() return(M$M2.temporal)
     Q <- function() {
         require(Matrix)
-        param            <- interpret.theta()        
-        kappa.temporal   <- sqrt(8*(3/2))/param$rho.temporal
-        tausq.temporal   <- 1/(4*(param$sigma.temporal^2)*(kappa.temporal^3))
-        precision        <- tausq.temporal*(kappa.temporal^4 * M$M0.temporal + 2 * kappa.temporal^2 * M$M1.temporal + M$M2.temporal)
+        param             <- interpret.theta()        
+        tausq.time        <- 1/(4*(param$sigma.time^2)*(param$kappa.time^3))
+        precision         <- tausq.time*(param$kappa.time^4 * M$M0.temporal + 2 * param$kappa.time^2 * M$M1.temporal + M$M2.temporal)
         return(precision)
     }
     mu <- function() return(numeric(0))
     log.norm.const <- function() return(numeric(0))
     log.prior <- function() {        
         param = interpret.theta()        
-        lrho.temporal    <- dexp(param$rho.temporal, hyperpar$rho.temporal , log=TRUE)
-        lsigma.temporal  <- dexp(param$sigma.temporal, hyperpar$sigma.temporal, log = TRUE)
-        res              <- lrho.temporal + lsigma.temporal
+        lrho.time    <- dexp(param$rho.time, hyperpar$rho.prior.rate.time , log=TRUE)
+        lsigma.time  <- dexp(param$sigma.time, hyperpar$sigma.prior.rate.time, log = TRUE)
+        res              <- lrho.time + lsigma.time + param$ljac.rho.time + + param$ljac.sigma.time
         return(res)
     }
-    initial <- function()  return(c(log(22), log(0.68)))
+    initial <- function()  return(c(initial.time$theta1, initial.time$theta2))
+    quit <- function()  return(invisible())
+    res <- do.call(match.arg(cmd), args = list())
+    return(res)
+}
+
+
+'temporal.model2' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
+    envir <- parent.env(environment())
+    interpret.theta <- function() {
+        theta.pars      <- tail(theta, 3)
+        rho.time        <- theta.functions$theta.2.rho.time(theta.pars[1])
+        kappa.time      <- sqrt(8*(3/2))/rho.time        
+        sigma.time      <- theta.functions$theta.2.sigma.time(theta.pars[2])
+        phi.time         <- theta.functions$theta.2.phi.time(theta.pars[3],
+                                                             l=theta.functions$l,
+                                                             u=theta.functions$u)
+        th.osc <- uniroot(f=function(x) {
+            sin(x)-x*sqrt(1-phi.time^2)/acos(phi.time)
+        }, interval=c(0, pi))$root
+        tausq.time      <- 1/(4*(sigma.time^2)*(kappa.time^3)*cos(th.osc/2))
+        ljac.rho.time   <- attr(rho.time, "ljacobian")
+        ljac.sigma.time <- attr(sigma.time, "ljacobian")
+        ljac.phi.time <- attr(phi.time, "ljacobian")
+        z          <- list(sigma.time       = sigma.time,
+                           rho.time         = rho.time,
+                           kappa.time       = kappa.time,
+                           tausq.time       = tausq.time,
+                           phi.time         = phi.time,
+                           ljac.rho.time    = ljac.rho.time,
+                           ljac.sigma.time  = ljac.sigma.time,
+                           ljac.phi.time    = ljac.phi.time)
+        return(z)
+    }
+    graph <- function() return(M$M2.temporal)
+    Q <- function() {
+        require(Matrix)
+        param             <- interpret.theta()        
+        precision         <- param$tausq.time*(param$kappa.time^4 * M$M0.temporal + 2 * param$kappa.time^2 * param$phi.time*M$M1.temporal + M$M2.temporal)
+        return(precision)
+    }
+    mu <- function() return(numeric(0))
+    log.norm.const <- function() return(numeric(0))
+    log.prior <- function() {        
+        param = interpret.theta()
+        lpphi.time   <- prior.functions$prior.phi_osc(param$phi.space,
+                                                      a=hyperpar$a.par.phi.time,
+                                                      b=hyperpar$b.par.phi.time,
+                                                      lg=TRUE)
+        lrho.time    <- dexp(param$rho.time, hyperpar$rho.prior.rate.time , log=TRUE)
+        lsigma.time  <- dexp(param$sigma.time,hyperpar$sigma.prior.rate.time, log = TRUE)
+        res          <- lrho.time + lsigma.time +
+            param$ljac.rho.time + + param$ljac.sigma.time  +  param$ljac.phi.time
+        return(res)
+    }
+    initial <- function()  return(c(initial.time$theta1, initial.time$theta2, initial.time$theta3))
     quit <- function()  return(invisible())
     res <- do.call(match.arg(cmd), args = list())
     return(res)

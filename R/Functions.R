@@ -244,6 +244,48 @@ df.prism.M1.M2.wrapper <- function(At.indices, A.indices, T.data, dGamma, HD.dat
         dplyr::select(-c("data.x", "data.y")) 
 }
 
+df.prism.M1.M2.wrapper2 <- function(At.indices, Aosc.indices, A.indices, T.data, dGamma, HD.data, coords.trap){
+    df.prism.M1_M2 <- full_join(full_join(At.indices %>% group_by(tk) %>% nest(),
+                                          A.indices %>% group_by(tk) %>% nest(), by="tk"),
+                                Aosc.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma=c(dGamma,0),
+            dGamma.lead = lead(dGamma),
+            dGamma.lag = lag(dGamma),
+            val.M1 = pmap(list(data.y, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.ot[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M1=ooo)
+                oooo
+            }),
+            val.M2.space.time = pmap(list(data.x, data, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.o[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            }),
+            val.M2.space.direction.time = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            })) %>%
+        dplyr::select(-c("data.x", "data.y", "data")) 
+}
+
+
+
 ## --------------
 ## link functions
 ## --------------
@@ -267,7 +309,6 @@ theta.2.rho <- function(theta){
     attr(res, "ljacobian") <- theta
     return(res)
 }
-
 theta.2.kappa.1d <- function(theta){
     sqrt(8*(3/2))/exp(theta)       
 }
@@ -283,6 +324,23 @@ theta.2.sigma.direction <- function(theta){
     attr(res, "ljacobian") <- theta
     return(res)
 }
+theta.2.rho.time <- function(theta){
+    res <- exp(theta)
+    attr(res, "ljacobian") <- theta
+    return(res)
+}
+theta.2.sigma.time <- function(theta){
+    res <- exp(theta)
+    attr(res, "ljacobian") <- theta
+    return(res)
+}
+theta.2.phi.time   <- function(theta, l=NULL, u=NULL) {
+    if(is.null(l)) l <- get("l", envir = .GlobalEnv)
+    if(is.null(u)) u <- get("u", envir = .GlobalEnv)
+    res <- l + (u-l)*pnorm(theta, 0, 1)## (1/(1+exp(-theta)))
+    attr(res, "ljacobian") <- log(u-l) + dnorm(theta, 0, 1, log=TRUE)
+    return(res)
+}
 
 ## helper functions for computing the
 ## posterior distribution of gridness score
@@ -290,6 +348,13 @@ theta.2.sigma.direction <- function(theta){
 ## object returns attributes for summaries of the posterior
 posterior.spatial.gridness.score <- function(inlabru.fitted.object, theta.mapping){    
     marg                  <- inla.tmarginal(theta.mapping, inlabru.fitted.object$marginals.hyperpar[["Theta3 for spde2"]])
+    summaries             <- inla.zmarginal(marg, silent=TRUE)
+    hpd.interval          <- inla.hpdmarginal(0.95, marg)
+    attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
+    return(marg)
+}
+posterior.directional.gridness.score <- function(inlabru.fitted.object, theta.mapping){    
+    marg                  <- inla.tmarginal(theta.mapping, inlabru.fitted.object$marginals.hyperpar[["Theta6 for spde2"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
@@ -313,7 +378,7 @@ posterior.spatial.range <- function(inlabru.fitted.object){
 
 
 posterior.directional.standard.deviation <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.sigma.directional, inlabru.fitted.object$marginals.hyperpar[["Theta5 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.sigma.direction, inlabru.fitted.object$marginals.hyperpar[["Theta5 for spde2"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)

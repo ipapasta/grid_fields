@@ -311,19 +311,19 @@
                                                              u=theta.functions$u)
         th.osc <- uniroot(f=function(x) {
             sin(x)-x*sqrt(1-phi.time^2)/acos(phi.time)
-        }, interval=c(0, pi))$root
+        }, interval=c(1e-20, pi-1e-20))$root
         tausq.time      <- 1/(4*(sigma.time^2)*(kappa.time^3)*cos(th.osc/2))
         ljac.rho.time   <- attr(rho.time, "ljacobian")
         ljac.sigma.time <- attr(sigma.time, "ljacobian")
-        ljac.phi.time <- attr(phi.time, "ljacobian")
-        z          <- list(sigma.time       = sigma.time,
-                           rho.time         = rho.time,
-                           kappa.time       = kappa.time,
-                           tausq.time       = tausq.time,
-                           phi.time         = phi.time,
-                           ljac.rho.time    = ljac.rho.time,
-                           ljac.sigma.time  = ljac.sigma.time,
-                           ljac.phi.time    = ljac.phi.time)
+        ljac.phi.time   <- attr(phi.time, "ljacobian")
+        z               <- list(sigma.time       = sigma.time,
+                                rho.time         = rho.time,
+                                kappa.time       = kappa.time,
+                                tausq.time       = tausq.time,
+                                phi.time         = phi.time,
+                                ljac.rho.time    = ljac.rho.time,
+                                ljac.sigma.time  = ljac.sigma.time,
+                                ljac.phi.time    = ljac.phi.time)
         return(z)
     }
     graph <- function() return(M$M2.temporal)

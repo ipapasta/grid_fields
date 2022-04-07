@@ -208,9 +208,6 @@ df.W.M0 <- rbind(df.prism.M0 %>% mutate(group=tk, dGamma.lag=0) %>%
     mutate(dGamma.trap = dGamma + dGamma.lag) 
 
 tol <- 0
-## df.dGamma.sum.k.kplus1.M0 <- df.W.M0 %>% group_by(group, i) %>%
-##     summarize(val = sum(max(dGamma.trap*val.M0, tol)))
-## tmp <- df.W.M0 %>% group_by(group, i) %>% nest
 
 df.dGamma.sum.k.kplus1.M0 <- df.W.M0 %>% group_by(group, i) %>%
     summarize(val = sum(pmax(dGamma.trap*val.M0, tol))/2,
@@ -949,7 +946,6 @@ time.rgeneric            <- inla.rgeneric.define(temporal.model,
                                                      rho.prior.rate.time     = rho.prior.rate.time),
                                                  initial.time  = initial.time)
 
-
 time.rgeneric2            <- inla.rgeneric.define(temporal.model2,
                                                  M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
                                                  theta.functions = list(theta.2.rho.time        = theta.2.rho.time,
@@ -963,8 +959,7 @@ time.rgeneric2            <- inla.rgeneric.define(temporal.model2,
                                                      a.par.phi.time          = a.par.phi.time,
                                                      b.par.phi.time          = b.par.phi.time
                                                  ),
-                                                 initial.time  = c(initial.time, list(theta3 = 0)))
-
+                                                 initial.time  = c(initial.time, list(theta3 = -2)))
 
 ## space-time
 cmp.space.time <- firing_times ~
@@ -991,6 +986,10 @@ fit.space.time2 <- lgcp(cmp.space.time2, data = as.data.frame(Y.spdf),
                             num.threads=8,
                             verbose = TRUE, bru_max_iter=1))
 
+mod <- loess(y~x, data.frame(y=tmp, x=1:length(tmp)))
+
+
+plot(fit.space.time$summary.random$spde1$mean,type="l")
 
 plot(c(fit.space$mlik[1], fit.space.time$mlik[1], fit.space.time$mlik[2], fit.space.direction$mlik[1], fit.space.direction2$mlik[1]), type="b")
 

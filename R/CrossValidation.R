@@ -384,37 +384,42 @@ summary(fit.space.direction)
 ## ----------------------------------------------------------------
 ## Predictions for the expected number of firing events in test set
 ## ----------------------------------------------------------------
-## calculation of integration weight for connected line segments ("clumps"); 
-## note that adjacent clumps in test data are joined together so that the number 
-## of test clumps is less than the original training/test split
-weights_test <- weights_line_segments_in_train(X.test=X.test, Y.test = Y.test, mesh=mesh, mesh.hd=mesh.hd, mesh1d=mesh1d)
+## calculation of integration weight for connected line segments
+## ("clumps"); note that adjacent clumps in test data are joined
+## together so that the number of test clumps is less than the
+## original training/test split
+
 ## unique(Y.test$index.CV) 
 ## =  1  2  3  4  6  8 11 13 14 15 16 19 20 21 22 23 24 29 33 37 38 43 44 46 47 49 55 56 57 61
 ## length(list(1:4, c(6), c(8), c(11), 13:16, 
 ##       19:24, c(29), c(33), 37:38, 43:44, 46:47, c(49), 55:57, c(61))) = 14
 ## i.e. there are 14 test clumps after grouping adjacent selected clumps
 ## so for example the first clump in Y.test can be obtained by filtering for index.CV %in% 1:4
-
-## weights_test[[1]]$index.CV 1  6  8 11 13 19 29 33 37 43 46 49 55 60 which is of length 14
-## I think 1:4 from unique(Y.test$index.CV) are now just labelled as 1 here etc..
+weights_test <- weights_line_segments_in_train(X.test=X.test, Y.test = Y.test, mesh=mesh, mesh.hd=mesh.hd, mesh1d=mesh1d)
+## weights_test[[1]]$index.CV 1 6 8 11 13 19 29 33 37 43 46 49 55 60
+## which is of length 14 I think 1:4 from unique(Y.test$index.CV) are
+## now just labelled as 1 here etc..
 
 ## use split function to take unique(Y.test$index.CV) and returns a list of consecutive integers
-clumps <- split(unique(Y.test$index.CV), cumsum(c(1, diff(unique(Y.test$index.CV)) != 1)))
 
-## can get number of firing events in clump 1 (after grouping) of test set 
-## using nrow(Y.test %>% filter(index.CV %in% clumps[[1]])) = 513
-##===============================================================================
-##===============================================================================
-## Function that calculates the mean and variance for the predictive distribution of the number 
-## of firing events on segments/clumps of test set.
-## we calculate the mean via Monte Carlo; we can calculate the conditional predictive mean
-## (conditioning on latent params; Intercept + GRF). Then get unconditional mean via iterated expectation (tower law).
-## For the variance of predictive distribution use Var(Y) = E(Var(Y | X)) + Var(E(Y | X ))
-## where in our case Var(Y | X) =  E(Y | X) as conditional distribution is Poisson. 
+clumps       <- split(unique(Y.test$index.CV), cumsum(c(1, diff(unique(Y.test$index.CV)) != 1)))
+## can get number of firing events in clump 1 (after grouping) of test
+## set using nrow(Y.test %>% filter(index.CV %in% clumps[[1]])) = 513
+## ===============================================================================
+## ===============================================================================
+## Function that calculates the mean and variance for the predictive
+## distribution of the number of firing events on segments/clumps of
+## test set.  we calculate the mean via Monte Carlo; we can calculate
+## the conditional predictive mean (conditioning on latent params;
+## Intercept + GRF). Then get unconditional mean via iterated
+## expectation (tower law).  For the variance of predictive
+## distribution use Var(Y) = E(Var(Y | X)) + Var(E(Y | X )) where in
+## our case Var(Y | X) = E(Y | X) as conditional distribution is
+## Poisson.
 
-## Inputs; 
-## weights.mat: weights matrix (will be extracted from weights_test object)
-## post.sample: list of posterior samples (intercept & GRF); output of inlabru function "generate"
+## Inputs; weights.mat: weights matrix (will be extracted from
+## weights_test object) post.sample: list of posterior samples
+## (intercept & GRF); output of inlabru function "generate"
 
 pred.mean.var <- function(weights.mat, post.sample){
                                         # posterior sample
@@ -439,7 +444,7 @@ pred.mean.var <- function(weights.mat, post.sample){
 ##===============================================================================
 ## repeat test on all segments/clumps 
 ## posterior samples;
-samp1 <- generate(object = fit.space, n.samples = 200)
+samp1 <- generate(object = fit.space, n.samples = 1000)
 
 clumps.mean.var.M0 <- lapply(1:length(clumps), function(i) pred.mean.var(weights.mat=weights_test$df.W.M0$W.ipoints.M0[[i]]$W.M0,
                                                                          post.sample=samp1))
@@ -454,7 +459,7 @@ save(obs.firings, file="/exports/eddie/scratch/s0233535/obs.firings.RData")
 
 ## repeat for M1
 samp2 <- generate(object = fit.space.direction, 
-                  n.samples = 200)
+                  n.samples = 1000)
 
 clumps.mean.var.M1 <- lapply(1:length(clumps), function(i) pred.mean.var(weights.mat=weights_test$df.W.M1$W.ipoints.M1[[i]]$W.M1,
                                                                          post.sample=samp2))
@@ -465,19 +470,41 @@ save(pred.means.M1, file="/exports/eddie/scratch/s0233535/pred.means.M1.RData")
 save(pred.vars.M1,  file="/exports/eddie/scratch/s0233535/pred.vars.M1.RData")
 
 
-plot(obs.firings, pred.means.M0, pch=16, ylim=c(0,850))
+plot(obs.firings, pred.means.M0, pch=16,
+     ylim=c(0,max(c(pred.means.M0, pred.means.M1, obs.firings))))
 points(obs.firings, pred.means.M1, pch=1)
+abline(a=0,b=1)
+
+plot(log(obs.firings), log(pred.means.M0), pch=16, cex=0.8, 
+     ylim=c(0,max(c(log(pred.means.M0), log(pred.means.M1), log(obs.firings)))))
+points(log(obs.firings), log(pred.means.M1), pch=1, cex=1.1)
+abline(a=0,b=1)
+
+plot(obs.firings, abs(obs.firings - pred.means.M0), pch=16)
+points(obs.firings, abs(obs.firings - pred.means.M1), pch=1)
+## abline(a=0,b=1)
+
+
 
 cbind(obs.firings, pred.means.M0, pred.means.M1)
 cbind(obs.firings, abs(pred.means.M0-obs.firings), abs(pred.means.M1-obs.firings))
 ## compare observed and expected firings
 ## obs.firings
+
 ## floor(pred.means)
 ## squared error score per segment/clump
-## se.score <- (pred.means - obs.firings)^2
+se.score.M0 <- (pred.means.M0 - obs.firings)^2
+se.score.M1 <- (pred.means.M1 - obs.firings)^2
 ## Dawid-Sebastiani score
-## ds.score <- se.score / pred.vars + log(pred.vars)
+ds.score.M0 <- se.score.M0 / pred.vars.M0 + log(pred.vars.M0)
+ds.score.M1 <- se.score.M1 / pred.vars.M1 + log(pred.vars.M1)
 ## -----------------------------------------------------------------------------
+
+plot(se.score.M0, se.score.M1)
+abline(a=0, b=1)
+
+plot(log(ds.score.M0), log(ds.score.M1))
+abline(a=0, b=1)
 
 
 ## old

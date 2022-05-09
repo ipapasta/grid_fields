@@ -285,7 +285,6 @@ df.prism.M0.wrapper <- function(Aosc.indices, dGamma, T.data, HD.data, coords.tr
     return(df.prism.M0)
 }
 
-
 df.prism.M1.M2.wrapper <- function(At.indices, A.indices, T.data, dGamma, HD.data, coords.trap){
     df.prism.M1_M2 <- full_join(At.indices %>% group_by(tk) %>% nest(),
                                 A.indices %>% group_by(tk) %>% nest(), by="tk") %>%
@@ -318,7 +317,6 @@ df.prism.M1.M2.wrapper <- function(At.indices, A.indices, T.data, dGamma, HD.dat
         dplyr::select(-c("data.x", "data.y")) 
 }
 
-
 ## 
 df.prism.M1.M2.wrapper2 <- function(At.indices, Aosc.indices, A.indices, T.data, dGamma, HD.data, coords.trap){
     df.prism.M1_M2 <- full_join(full_join(At.indices %>% group_by(tk) %>% nest(),
@@ -333,9 +331,9 @@ df.prism.M1.M2.wrapper2 <- function(At.indices, Aosc.indices, A.indices, T.data,
             direction.lag = c(0, HD.data[-length(direction)]),
             coords        = I(coords.trap),
             coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
-            dGamma=c(dGamma,0),
-            dGamma.lead = lead(dGamma),
-            dGamma.lag = lag(dGamma),
+            dGamma        = c(dGamma,0),
+            dGamma.lead   = lead(dGamma),
+            dGamma.lag    = lag(dGamma),
             val.M1 = pmap(list(data.y, dGamma), function(y, z) {
                 oo  <- 1:nrow(y)
                 ooo <- unlist(lapply(1:nrow(y), function(k) {
@@ -419,14 +417,14 @@ theta.2.phi.time   <- function(theta, l=NULL, u=NULL) {
 }
 
 
-phi.seq <- seq(-.99,.99,len=100)
-tmp     <- NULL
-for(i in 1:length(phi.seq))
-    {
-        tmp[i] <- uniroot(f=function(x) {
-            sin(x)-(x*sqrt(1-phi.seq[i]^2)/acos(phi.seq[i]))
-        }, interval=c(1e-20, pi-1e-20))$root
-    }
+## phi.seq <- seq(-.99,.99,len=100)
+## tmp     <- NULL
+## for(i in 1:length(phi.seq))
+##     {
+##         tmp[i] <- uniroot(f=function(x) {
+##             sin(x)-(x*sqrt(1-phi.seq[i]^2)/acos(phi.seq[i]))
+##         }, interval=c(1e-20, pi-1e-20))$root
+##     }
 
 ## helper functions for computing the
 ## posterior distribution of gridness score
@@ -743,12 +741,66 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
                 oooo
             })) %>%
         dplyr::select(-c("data.x", "data.y"))
-    ## 
+    ## !!
+    df.prism.M1_M2.2 <- full_join(full_join(At.indices.group.segments %>% group_by(tk) %>% nest(),
+                                            A.indices.group.segments %>% group_by(tk) %>% nest(), by="tk"),
+                                  Aosc.indices.group.segments %>% group_by(tk) %>% nest(), by="tk") %>%
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma=c(dGamma,0),
+            dGamma.lead   = lead(dGamma),
+            dGamma.lag    = lag(dGamma),
+            index.M1.CV    = map(data.y, function(x){
+                data.frame(index.CV=rep(unique(x$index.CV),6))
+            }),
+            index.M2.space.time.CV    = map(data, function(x){
+                data.frame(index.CV=rep(unique(x$index.CV),6))
+            }),
+            index.M2.CV    = map(data.y, function(x){
+                data.frame(index.CV=rep(unique(x$index.CV),12))
+            }),
+            val.M1 = pmap(list(data.y, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.ot[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M1=ooo)
+                oooo
+            }),
+            val.M2.space.time = pmap(list(data.x, data, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.o[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            }),
+            val.M2 = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            })) %>%
+        dplyr::select(-c("data.x", "data.y", "data"))
+    ## ## !!
     df.prism.M0 <- df.prism.M0 %>% unnest(cols=c(val.M0, index.CV))
     df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
         unnest(cols=c(val.M1, index.M1.CV))
+    ## !!
     df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
         unnest(cols=c(val.M2, index.M2.CV))
+    df.prism.M2.space.time <- df.prism.M1_M2.2 %>% dplyr::select(-c(val.M2,val.M1, index.M2.CV, index.M1.CV)) %>%
+        unnest(cols=c(val.M2.space.time, index.M2.space.time.CV))
+    ## !!
+    ## df.prism.M2.2 <- df.prism.M1_M2.2 %>% dplyr::select(-c(val.M2.space.time,val.M1, index.M2.space.time.CV, index.M1.CV)) %>%
+    ##     unnest(cols=c(val.M2, index.M2.CV))
+    ## 
     df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest %>%
         mutate(
             df.W.M0 = map(data, function(x){
@@ -830,9 +882,51 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
                 return(z)
             })
         )
+    ## !!
+        df.W.M2.space.time <- df.prism.M2.space.time %>% group_by(index.CV) %>% nest %>%
+        mutate(
+            df.W.M2.space.time = map(data, function(x){
+                tk.min = min(x$tk)           
+                rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                      dplyr::select(group, time, coords, dGamma, dGamma.lag, l, i, val.M2),
+                      x %>% 
+                      filter(tk!=tk.min) %>%
+                      mutate(time=time.lag, coords=coords.lag,
+                             group=tk-1,
+                             dGamma=0) %>%
+                      dplyr::select(group, time, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
+                    arrange(group) %>%
+                    mutate(dGamma.trap = dGamma + dGamma.lag)
+            })) %>%dplyr::select(-c("data")) %>%
+        mutate(
+            W.ipoints.M2.space.time = map(df.W.M2.space.time, function(x){
+                tol <- 0    
+                df.dGamma.sum.k.kplus1.M2.space.time <- x %>% group_by(group, l, i) %>%
+                    summarize(val = sum(pmax(dGamma.trap*val.M2, tol))/2,
+                              time = unique(time),
+                              coords=unique(coords))
+                W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2.space.time$l,
+                                  j=df.dGamma.sum.k.kplus1.M2.space.time$i,
+                                  x=df.dGamma.sum.k.kplus1.M2.space.time$val/2)
+                W <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(Aosc)-ncol(W)))
+                W.ipoints.M2.space.time <- as(W, "dgTMatrix")
+                W.ipoints.M2.space.time <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2.space.time@i+1],
+                                                      coords.x1 = mesh$loc[W.ipoints.M2.space.time@j+1,1],
+                                                      ## mapindex2space.direction_basis(W.ipoints.M2.space.time@j+1)[,2]
+                                                      coords.x2 =mesh$loc[W.ipoints.M2.space.time@j+1,2],
+                                                      ## mapindex2space.direction_basis(W.ipoints.M2.space.time@j+1)[,3]
+                                                      weight=W.ipoints.M2.space.time@x) %>% arrange(firing_times)                
+                z <- list()
+                z$W.space.time <- W
+                z$W.ipoints.M2.space.time <- W.ipoints.M2.space.time
+                return(z)
+            })
+        )
+    ## 
     z <- list()
-    z$df.W.M0 <- df.W.M0
-    z$df.W.M1 <- df.W.M1
+    z$df.W.M0            <- df.W.M0
+    z$df.W.M1            <- df.W.M1
+    z$df.W.M2.space.time <- df.W.M2.space.time
     return(z)
 }
 

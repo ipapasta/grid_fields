@@ -164,15 +164,16 @@ split.lines <- function(mesh, sp, ep, filter.zero.length = TRUE, tol= 1e-8, retu
 
 
 split.arcs <- function(hd, hd.lead, mesh.hd){
+    ## counter <<- counter + 1
     nodes       <- c(mesh.hd$loc, 2*pi)
     intervals   <- head(cbind(nodes, lead(nodes)), -1)
     ## print(paste("hd: ",hd, "hd.lead: ",hd))
-    hd.int <- which(apply(intervals, 1, function(x) (x[1] <= hd) & (hd <= x[2])))
-    hd.lead.int <- which(apply(intervals, 1, function(x) (x[1] <= hd.lead) & (hd.lead <= x[2])))
+    hd.int <- which(apply(intervals, 1, function(x) (x[1] < hd) & (hd <= x[2])))
+    hd.lead.int <- which(apply(intervals, 1, function(x) (x[1] < hd.lead) & (hd.lead <= x[2])))
     if(hd.int==hd.lead.int){
         return(matrix(c(hd, hd.lead),nrow=1))
     }else{
-        if(hd < hd.lead){
+        if(hd < hd.lead){            
             if(hd.lead.int-hd.int == 1){
                 rbind(c(hd, intervals[hd.int,2]),
                       c(intervals[hd.lead.int,1], hd.lead))
@@ -460,7 +461,6 @@ posterior.spatial.range <- function(inlabru.fitted.object){
     return(marg)
 }
 
-
 posterior.directional.standard.deviation <- function(inlabru.fitted.object){
     marg                  <- inla.tmarginal(theta.2.sigma.direction, inlabru.fitted.object$marginals.hyperpar[["Theta5 for spde2"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
@@ -524,17 +524,17 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
     X <- X.test
     Y <- Y.test
     nodes       <- c(mesh.hd$loc, 2*pi)
-    intervals   <- head(cbind(nodes, lead(nodes)), -1)
+    ## intervals   <- head(cbind(nodes, lead(nodes)), -1)
     ## df.indices labels the indices of the knots for the directional, the spatial and the spatio-directional basis functions
     ## this data frame is created to create correspondences
     ## between spatio-directional basis knots with spatial basis knots, an
     ## between spatio-directional basis knots with head directional basis knots, respectively.
     df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
     ## So for example, if the spatio-directional basis knots are labeled as 1, 2, ..., p_Omega * p_Theta
-    ## then the function mapindex2space.direction_basis takes as argument the label of spatio-diretional basis knot
+    ## then the function mapindex2space.direction_basis takes as argument the label of spatio-directional basis knot
     ## and returns the coordinates and the head direction associated with the spatial basis function and the
     ## head directional basis function. This function uses mapindex2space.direction_basis which works similarly but
-    ## instead of returning coords and angles, it returns the indices of the associated basis functions.
+    ## instead of returning coords and angles, it returns the indices of the basis functions.
     mapindex2space.direction_index <- function(index){    
         f<-function(index.single){
             as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
@@ -551,7 +551,8 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
     ## 
     Ypos.tmp <- data.frame(
         index.CV = X$index.CV,
-        hd=X$hd, time=X$synced_time,
+        hd=X$hd,
+        time=X$synced_time,
         coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
         mutate(coords.lead = lead(coords)) %>%
         mutate(time.lead = lead(X$synced_time)) %>%
@@ -634,7 +635,7 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
     names(Aosc.indices) <- c("tk", "i", "psi.o", "index.CV") #ot: omega 
     names(A.indices) <- c("tk", "i", "psi.ot", "index.CV") #ot: omega x theta
     names(At.indices) <- c("tk", "l", "psi.t", "index.CV")
-                                        #
+    ## 
     Aosc.indices.group.segments <- Aosc.indices
     while(TRUE){
         if(length(which(diff(unique(Aosc.indices.group.segments$index.CV)) == 1)) == 0){
@@ -758,49 +759,37 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
             dGamma.lead   = lead(dGamma),
             dGamma.lag    = lag(dGamma),
             index.M1.CV    = map(data.y, function(x){
-                data.frame(index.CV=rep(unique(x$index.CV),6))
+                data.frame(index.CV=rep(unique(x$index.CV), 6))
             }),
             index.M2.space.time.CV    = map(data, function(x){
-                data.frame(index.CV=rep(unique(x$index.CV),6))
+                data.frame(index.CV=rep(unique(x$index.CV), 6))
             }),
             index.M2.CV    = map(data.y, function(x){
                 data.frame(index.CV=rep(unique(x$index.CV),12))
             }),
             val.M1 = pmap(list(data.y, dGamma), function(y, z) {
                 oo  <- 1:nrow(y)
-                ooo <- unlist(lapply(1:nrow(y), function(k) {
-                    y$psi.ot[oo[k]]}))
+                ooo <- unlist( lapply(1:nrow(y), function(k) y$psi.ot[oo[k]] ))
                 oooo <- data.frame(i=y$i[oo],val.M1=ooo)
                 oooo
             }),
             val.M2.space.time = pmap(list(data.x, data, dGamma), function(x, y, z){
                 oo  <- expand.grid(1:nrow(x), 1:nrow(y))
-                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
-                    x$psi.t[oo[k,1]] * y$psi.o[oo[k,2]]}))
+                ooo <- unlist( lapply(1:(nrow(x) * nrow(y)), function(k) x$psi.t[oo[k,1]] * y$psi.o[oo[k,2]] ))
                 oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
                 oooo
             }),
             val.M2 = pmap(list(data.x, data.y, dGamma), function(x, y, z){
                 oo  <- expand.grid(1:nrow(x), 1:nrow(y))
-                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
-                    x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+                ooo <- unlist( lapply(1:(nrow(x) * nrow(y)), function(k) x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]] ))
                 oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
                 oooo
             })) %>%
         dplyr::select(-c("data.x", "data.y", "data"))
     ## ## !!
+    ## --------------
     df.prism.M0 <- df.prism.M0 %>% unnest(cols=c(val.M0, index.CV))
-    df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
-        unnest(cols=c(val.M1, index.M1.CV))
-    ## !!
-    df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
-        unnest(cols=c(val.M2, index.M2.CV))
-    df.prism.M2.space.time <- df.prism.M1_M2.2 %>% dplyr::select(-c(val.M2,val.M1, index.M2.CV, index.M1.CV)) %>%
-        unnest(cols=c(val.M2.space.time, index.M2.space.time.CV))
-    ## !!
-    ## df.prism.M2.2 <- df.prism.M1_M2.2 %>% dplyr::select(-c(val.M2.space.time,val.M1, index.M2.space.time.CV, index.M1.CV)) %>%
-    ##     unnest(cols=c(val.M2, index.M2.CV))
-    ## 
+    ## --------------
     df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest %>%
         mutate(
             df.W.M0 = map(data, function(x){
@@ -841,8 +830,11 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
                 return(z)
             })
         )
-    ## weights_test$df.W.M1$W.ipoints.M1[[i]]$W.M1
-    df.W.M1 <- df.prism.M1 %>% group_by(index.CV) %>% nest %>%
+    ## ------------------------------
+    df.prism.M1 <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% 
+        unnest(cols=c(val.M1, index.M1.CV))
+    ## ------------------------------
+        df.W.M1 <- df.prism.M1 %>% group_by(index.CV) %>% nest %>%
         mutate(
             df.W.M1 = map(data, function(x){
                 tk.min = min(x$tk)           
@@ -882,7 +874,10 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
                 return(z)
             })
         )
-    ## !!
+    ## !!-------------------------------------
+    df.prism.M2.space.time <- df.prism.M1_M2.2 %>% dplyr::select(-c(val.M2,val.M1, index.M2.CV, index.M1.CV)) %>%
+        unnest(cols=c(val.M2.space.time, index.M2.space.time.CV))
+    ## !!-------------------------------------
         df.W.M2.space.time <- df.prism.M2.space.time %>% group_by(index.CV) %>% nest %>%
         mutate(
             df.W.M2.space.time = map(data, function(x){
@@ -909,6 +904,7 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
                                   j=df.dGamma.sum.k.kplus1.M2.space.time$i,
                                   x=df.dGamma.sum.k.kplus1.M2.space.time$val/2)
                 W <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(Aosc)-ncol(W)))
+                W <- W %>% rbind(Matrix(0, nrow=ncol(Attmp)-nrow(W), ncol=ncol(W)))                
                 W.ipoints.M2.space.time <- as(W, "dgTMatrix")
                 W.ipoints.M2.space.time <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2.space.time@i+1],
                                                       coords.x1 = mesh$loc[W.ipoints.M2.space.time@j+1,1],
@@ -922,6 +918,10 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
                 return(z)
             })
         )
+    ## !!-------------------------------------
+    df.prism.M2 <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>%
+        unnest(cols=c(val.M2, index.M2.CV))
+    ## !!-------------------------------------
     ## 
     z <- list()
     z$df.W.M0            <- df.W.M0
@@ -930,6 +930,56 @@ weights_line_segments_in_train <- function(X.test, Y.test, mesh, mesh.hd, mesh1d
     return(z)
 }
 
+
+pred.mean.var <- function(weights.mat, post.sample, sample=FALSE){
+                                        # posterior sample
+    n <- length(post.sample) 
+    Int <- lapply(1:n, function(i) post.sample[[i]]$Intercept) # simulated intercepts
+    GRF <- lapply(1:n, function(i) post.sample[[i]]$spde2)     # simulated GRFs 
+    cond.mean <- sapply(1:n, function(i) exp(Int[[i]])*sum(exp(GRF[[i]])*weights.mat)) # posterior means conditioned on latent parameters
+    post.mean <- mean(cond.mean)
+    post.var  <- mean(cond.mean) + var(cond.mean)       
+    if(!sample) list(post.mean=post.mean, post.var=post.var)  else cond.mean
+}
+
+pred.mean.var.M2 <- function(weights.mat, post.sample, sample=FALSE){
+                                        # posterior sample
+    n <- length(post.sample) 
+    Int <- lapply(1:n, function(i) post.sample[[i]]$Intercept) # simulated intercepts
+    GRF1 <- lapply(1:n, function(i) post.sample[[i]]$spde1)    # simulated GRFs
+    GRF2 <- lapply(1:n, function(i) post.sample[[i]]$spde2)    # simulated GRFs 
+    cond.mean <- sapply(1:n, function(i) {
+        as.numeric(exp(Int[[i]])*sum((matrix(exp(GRF1[[i]]),nrow=1) %*% weights.mat) * exp(GRF2[[i]])))
+    })
+    post.mean <- mean(cond.mean)
+    post.var  <- mean(cond.mean) + var(cond.mean)
+    if(!sample) list(post.mean=post.mean, post.var=post.var)  else cond.mean
+    ## list(post.mean=post.mean, post.var=post.var)
+}
+
+
+predictive.M0 <- function(seq, weights.mat, post.sample){
+                                        # posterior sample
+    n <- length(post.sample) 
+    Int <- lapply(1:n, function(i) post.sample[[i]]$Intercept) # simulated intercepts
+    GRF <- lapply(1:n, function(i) post.sample[[i]]$spde2)     # simulated GRFs
+    predictive <- do.call("rbind",lapply(1:n, function(i) dpois(seq, lambda=exp(Int[[i]])*sum(exp(GRF[[i]])*weights.mat))))
+    list(predictive=predictive)
+}
+
+predictive.M2 <- function(seq, weights.mat, post.sample){
+                                        # posterior sample
+    n <- length(post.sample) 
+    Int <- lapply(1:n, function(i) post.sample[[i]]$Intercept) # simulated intercepts
+    GRF1 <- lapply(1:n, function(i) post.sample[[i]]$spde1)    # simulated GRFs
+    GRF2 <- lapply(1:n, function(i) post.sample[[i]]$spde2)    # simulated GRFs 
+    predictive <- do.call("rbind",
+                          lapply(1:n,
+                                 function(i) {
+                                     dpois(seq, lambda=as.numeric(exp(Int[[i]])*sum((matrix(exp(GRF1[[i]]),nrow=1) %*% weights.mat) * exp(GRF2[[i]]))))
+                                 }))
+    list(predictive=predictive)
+}
 
 ## precision matrix of oscillating field
 ##
@@ -1023,6 +1073,81 @@ temp.precision <- function(theta, mesh, o=2){
 }
 
 
+
+
+## Simulation of homogeneous Poisson point process on trajectories
+## arguments: constant rate function lambda
+## trajectory: x and y coordinates
+path.hpp <- function(lambda, x, y, time, hd){
+    x.lead = lead(x)
+    y.lead = lead(y)
+    coords.start      <- cbind(x, y)[-length(x),]
+    coords.lead       <- cbind(x.lead, y.lead)[-length(x),]
+    coords.matrix     <- cbind(coords.start, coords.lead)
+    coords.and.dist   <- cbind(coords.start, cumsum(apply((coords.lead - coords.start)^2,1, function(x) sqrt(sum(x)))))
+    length.trajectory <- coords.and.dist[nrow(coords.and.dist),3]
+    n                 <- rpois(1,lambda * length.trajectory)
+    p.hpp             <- cumsum(rexp(n, lambda))
+    sim.hpp <- lapply(as.list(p.hpp), function(z){
+        where.on.path.index <- max(which( coords.and.dist[,3] <= z) )
+        start.point         <- coords.start[where.on.path.index,]
+        dist.diff           <- (z - coords.and.dist[where.on.path.index,3])
+        unit.vector <- (coords.lead[where.on.path.index,]-coords.start[where.on.path.index,])/
+            sqrt(sum((coords.lead[where.on.path.index,]-coords.start[where.on.path.index,])^2))
+        z <- list(a   = start.point, x = start.point + dist.diff*unit.vector, b=coords.lead[where.on.path.index,],
+                  hd.start = hd[where.on.path.index], hd.end = lead(hd)[where.on.path.index],
+                  time.start = time[where.on.path.index], time.end = lead(time)[where.on.path.index])
+        return(z)
+    })
+    ## return(sim.hpp)
+    sp <- do.call("rbind",lapply(sim.hpp, function(y) y$a))
+    ep <- do.call("rbind",lapply(sim.hpp, function(y) y$b))
+    ip <- do.call("rbind",lapply(sim.hpp, function(y) y$x))
+    hd.start <- do.call("rbind",lapply(sim.hpp, function(y) y$hd.start))
+    time.end <- do.call("rbind",lapply(sim.hpp, function(y) y$time.end))
+    time.start <- do.call("rbind",lapply(sim.hpp, function(y) y$time.start))
+    hd.end <- do.call("rbind",lapply(sim.hpp, function(y) y$hd.end))
+    volxc <- apply(ep-ip, 1, function(x) sqrt(sum(x^2)))
+    volab <- apply(ep-sp, 1, function(x) sqrt(sum(x^2)))
+    theta <- volxc/volab
+    data.frame(firing_times = (1-theta)*time.start + (theta)*time.end, position_x=ip[,1], position_y=ip[,2], hd=(1-theta)*hd.start + (theta)*hd.end)
+    ## z <- list()
+    ## z$sp <- sp
+    ## z$ep <- ep
+    ## z$ip <- ip
+    ## z$hd <- (1-theta)*hd.start + (theta)*hd.end
+    ## z$theta <- theta
+    ## data.frame(firing_times = p.hpp*(max(time)/length.trajectory), position_x=t(sim.hpp)[,1], position_y=t(sim.hpp)[,2])
+    ## return(z)
+    ## barycentric weights
+}
+
+
+
+
+## o$ip[1,]
+## (o$theta[1])*o$sp[1,] + (1-o$theta[1])*o$ep[1,]
+## (o$theta[2])*o$sp[2,] + (1-o$theta[2])*o$ep[2,]
+
+## hd[where.on.path.index] + 
+
+## plot(trajectory)
+## points(sim.hpp, col=2, pch=16, cex=.5)
+
+## n.hpp <- absGamma*max(lambda)       # n points from 
+## p.hpp <- cumsum(rexp(n.hpp, max(lambdapred)))
+## p.hpp <- p.hpp[p.hpp < max(Ypos$time)]
+## ## next need to map p.hpp on locations (x,y) of given trajectory 
+
+## Ysim.hpp <- t(sapply(p.hpp, function(d, d.vec=df.trajectory$time,
+##                                      coords=df.trajectory$coords,
+##                                      lead=df.trajectory$coords.lead){
+##     ind         <- (max(which(d.vec <= d))) 
+##     start.point <- coords[ind,]
+##     dist.diff   <- (d - d.vec[ind])
+##     unit.vector <- (lead[ind,]-coords[ind,])/sqrt(sum((lead[ind,]-coords[ind,])^2))
+##     start.point + dist.diff*unit.vector
+## }))
 
 
 

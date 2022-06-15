@@ -1,8 +1,7 @@
 ## most recent implementation by Graeme
-
 library(tidyverse)
 library(dplyr)
-library(readxl)
+## library(readxl)
 library(sp)
 ##
 ## load data
@@ -19,17 +18,14 @@ if(FALSE) {
     Y <- Y %>% mutate(hd = (hd + 180)*(pi/180))
     Y$firing_times <- Y$firing_times/1000
     mycoords       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
-
     ## 
     ## reduce size of dataset
     ##
-
     if(FALSE){
         max_time <- 300
         Y <- Y %>% filter(firing_times < max_time)
         X <- X %>% filter(synced_time < max_time)
     }
-
     mycoords       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
 }
 
@@ -49,7 +45,6 @@ if(experimental){
     df <- data.frame(session=(grid_cells_session.id),
                     index.firing=(grid_cells_index.firing),
                     index.position=(grid_cells_index.position))
-
     data_extract <- function(index.position, index.firing, trajectory, firing){
         ## X: trajectory
         X <- data.frame(synced_time=as.numeric(trajectory$synced_time[[index.position]]),
@@ -63,48 +58,78 @@ if(experimental){
                    hd = (firing$hd[[index.firing]] + 180)*(pi/180))
         list.data <- list(X=X, Y=Y)
     }
-
     dat <- data_extract(df$index.position[5], df$index.firing[5],
-                 trajectory=trajectory_all_mice_hist,
-                 firing=spatial_firing)
-
-    set.seed(111086)
-    dat$X <- dat$X %>% mutate(index.CV = rep(-1, nrow(dat$X)))
-    dat$Y <- dat$Y %>% mutate(index.CV = rep(-1, nrow(dat$Y)))
-    lambda.CV <- mean(diff(dat$X$synced_time))
-    Z <- 0
-    counter <- 0
-    while(Z[length(Z)] < max(dat$X$synced_time)){
-        print(counter)
-        Z <- c(Z, Z[length(Z)]+rexp(1,lambda.CV))
-        dat$X$index.CV[which(dat$X$synced_time < Z[counter+2] & dat$X$synced_time > Z[counter+1])] <- counter + 1
-        dat$Y$index.CV[which(dat$Y$firing_times < Z[counter+2] & dat$Y$firing_times > Z[counter+1])] <- counter + 1
-        counter <- counter + 1
+                        trajectory=trajectory_all_mice_hist,
+                        firing=spatial_firing)
+    Xraw <- dat$X
+    ## set.seed(111086)
+    quant <- 1
+    dat$X <- dat$X %>% mutate(index.CV = rep(-1, nrow(dat$X))) %>%
+        dplyr::filter(synced_time <= quantile(dat$X$synced_time, quant))
+    ## ------------------------------------
+    ## SIMULATE HOMOGENEOUS Poisson Process
+    simulation.hpp <- TRUE
+    ## ------------------------------------
+    if(!simulation.hpp){
+    dat$Y <- dat$Y %>% mutate(index.CV = rep(-1, nrow(dat$Y))) %>%
+        dplyr::filter(firing_times <= quantile(dat$X$synced_time, quant))
+    }else{
+        dat$Y <- path.hpp(lambda=0.1, x=dat$X$position_x, y=dat$X$position_y, time=dat$X$synced_time, hd=dat$X$hd)
+        dat$Y <- dat$Y %>% mutate(index.CV = rep(-1, nrow(dat$Y))) %>%
+            dplyr::filter(firing_times <= quantile(dat$X$synced_time, quant))
     }
-    K <- max(dat$X$index.CV)
-    train.index <- sort(sample(1:K, size = floor(K/2), replace=FALSE))
+    if(FALSE){
+        lambda.CV <- exp(.8)*mean(diff(dat$X$synced_time))    ## (exp(.5) for 30 segments)
+        ## lambda.CV <- .5
+        Z <- 0
+        counter <- 0
+        while(Z[length(Z)] < max(dat$X$synced_time)){
+            print(counter)
+            Z <- c(Z, Z[length(Z)]+rexp(1,lambda.CV))
+            dat$X$index.CV[which(dat$X$synced_time < Z[counter+2] & dat$X$synced_time > Z[counter+1])] <- counter + 1
+            dat$Y$index.CV[which(dat$Y$firing_times < Z[counter+2] & dat$Y$firing_times > Z[counter+1])] <- counter + 1
+            counter <- counter + 1
+        }
+        K <- max(dat$X$index.CV)
+        train.index <- sort(sample(1:K, size = floor(K/2), replace=FALSE))
+    }
+    if(TRUE){
+        Z <- 0
+        counter <- 0
+        while(Z[length(Z)] < max(dat$X$synced_time)){
+            print(counter)
+            Z <- c(Z, Z[length(Z)]+25)
+            dat$X$index.CV[which(dat$X$synced_time < Z[counter+2] & dat$X$synced_time > Z[counter+1])] <- counter + 1
+            dat$Y$index.CV[which(dat$Y$firing_times < Z[counter+2] & dat$Y$firing_times > Z[counter+1])] <- counter + 1
+            counter <- counter + 1
+        }
+        K <- max(dat$X$index.CV)
+        train.index <- seq(1, K , by = 2)
+    }
     X.train <- dat$X %>% dplyr::filter(index.CV %in% train.index)
     Y.train <- dat$Y %>% dplyr::filter(index.CV %in% train.index)
-
     X.test <- dat$X %>% dplyr::filter(!(index.CV %in% train.index))
     Y.test <- dat$Y %>% dplyr::filter(!(index.CV %in% train.index))
-    
+    if(FALSE){
+        clumps <- split(unique(Y.test$index.CV), cumsum(c(1, diff(unique(Y.test$index.CV)) != 1)))
+        obs.firings <- sapply(1:length(clumps), function(i) nrow(Y.test %>% filter(index.CV %in% clumps[[i]])))
+        plot((obs.firings))
+    }
     ##
     ## Firing events
     ## 
-    mycoords.CV       <- SpatialPoints(cbind(Y.train$position_x, Y.train$position_y))
-
+    mycoords.CV       <- SpatialPoints(cbind(Y.train$position_x, Y.train$position_y))        
     ##
     ## trajectory
     ##
     Pl   <- Polygon(cbind(X.train$position_x, X.train$position_y))
+    Pl   <- Polygon(cbind(dat$X$position_x, dat$X$position_y))
     ID   <- "[0,1]x[0,1]"
     Pls  <- Polygons(list(Pl), ID=ID)
     SPls <- SpatialPolygons(list(Pls))
     df   <- data.frame(value=1, row.names=ID)
     SPDF       <- SpatialPolygonsDataFrame(SPls, df)                                         # str(df)
     trajectory <- SpatialPolygonsDataFrame(SPls, df)
-
     #plot(trajectory)
 }
 

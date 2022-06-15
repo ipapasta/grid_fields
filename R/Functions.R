@@ -201,11 +201,13 @@ split.arcs <- function(hd, hd.lead, mesh.hd){
 
 split.segments.wrapper.function <- function(X, mesh, mesh.hd){
     Ypos.tmp <- data.frame(
-    hd=X$hd, time=X$synced_time,
-    coords=I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
+        hd       = X$hd,
+        time     = X$synced_time,
+        index.CV = X$index.CV, 
+        coords   = I(lapply(as.list(apply(cbind(X$position_x, X$position_y),1, as.list)), unlist))) %>%
         mutate(coords.lead = lead(coords)) %>%
-        mutate(time.lead = lead(X$synced_time)) %>%
-        mutate(hd.lead = lead(X$hd)) %>%
+        mutate(time.lead   = lead(X$synced_time)) %>%
+        mutate(hd.lead     = lead(X$hd)) %>%
         head(-1)
     Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
                                     L.arcs = lapply(HD.split,
@@ -228,9 +230,12 @@ split.segments.wrapper.function <- function(X, mesh, mesh.hd){
                                     new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
                                     new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
                                     )
-    Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
-        unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
-    names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
+    ## Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
+    ##     unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
+    ## names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
+    Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead, index.CV)%>%
+        unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead, index.CV))
+    names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead", "index.CV")    
     line.segments <- split.lines(mesh, sp=Ypos.tmp$coords,
                                  filter.zero.length=FALSE,
                                  ep=Ypos.tmp$coords.lead, tol=.0)
@@ -266,6 +271,32 @@ df.prism.M0.wrapper <- function(Aosc.indices, dGamma, T.data, HD.data, coords.tr
         arrange(tk) %>%
         ungroup %>% 
         mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma=c(dGamma,0),
+            dGamma.lead = lead(dGamma),
+            dGamma.lag = lag(dGamma),
+            val.M0 = pmap(list(data, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.o[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M0=ooo)
+                oooo
+            })) %>% 
+        dplyr::select(-c("data"))
+    return(df.prism.M0)
+}
+
+df.prism.M0.wrapper_CV <- function(Aosc.indices, dGamma, T.data, HD.data, coords.trap) {
+    df.prism.M0 <- Aosc.indices %>% group_by(tk) %>% nest() %>%
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            index.CV      = index.CV,
             time          = T.data,
             time.lag      = c(0, time[-length(time)]),
             direction     = HD.data,
@@ -326,6 +357,47 @@ df.prism.M1.M2.wrapper2 <- function(At.indices, Aosc.indices, A.indices, T.data,
         arrange(tk) %>%
         ungroup %>% 
         mutate(
+            time          = T.data,
+            time.lag      = c(0, time[-length(time)]),
+            direction     = HD.data,
+            direction.lag = c(0, HD.data[-length(direction)]),
+            coords        = I(coords.trap),
+            coords.lag    = I(rbind(c(0, 0), coords.trap[-nrow(coords.trap),])),
+            dGamma        = c(dGamma,0),
+            dGamma.lead   = lead(dGamma),
+            dGamma.lag    = lag(dGamma),
+            val.M1 = pmap(list(data.y, dGamma), function(y, z) {
+                oo  <- 1:nrow(y)
+                ooo <- unlist(lapply(1:nrow(y), function(k) {
+                    y$psi.ot[oo[k]]}))
+                oooo <- data.frame(i=y$i[oo],val.M1=ooo)
+                oooo
+            }),
+            val.M2.space.time = pmap(list(data.x, data, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.o[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            }),
+            val.M2.space.direction.time = pmap(list(data.x, data.y, dGamma), function(x, y, z){
+                oo  <- expand.grid(1:nrow(x), 1:nrow(y))
+                ooo <- unlist(lapply(1:(nrow(x) * nrow(y)), function(k) {
+                    x$psi.t[oo[k,1]] * y$psi.ot[oo[k,2]]}))
+                oooo <- data.frame(l=x$l[oo[,1]], i=y$i[oo[,2]],val.M2=ooo)
+                oooo
+            })) %>%
+        dplyr::select(-c("data.x", "data.y", "data")) 
+}
+
+df.prism.M1.M2.wrapper2_CV <- function(At.indices, Aosc.indices, A.indices, T.data, dGamma, HD.data, coords.trap){
+    df.prism.M1_M2 <- full_join(full_join(At.indices %>% group_by(tk) %>% nest(),
+                                          A.indices %>% group_by(tk) %>% nest(), by="tk"),
+                                Aosc.indices %>% group_by(tk) %>% nest(), by="tk") %>%
+        arrange(tk) %>%
+        ungroup %>% 
+        mutate(
+            index.CV      = index.CV,
             time          = T.data,
             time.lag      = c(0, time[-length(time)]),
             direction     = HD.data,
@@ -1073,6 +1145,15 @@ temp.precision <- function(theta, mesh, o=2){
 }
 
 
+trajectory.length <- function(x,y){
+    coords.start      <- cbind(x, y)[-length(x),]
+    coords.lead       <- cbind(x, y)[-1,]
+    coords.matrix     <- cbind(coords.start, coords.lead)
+    coords.and.dist   <- cbind(coords.start, cumsum(apply((coords.lead - coords.start)^2,1, function(x) sqrt(sum(x)))))
+    length.trajectory <- coords.and.dist[nrow(coords.and.dist),3]
+    length.trajectory
+}
+
 
 
 ## Simulation of homogeneous Poisson point process on trajectories
@@ -1122,6 +1203,10 @@ path.hpp <- function(lambda, x, y, time, hd){
     ## barycentric weights
 }
 
+## sim <- path.hpp(lambda=lambda, x=dat$X$position_x, y=dat$X$position_y, time=dat$X$synced_time, hd=dat$X$hd)
+## plot(trajectory)
+## points(sim$position_x, sim$position_y, col=2, pch=16, cex=.5)
+
 
 
 
@@ -1131,8 +1216,7 @@ path.hpp <- function(lambda, x, y, time, hd){
 
 ## hd[where.on.path.index] + 
 
-## plot(trajectory)
-## points(sim.hpp, col=2, pch=16, cex=.5)
+
 
 ## n.hpp <- absGamma*max(lambda)       # n points from 
 ## p.hpp <- cumsum(rexp(n.hpp, max(lambdapred)))

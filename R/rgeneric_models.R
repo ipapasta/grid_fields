@@ -262,7 +262,7 @@
 'temporal.model' <- function(cmd = c("graph", "Q", "mu", "initial", "log.norm.const", "log.prior", "quit"), theta = NULL){
     envir <- parent.env(environment())
     interpret.theta <- function() {
-        theta.pars      <- tail(theta, 2)
+        theta.pars      <- tail(theta, 2) 
         rho.time        <- theta.functions$theta.2.rho.time(theta.pars[1])
         kappa.time      <- sqrt(8*(3/2))/rho.time        
         sigma.time      <- theta.functions$theta.2.sigma.time(theta.pars[2])

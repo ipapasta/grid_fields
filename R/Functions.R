@@ -291,7 +291,7 @@ df.prism.M0.wrapper <- function(Aosc.indices, dGamma, T.data, HD.data, coords.tr
     return(df.prism.M0)
 }
 
-df.prism.M0.wrapper_CV <- function(Aosc.indices, dGamma, T.data, HD.data, coords.trap) {
+df.prism.M0.wrapper_CV <- function(Aosc.indices, dGamma, T.data, HD.data, coords.trap, index.CV) {
     df.prism.M0 <- Aosc.indices %>% group_by(tk) %>% nest() %>%
         arrange(tk) %>%
         ungroup %>% 
@@ -390,7 +390,7 @@ df.prism.M1.M2.wrapper2 <- function(At.indices, Aosc.indices, A.indices, T.data,
         dplyr::select(-c("data.x", "data.y", "data")) 
 }
 
-df.prism.M1.M2.wrapper2_CV <- function(At.indices, Aosc.indices, A.indices, T.data, dGamma, HD.data, coords.trap){
+df.prism.M1.M2.wrapper2_CV <- function(At.indices, Aosc.indices, A.indices, T.data, dGamma, HD.data, coords.trap, index.CV){
     df.prism.M1_M2 <- full_join(full_join(At.indices %>% group_by(tk) %>% nest(),
                                           A.indices %>% group_by(tk) %>% nest(), by="tk"),
                                 Aosc.indices %>% group_by(tk) %>% nest(), by="tk") %>%

@@ -8,6 +8,7 @@ library(sp)
 library(fields)
 ## library(pals)
 ## inla.setOption(pardiso.license = "/Users/ipapasta/pardiso.lic")
+simulation.hpp <- FALSE
 source("load_data_CV.R")
 ## source("load_data.R")
 source("Functions.R")
@@ -24,10 +25,13 @@ bru_options_set(control.compute = list(openmp.strategy="huge"))
 ##  bru_options_set(control.compute = list(openmp.strategy="pardiso"))
 ## }
 ## ===============================================================================
-k         <- 4
-mycoords.mesh2d <- expand.grid(seq(0, 100, len=50), seq(0,100, len=50))
-mesh      <- inla.mesh.2d(mycoords.CV, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+mycoords.mesh2d <- cbind(runif(65*65, 0, 100), runif(65*65, 0, 100))
+k         <- 4.5
 mesh      <- inla.mesh.2d(mycoords.mesh2d, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+## k         <- 4
+## mycoords.mesh2d <- expand.grid(seq(0, 100, len=50), seq(0,100, len=50))
+## mesh      <- inla.mesh.2d(mycoords.CV, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+## mesh      <- inla.mesh.2d(mycoords.mesh2d, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
 X         <- X.train
 Y         <- Y.train
 ##
@@ -36,6 +40,7 @@ p           <- mesh$n
 ## circular mesh
 mesh.hd     <- inla.mesh.1d(seq(0, 2*pi, len=21), boundary="cyclic", degree=1)
 p.hd        <- mesh.hd$n
+
 ## line splits
 Ypos.ls         <- split.segments.wrapper.function(X=X, mesh=mesh, mesh.hd =mesh.hd)
 Yposraw.ls      <- split.segments.wrapper.function(X=dat$X, mesh=mesh, mesh.hd =mesh.hd)
@@ -48,6 +53,7 @@ filterraw.index <- Yposraw.ls$filter.index
 ## ------------------
 ## Integration points
 ## ------------------
+
 ## 
 ## CHECK always that: dim(coords.trap) == length(HD.data); length(HD.data) == length(T.data)
 ##
@@ -55,16 +61,32 @@ coordsraw.trap  <- rbind(do.call("rbind",Yposraw$sp), tail(do.call("rbind",Yposr
 HDraw.data      <- c(do.call("c", (Yposraw %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Yposraw$hd.lead, 1))
 Traw.data       <- c(do.call("c", (Yposraw %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
 rawindex.CV     <- c((Yposraw%>% dplyr::select(Ti, index.CV) %>% unnest(Ti))$index.CV, Yposraw$index.CV[length(Yposraw$index.CV)])
-## 
-coords.trap  <- rbind(do.call("rbind",Ypos$sp)[filter.index,], tail(do.call("rbind",Ypos$ep),1))
-HD.data      <- c(do.call("c", (Ypos %>% mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD), tail(Ypos$hd.lead, 1))
-T.data       <- c(do.call("c", (Ypos %>% mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T), tail(Ypos$time.lead, 1))
+
+## training set
+coords.trap  <- rbind(do.call("rbind",(Yposraw %>% dplyr::filter(index.CV %in% train.index))$sp),
+                      tail(do.call("rbind",(Yposraw %>% dplyr::filter(index.CV %in% train.index))$ep),1))
+HD.data      <- c(do.call("c", (Yposraw %>% dplyr::filter(index.CV %in% train.index) %>%
+                                mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD),
+                  tail((Yposraw %>% dplyr::filter(index.CV %in% train.index))$hd.lead, 1))
+T.data       <- c(do.call("c", ((Yposraw %>% dplyr::filter(index.CV %in% train.index)) %>%
+                                mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T),
+                  tail((Yposraw %>% dplyr::filter(index.CV %in% train.index))$time.lead, 1))
 index.CV     <- rawindex.CV[which(rawindex.CV %in% train.index)]
+## test set
+coords.trap.test  <- rbind(do.call("rbind",(Yposraw %>% dplyr::filter(!(index.CV %in% train.index)))$sp),
+                           tail(do.call("rbind",(Yposraw %>% dplyr::filter(!(index.CV %in% train.index)))$ep),1))
+HD.data.test      <- c(do.call("c", (Yposraw %>% dplyr::filter(!(index.CV %in% train.index)) %>%
+                                mutate(HD=lapply(HDi, function(x) attr(x, "data"))))$HD),
+                  tail((Yposraw %>% dplyr::filter(!(index.CV %in% train.index)))$hd.lead, 1))
+T.data.test       <- c(do.call("c", ((Yposraw %>% dplyr::filter(!(index.CV %in% train.index))) %>%
+                                mutate(T=lapply(Ti, function(x) attr(x, "data"))))$T),
+                  tail((Yposraw %>% dplyr::filter(!(index.CV %in% train.index)))$time.lead, 1))
+index.CV.test     <- c(rawindex.CV[which(!(rawindex.CV %in% train.index))], tail(rawindex.CV[which(!(rawindex.CV %in% train.index))],1))
 ## df.path.split <- data.frame(x.coord = coords.trap[,1], y.coord = coords.trap[,2], hd = HD.data, time = T.data)
 
 ## mesh for temporal process
 ## print(paste("mesh1d:", head(diff(mesh1d$loc))))
-mesh1d       <- inla.mesh.1d(loc=c(Traw.data[seq(1, length(Traw.data), by = 100)], Traw.data[length(Traw.data)]), order=2)
+mesh1d       <- inla.mesh.1d(loc=c(Traw.data[seq(1, length(Traw.data), by = 50)], Traw.data[length(Traw.data)]), order=2)
 
 
 ## Matrix of basis function evaluations for positional data (INTEGRAL term of Poisson likelihood)
@@ -73,6 +95,12 @@ Aosc   <- inla.mesh.projector(mesh, loc=coords.trap)$proj$A
 Ahd    <- inla.mesh.projector(mesh.hd, loc=HD.data)$proj$A
 A      <- inla.row.kron(Ahd, Aosc)
 rownames(Atilde) <- rownames(Aosc) <- rownames(Ahd) <- rownames(A) <- index.CV
+
+Atilde.test <- inla.mesh.projector(mesh1d, loc=T.data.test)$proj$A
+Aosc.test   <- inla.mesh.projector(mesh, loc=coords.trap.test)$proj$A
+Ahd.test    <- inla.mesh.projector(mesh.hd, loc=HD.data.test)$proj$A
+A.test      <- inla.row.kron(Ahd.test, Aosc.test)
+rownames(Atilde.test) <- rownames(Aosc.test) <- rownames(Ahd.test) <- rownames(A.test) <- index.CV.test
 
 ## ## Matrix of basis function evaluations for observed firing events (SUM term of Poisson likelihood)
 Atildeobs <- inla.spde.make.A(mesh=mesh1d, Y$firing_times)
@@ -85,144 +113,187 @@ Aobs      <- inla.row.kron(Ahd.obs, Aosc.obs)
 ## ----------------------------------------------
 dGamma      <- c(do.call("c", (Yposraw %>% dplyr::filter(index.CV %in% train.index))$Li))
 dT          <- c(diff(T.data))
+dGamma.test      <- c(do.call("c", (Yposraw %>% dplyr::filter(!(index.CV %in% train.index)))$Li))
+dT.test          <- c(diff(T.data.test))
 dGamma.raw  <- c(do.call("c", Yposraw$Li))
 dT.raw      <- diff(Traw.data)
 
 ## spatial basis functions
+## training set
 Aosctmp <- as(Aosc, "dgTMatrix")
 Aosc.indices <- cbind(cbind(Aosctmp@i+1, Aosctmp@j+1), Aosctmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
 Aosc.indices <- Aosc.indices[order(Aosc.indices[,1]),] %>% as.data.frame #
 Aosc.indices <- Aosc.indices %>% mutate(index.CV = sort(rep(index.CV, 3)))
+## test set
+Aosctmp.test <- as(Aosc.test, "dgTMatrix")
+Aosc.indices.test <- cbind(cbind(Aosctmp.test@i+1, Aosctmp.test@j+1), Aosctmp.test@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+Aosc.indices.test <- Aosc.indices.test[order(Aosc.indices.test[,1]),] %>% as.data.frame #
+Aosc.indices.test <- Aosc.indices.test %>% mutate(index.CV = sort(rep(index.CV.test, 3)))
 
 ## spatial-directional basis functions
+## training set
 Atmp <- as(A, "dgTMatrix")
 A.indices <- cbind(cbind(Atmp@i+1, Atmp@j+1), Atmp@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
 A.indices <- A.indices[order(A.indices[,1]),] %>% as.data.frame #
 A.indices <- A.indices %>% mutate(index.CV = sort(rep(index.CV, 6)))
+## test set
+Atmp.test <- as(A.test, "dgTMatrix")
+A.indices.test <- cbind(cbind(Atmp.test@i+1, Atmp.test@j+1), Atmp.test@x) # (i,j, A[i,j]) for which A[i,j] is non-zero (Omega x Theta)
+A.indices.test <- A.indices.test[order(A.indices.test[,1]),] %>% as.data.frame #
+A.indices.test <- A.indices.test %>% mutate(index.CV = sort(rep(index.CV.test, 6)))
+
 
 ## temporal basis functions
+## training set
 Attmp <- as(Atilde, "dgTMatrix")
 At.indices <- cbind(cbind(Attmp@i+1, Attmp@j+1), Attmp@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
 At.indices <- At.indices[order(At.indices[,1]),] %>% as.data.frame
 At.indices <- At.indices %>% mutate(index.CV = sort(rep(index.CV, 2)))
+## test set
+Attmp.test <- as(Atilde.test, "dgTMatrix")
+At.indices.test <- cbind(cbind(Attmp.test@i+1, Attmp.test@j+1), Attmp.test@x) # (i,j, A[i,j]) for which Atilde[i,j] is non-zero (Time)
+At.indices.test <- At.indices.test[order(At.indices.test[,1]),] %>% as.data.frame
+At.indices.test <- At.indices.test %>% mutate(index.CV = sort(rep(index.CV.test, 2)))
 
+## training set
 names(Aosc.indices) <- c("tk", "i", "psi.o", "index.CV") #ot: omega 
 names(A.indices)    <- c("tk", "i", "psi.ot", "index.CV") #ot: omega x theta
 names(At.indices)   <- c("tk", "l", "psi.t", "index.CV")
 
-df.prism.M0    <- df.prism.M0.wrapper_CV(Aosc.indices = Aosc.indices, dGamma=dGamma, T.data=T.data, HD.data=HD.data,
-                                      coords.trap=coords.trap) %>% unnest(cols=c(val.M0))
+## test set
+names(Aosc.indices.test) <- c("tk", "i", "psi.o", "index.CV") #ot: omega 
+names(A.indices.test)    <- c("tk", "i", "psi.ot", "index.CV") #ot: omega x theta
+names(At.indices.test)   <- c("tk", "l", "psi.t", "index.CV")
+
+
+
+## training set
+df.prism.M0      <- df.prism.M0.wrapper_CV(Aosc.indices = Aosc.indices, dGamma=dGamma, T.data=T.data, HD.data=HD.data,
+                                         coords.trap=coords.trap, index.CV=index.CV) %>% unnest(cols=c(val.M0))
 ## df.prism.M1_M2 <- df.prism.M1.M2.wrapper(At.indices= At.indices, A.indices=A.indices, dGamma=dGamma, T.data=T.data, HD.data=HD.data, coords.trap=coords.trap)
 ## df.prism.M1    <- df.prism.M1_M2 %>% dplyr::select(-val.M2) %>% unnest(cols=c(val.M1))
 ## df.prism.M2    <- df.prism.M1_M2 %>% dplyr::select(-val.M1) %>% unnest(cols=c(val.M2))
 ## !!
 df.prism.M1_M2 <- df.prism.M1.M2.wrapper2_CV(At.indices= At.indices, Aosc.indices=Aosc.indices, A.indices=A.indices,
-                                          dGamma=dGamma, T.data=T.data, HD.data=HD.data, coords.trap=coords.trap)
+                                             dGamma=dGamma, T.data=T.data, HD.data=HD.data, coords.trap=coords.trap, index.CV=index.CV)
 df.prism.M1                      <- df.prism.M1_M2 %>% dplyr::select(-c(val.M2.space.time, val.M2.space.direction.time)) %>% unnest(cols=c(val.M1))
 df.prism.M2.space.time           <- df.prism.M1_M2 %>% dplyr::select(-c(val.M1, val.M2.space.direction.time)) %>% unnest(cols=c(val.M2.space.time))
 df.prism.M2.space.direction.time <- df.prism.M1_M2 %>% dplyr::select(-c(val.M1, val.M2.space.time)) %>% unnest(cols=c(val.M2.space.direction.time))
-    
+
+## test set
+df.prism.M0.test <- df.prism.M0.wrapper_CV(Aosc.indices = Aosc.indices.test, dGamma=dGamma.test, T.data=T.data.test, HD.data=HD.data.test,
+                                           coords.trap=coords.trap.test, index.CV = index.CV.test) %>% unnest(cols=c(val.M0))
+df.prism.M1_M2.test <- df.prism.M1.M2.wrapper2_CV(At.indices= At.indices.test, Aosc.indices=Aosc.indices.test, A.indices=A.indices.test,
+                                             dGamma=dGamma.test, T.data=T.data.test, HD.data=HD.data.test, coords.trap=coords.trap.test, index.CV=index.CV.test)
+df.prism.M1.test                      <- df.prism.M1_M2.test %>% dplyr::select(-c(val.M2.space.time, val.M2.space.direction.time)) %>% unnest(cols=c(val.M1))
+df.prism.M2.space.time.test           <- df.prism.M1_M2.test %>% dplyr::select(-c(val.M1, val.M2.space.direction.time)) %>% unnest(cols=c(val.M2.space.time))
+df.prism.M2.space.direction.time.test <- df.prism.M1_M2.test %>% dplyr::select(-c(val.M1, val.M2.space.time)) %>% unnest(cols=c(val.M2.space.direction.time))
 
 ## ------------------------------------------------
 ## M0 model:  Integration weights integration knots 
 ## ------------------------------------------------
-    df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest() %>% 
-        mutate(W.M0.vector = map(data, function(x){
-            tol <- 0
-            df.dGamma.sum.k.kplus1.M0 <- rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
-                                               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
-                                               x %>% dplyr::filter(tk!=min(tk)) %>%
-                                               mutate(time=time.lag, direction=direction.lag, coords=coords.lag, group=tk-1, dGamma=0) %>%
-                                               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
-                arrange(group) %>%
-                mutate(dGamma.trap = dGamma + dGamma.lag) %>% 
-                group_by(group, i) %>%
-                summarize(val = sum(pmax(dGamma.trap*val.M0, tol))/2,
-                          time = unique(time),
-                          direction=unique(direction),
-                          coords=unique(coords))  %>%
-                ungroup %>% group_by(i) %>%
-                summarize(val = sum(val))
-        }))
-
-    mat.tmp <- (do.call("rbind",df.W.M0$W.M0.vector)) %>% group_by(i) %>%
-        summarize(val=sum(val))
-    W.M0 <- sparseVector(i=mat.tmp$i, x=mat.tmp$val, length=mesh$n)
-    W.ipoints.M0 <- as(W.M0, "sparseMatrix")
-    W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
-                               coords.x2 = mesh$loc[W.ipoints.M0@i+1,2],
-                               weight=W.ipoints.M0@x)
-## df.W.M0 <- rbind(df.prism.M0 %>% mutate(group=tk, dGamma.lag=0) %>%
-##                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
-##                  df.prism.M0 %>% 
-##                  filter(tk!=1) %>%
-##                  mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-##                         group=tk-1,
-##                         dGamma=0) %>%
-##                  dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
-##     arrange(group) %>%
-##     mutate(dGamma.trap = dGamma + dGamma.lag) 
-
-## tol <- 0
-
-## df.dGamma.sum.k.kplus1.M0 <- df.W.M0 %>% group_by(group, i) %>%
-##     summarize(val = sum(pmax(dGamma.trap*val.M0, tol))/2,
-##               time = unique(time),
-##               direction=unique(direction),
-##               coords=unique(coords))  %>%
-##     ungroup %>% group_by(i) %>%
-##     summarize(val = sum(val))
+## training set
+df.W.M0 <- df.prism.M0 %>% group_by(index.CV) %>% nest() %>% 
+    mutate(W.M0.vector = map(data, function(x){
+        tol <- 0
+        df.dGamma.sum.k.kplus1.M0 <- rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                                           dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
+                                           x %>% dplyr::filter(tk!=min(tk)) %>%
+                                           mutate(time=time.lag, direction=direction.lag, coords=coords.lag, group=tk-1, dGamma=0) %>%
+                                           dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
+            arrange(group) %>%
+            mutate(dGamma.trap = dGamma + dGamma.lag) %>% 
+            group_by(group, i) %>%
+            summarize(val = sum(pmax(dGamma.trap*val.M0, tol))/2,
+                      time = unique(time),
+                      direction=unique(direction),
+                      coords=unique(coords))  %>%
+            ungroup %>% group_by(i) %>%
+            summarize(val = sum(val))
+    }))
+mat.M0.tmp <- (do.call("rbind",df.W.M0$W.M0.vector)) %>% group_by(i) %>%
+    summarize(val=sum(val))
+W.M0 <- sparseVector(i=mat.M0.tmp$i, x=mat.M0.tmp$val, length=mesh$n)
+W.ipoints.M0 <- as(W.M0, "sparseMatrix")
+W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
+                           coords.x2 = mesh$loc[W.ipoints.M0@i+1,2],
+                           weight=W.ipoints.M0@x)
 
 
-## W.M0 <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
-##                      x=df.dGamma.sum.k.kplus1.M0$val,
-##                      length=mesh$n)
+## test set: note there is a difference in the output returned between
+## train and test df.W.M0 objects.
+df.W.M0.test <- df.prism.M0.test %>% group_by(index.CV) %>% nest() %>% 
+    mutate(W.M0.vector = map(data, function(x){
+        tol <- 0
+        df.dGamma.sum.k.kplus1.M0 <- rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                                           dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0),
+                                           x %>% dplyr::filter(tk!=min(tk)) %>%
+                                           mutate(time=time.lag, direction=direction.lag, coords=coords.lag, group=tk-1, dGamma=0) %>%
+                                           dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M0)) %>%
+            arrange(group) %>%
+            mutate(dGamma.trap = dGamma + dGamma.lag) %>% 
+            group_by(group, i) %>%
+            summarize(val = sum(pmax(dGamma.trap*val.M0, tol))/2,
+                      time = unique(time),
+                      direction=unique(direction),
+                      coords=unique(coords))  %>%
+            ungroup %>% group_by(i) %>%
+            summarize(val = sum(val))
+        W.M0.test <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i, x=df.dGamma.sum.k.kplus1.M0$val, length=mesh$n)
+        W.ipoints.M0.test <- as(W.M0.test, "sparseMatrix")
+        W.ipoints.M0.test <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0.test@i+1,1],
+                                        coords.x2 = mesh$loc[W.ipoints.M0.test@i+1,2],
+                                        weight=W.ipoints.M0.test@x)
+    }))
 
-## W.M0.vector <- sparseVector(i=df.dGamma.sum.k.kplus1.M0$i,
-##                             x=df.dGamma.sum.k.kplus1.M0$val,
-##                             length=mesh$n)
-
-## ## 
-## ## W.ipoints.M0 matrix below is needed in lgcp ipoints argument
-## ## 
-## W.ipoints.M0 <- as(W.M0, "sparseMatrix")
-## W.ipoints.M0 <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0@i+1,1],
-##                            coords.x2 = mesh$loc[W.ipoints.M0@i+1,2],
-##                            weight=W.ipoints.M0@x) 
- 
-df.W.M1 <- rbind(df.prism.M1 %>% mutate(group=tk, dGamma.lag=0) %>%
-                 dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
-                 df.prism.M1 %>% 
-                 filter(tk!=1) %>%
-                 mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-                        group=tk-1,
-                        dGamma=0) %>%
-                 dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
-    arrange(group) %>%
-    mutate(dGamma.trap = dGamma + dGamma.lag) 
+## mat.M0.tmp.test <- (do.call("rbind",df.W.M0.test$W.M0.vector)) %>% group_by(i) %>%
+##     summarize(val=sum(val))
+## W.M0.test <- sparseVector(i=mat.M0.tmp.test$i, x=mat.M0.tmp.test$val, length=mesh$n)
+## W.ipoints.M0.test <- as(W.M0.test, "sparseMatrix")
+## W.ipoints.M0.test <- data.frame(coords.x1 = mesh$loc[W.ipoints.M0.test@i+1,1],
+##                            coords.x2 = mesh$loc[W.ipoints.M0.test@i+1,2],
+##                            weight=W.ipoints.M0.test@x)
 
 
-tol <- 0
+## train set
+df.W.M1 <- df.prism.M1 %>% group_by(index.CV) %>% nest() %>% 
+    mutate(W.M1.vector = map(data, function(x){
+        tol <- 0
+        rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
+              x %>% 
+              filter(tk!=min(tk)) %>%
+              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                     group=tk-1,
+                     dGamma=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
+            arrange(group) %>%
+            mutate(dGamma.trap = dGamma + dGamma.lag) %>%
+            group_by(group, i) %>%
+            summarize(val = sum(pmax(dGamma.trap*val.M1, tol))/2,
+                      time = unique(time),
+                      direction=unique(direction),
+                      coords=unique(coords))  %>%
+            ungroup %>% group_by(i) %>%
+            summarize(val = sum(val))
+    }))
 
-df.dGamma.sum.k.kplus1.M1 <- df.W.M1 %>% group_by(group, i) %>%
-    summarize(val = sum(pmax(dGamma.trap*val.M1, tol))/2,
-              time = unique(time),
-              direction=unique(direction),
-              coords=unique(coords))  %>%
-    ungroup %>% group_by(i) %>%
-    summarize(val = sum(val))
+mat.M1.tmp <- (do.call("rbind",df.W.M1$W.M1.vector)) %>% group_by(i) %>%
+    summarize(val=sum(val))
+W.M1 <- sparseVector(i=mat.M1.tmp$i, x=mat.M1.tmp$val, length=mesh$n * mesh.hd$n)
 
-W.M1 <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
-                     x=df.dGamma.sum.k.kplus1.M1$val,
-                     length=mesh$n * mesh.hd$n)
 
-W.M1.vector <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
-                            x=df.dGamma.sum.k.kplus1.M1$val,
-                            length=mesh$n * mesh.hd$n)
+
+## sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
+##                      x=df.dGamma.sum.k.kplus1.M1$val,
+##                      length=mesh$n * mesh.hd$n)
+
+## W.M1.vector <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i,
+##                             x=df.dGamma.sum.k.kplus1.M1$val,
+##                             length=mesh$n * mesh.hd$n)
 
 
 df.indices <- data.frame(dir = sort(rep(1:mesh.hd$n, mesh$n)), space = rep(1:mesh$n, mesh.hd$n), cross = 1:(mesh$n*mesh.hd$n))
-
 mapindex2space.direction_index <- function(index){    
     f<-function(index.single){
         as.numeric(df.indices[which(df.indices$cross==index.single),c("dir","space")])
@@ -245,7 +316,38 @@ W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,
                            weight=W.ipoints.M1@x)
 
 
+## test set
+df.W.M1.test <- df.prism.M1.test %>% group_by(index.CV) %>% nest() %>% 
+    mutate(W.M1.vector.test = map(data, function(x){
+        tol <- 0
+        df.dGamma.sum.k.kplus1.M1 <-  rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
+              x %>% 
+              filter(tk!=min(tk)) %>%
+              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                     group=tk-1,
+                     dGamma=0) %>%
+              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
+            arrange(group) %>%
+            mutate(dGamma.trap = dGamma + dGamma.lag) %>%
+            group_by(group, i) %>%
+            summarize(val = sum(pmax(dGamma.trap*val.M1, tol))/2,
+                      time = unique(time),
+                      direction=unique(direction),
+                      coords=unique(coords))  %>%
+            ungroup %>% group_by(i) %>%
+            summarize(val = sum(val))
+        W.M1.test <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i, x=df.dGamma.sum.k.kplus1.M1$val, length=mesh$n * mesh.hd$n)
+        W.ipoints.M1.test <- as(W.M1.test, "sparseMatrix")
+        W.ipoints.M1.test <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,1],
+                                        coords.x1 =mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,2],
+                                        coords.x2 =mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,3],
+                                        weight=W.ipoints.M1.test@x)
+    }))
+
+
 ## space-time
+## training set
 df.W.M2.space.time <- df.prism.M2.space.time %>% group_by(index.CV) %>% nest() %>%
     mutate(W.M2.space.time = map(data, function(x){
         tol <- 0
@@ -287,119 +389,73 @@ W.ipoints.M2.space.time <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2.space
                                       coords.x2 =mesh$loc[W.ipoints.M2.space.time@j+1,2],
                                       ## mapindex2space.direction_basis(W.ipoints.M2.space.time@j+1)[,3]
                                       weight=W.ipoints.M2.space.time@x) %>% arrange(firing_times)
-## df.W.M2.space.time <- rbind(df.prism.M2.space.time %>% mutate(group=tk, dGamma.lag=0) %>%
-##                  dplyr::select(group, time, coords, dGamma, dGamma.lag, l, i, val.M2),
-##                  df.prism.M2.space.time %>% 
-##                  filter(tk!=1) %>%
-##                  mutate(time=time.lag, coords=coords.lag,
-##                         group=tk-1,
-##                         dGamma=0) %>%
-##                  dplyr::select(group, time, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
-##     arrange(group) %>%
-##     mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
-
-## tol <- 0
-## df.dGamma.sum.k.kplus1.M2.space.time <- df.W.M2.space.time %>% group_by(group, l, i) %>%
-##     summarize(val = sum(pmax(dGamma.trap*val.M2, tol)),
-##               time = unique(time),
-##               ## direction=unique(direction),
-##               coords=unique(coords))
-
-## W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2.space.time$l,
-##                   j=df.dGamma.sum.k.kplus1.M2.space.time$i,
-##                   x=df.dGamma.sum.k.kplus1.M2.space.time$val/2)
-
-## W <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(Aosc)-ncol(W)))
-## W <- W %>% rbind(Matrix(0, nrow=ncol(Attmp)-nrow(W), ncol=ncol(W)))                
-
-## ## 
-## ## Finally, the W.ipoints.M2.space.direction matrix is created below which a format appropriate to be used in inlabru
-## ## 
-## W.ipoints.M2.space.time <- as(W, "dgTMatrix")
-## W.ipoints.M2.space.time <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2.space.time@i+1],
-##                                       coords.x1 = mesh$loc[W.ipoints.M2.space.time@j+1,1],
-##                                       ## mapindex2space.direction_basis(W.ipoints.M2.space.time@j+1)[,2]
-##                                       coords.x2 =mesh$loc[W.ipoints.M2.space.time@j+1,2],
-##                                       ## mapindex2space.direction_basis(W.ipoints.M2.space.time@j+1)[,3]
-##                                       weight=W.ipoints.M2.space.time@x) %>% arrange(firing_times)
 
 
-## current implementation for M_{Omega,T} uses segmentation of path
-## based on space-direction-time prism. This results in repeated
-## coords and times with different weights
-## Q: is 
+
+## test set
+df.W.M2.space.time.test <- df.prism.M2.space.time.test %>% group_by(index.CV) %>% nest() %>%
+    mutate(W.M2.space.time.test = map(data, function(x){
+        tol <- 0
+        df.dGamma.sum.k.kplus1.M2.space.time <- rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+                                                      dplyr::select(group, time, coords, dGamma, dGamma.lag, l, i, val.M2),
+                                                      x %>% 
+                                                      filter(tk!=min(tk)) %>%
+                                                      mutate(time=time.lag, coords=coords.lag,
+                                                             group=tk-1,
+                                                             dGamma=0) %>%
+                                                      dplyr::select(group, time, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
+            arrange(group) %>%
+            mutate(dGamma.trap = dGamma + dGamma.lag) %>%
+            group_by(group, l, i) %>%
+            summarize(val = sum(pmax(dGamma.trap*val.M2, tol)),
+                      time = unique(time),
+                      ## direction=unique(direction),
+                      coords=unique(coords))
+        W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2.space.time$l,
+                          j=df.dGamma.sum.k.kplus1.M2.space.time$i,
+                          x=df.dGamma.sum.k.kplus1.M2.space.time$val/2)
+        W <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(Aosc)-ncol(W)))
+        W <- W %>% rbind(Matrix(0, nrow=ncol(Attmp)-nrow(W), ncol=ncol(W)))                
+        W.ipoints.M2.space.time.test <- as(W, "dgTMatrix")
+        W.ipoints.M2.space.time.test <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2.space.time.test@i+1],
+                                              coords.x1 = mesh$loc[W.ipoints.M2.space.time.test@j+1,1],
+                                              ## mapindex2space.direction_basis(W.ipoints.M2.space.time@j+1)[,2]
+                                              coords.x2 =mesh$loc[W.ipoints.M2.space.time.test@j+1,2],
+                                              ## mapindex2space.direction_basis(W.ipoints.M2.space.time@j+1)[,3]
+                                              weight=W.ipoints.M2.space.time.test@x) %>% arrange(firing_times)        
+    }))
 
 
 ## space-direction-time
-df.W.M2 <- rbind(df.prism.M2.space.direction.time %>% mutate(group=tk, dGamma.lag=0) %>%
+df.W.M2.space.direction.time <- df.prism.M2.space.direction.time %>% group_by(index.CV) %>% nest() %>%
+    mutate(W.M2.space.direction.time = map(data, function(x){
+        tol <- 0
+        rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2),
-              df.prism.M2.space.direction.time %>% 
-              filter(tk!=1) %>%
+              x %>% 
+              filter(tk!=min(tk)) %>%
               mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
                      group=tk-1,
                      dGamma=0) %>%
               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
-    arrange(group) %>%
-    mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
-    ## select(-c(dGamma, dGamma.lead, dGamma.lag))
+            arrange(group) %>%
+            mutate(dGamma.trap = dGamma + dGamma.lag) %>% group_by(group, l, i) %>%
+            summarize(val = sum(pmax(dGamma.trap*val.M2, tol)),
+                      time = unique(time),
+                      direction=unique(direction),
+                      coords=unique(coords))
+    }))
 
-tol <- 0
-df.dGamma.sum.k.kplus1.M2 <- df.W.M2 %>% group_by(group, l, i) %>%
-    summarize(val = sum(pmax(dGamma.trap*val.M2, tol)),
-              time = unique(time),
-              direction=unique(direction),
-              coords=unique(coords))
-
-W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2$l,
-                  j=df.dGamma.sum.k.kplus1.M2$i,
-                  x=df.dGamma.sum.k.kplus1.M2$val/2)
-
-## if there are columns in the matrix W above that are everywhere 0, then the sparseMatrix function drops them.
-## I think this may happen due to the knots placed outside the domain 
-## where the animal never enters (cf a plot of spatial mesh - outer boundary). In this case, there is no contribution as there is
-## no line segment in any  these triangles so I manually add them by appending 0 columns in the matrix W
-
-W         <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(A)-ncol(W)))
-
-## 
-## Finally, the W.ipoints.M2 matrix is created below which a format appropriate to be used in inlabru
-## 
-W.ipoints.M2 <- as(W, "dgTMatrix")
-W.ipoints.M2 <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2@i+1],
-                           hd=mapindex2space.direction_basis(W.ipoints.M2@j+1)[,1],
-                           coords.x1 =mapindex2space.direction_basis(W.ipoints.M2@j+1)[,2],
-                           coords.x2 =mapindex2space.direction_basis(W.ipoints.M2@j+1)[,3],
-                           weight=W.ipoints.M2@x) %>% arrange(firing_times)
-
-
-df.W.M2.space.direction.time <- rbind(df.prism.M2.space.direction.time %>% mutate(group=tk, dGamma.lag=0) %>%
-                 dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2),
-                 df.prism.M2.space.direction.time %>% 
-                 filter(tk!=1) %>%
-                 mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-                        group=tk-1,
-                        dGamma=0) %>%
-                 dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2)) %>%
-    arrange(group) %>%
-    mutate(dGamma.trap = dGamma + dGamma.lag) ## %>%
-
-tol <- 0
-df.dGamma.sum.k.kplus1.M2.space.direction.time <- df.W.M2.space.direction.time %>% group_by(group, l, i) %>%
-    summarize(val = sum(pmax(dGamma.trap*val.M2, tol)),
-              time = unique(time),
-              direction=unique(direction),
-              coords=unique(coords))
-
-W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2.space.direction.time$l,
-                  j=df.dGamma.sum.k.kplus1.M2.space.direction.time$i,
-                  x=df.dGamma.sum.k.kplus1.M2.space.direction.time$val/2)
-
-W         <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(A)-ncol(W)))
+mat.tmp.space.direction.time <- (do.call("rbind",df.W.M2.space.direction.time$W.M2.space.direction.time))
+W.space.direction.time <- sparseMatrix(i=mat.tmp.space.direction.time$l,
+                  j=mat.tmp.space.direction.time$i,
+                  x=mat.tmp.space.direction.time$val/2)
+W.space.direction.time <- W.space.direction.time %>% cbind(Matrix(0, nrow=nrow(W.space.direction.time), ncol=ncol(A)-ncol(W.space.direction.time)))
 
 ## 
 ## Finally, the W.ipoints.M2.space.direction matrix is created below which a format appropriate to be used in inlabru
 ## 
-W.ipoints.M2.space.direction.time <- as(W, "dgTMatrix")
+W.ipoints.M2.space.direction.time <- as(W.space.direction.time, "dgTMatrix")
 W.ipoints.M2.space.direction.time <- data.frame(firing_times=mesh1d$loc[W.ipoints.M2.space.direction.time@i+1],
                                                 hd=mapindex2space.direction_basis(W.ipoints.M2.space.direction.time@j+1)[,1],
                                                 coords.x1 =mapindex2space.direction_basis(W.ipoints.M2.space.direction.time@j+1)[,2],
@@ -459,14 +515,14 @@ initial.time      <- list(theta1=log(100), theta2=log(3))
 l = -0.98
 u = 1
 ## 
-Pl.Omega       <- Polygon(expand.grid(c(min(X$position_x),max(X$position_x)), c(min(X$position_y),max(X$position_y)))[c(1,2,4,3),])
-ID.Omega       <- "Omega"
-Pls.Omega      <- Polygons(list(Pl.Omega), ID=ID.Omega)
-SPls.Omega     <- SpatialPolygons(list(Pls.Omega))
-weights.domain <- ipoints(domain=mesh, samplers=SPls.Omega)
+Pl.Omega         <- Polygon(expand.grid(c(min(X$position_x),max(X$position_x)), c(min(X$position_y),max(X$position_y)))[c(1,2,4,3),])
+ID.Omega         <- "Omega"
+Pls.Omega        <- Polygons(list(Pl.Omega), ID=ID.Omega)
+SPls.Omega       <- SpatialPolygons(list(Pls.Omega))
+weights.domain   <- ipoints(domain=mesh, samplers=SPls.Omega)
 weights.domain1d <- ipoints(domain=mesh1d, samplers=c(0,max(dat$X$synced_time)))
-locs           <- weights.domain@coords
-rownames(locs) <- NULL
+locs             <- weights.domain@coords
+rownames(locs)   <- NULL
 
 
 ## ----------------
@@ -551,18 +607,15 @@ fit.space.direction <- lgcp(cmp.space.direction,
                             data    = Y.spdf,
                             ips     = W.ipoints.M1,
                             domain  = list(firing_times = mesh1d),
-                            options = list(num.threads=8, verbose = FALSE, bru_max_iter=1)) %>%
-    bru_rerun()
+                            options = list(num.threads=8, verbose = FALSE, bru_max_iter=1))
 
 bru_options_set(inla.mode = "classic")
 fit.space.direction <- fit.space.direction %>% bru_rerun()
 
 
 
-
+if(FALSE){
 ## space - direction, oscillating directional field
-bru_options_set(inla.mode = "experimental")
-
 space.direction2.rgeneric <- inla.rgeneric.define(space.direction2.model,
                                                   M=list(M0.space=M0, M1.space=M1, M2.space=M2,
                                                          M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
@@ -588,21 +641,22 @@ space.direction2.rgeneric <- inla.rgeneric.define(space.direction2.model,
                                                                            theta5 = fit.space.direction$summary.hyperpar$mean[5],
                                                                            theta6 = -2))
 
-cmp.space.direction2 <- firing_times ~
-    spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction2.rgeneric,
-          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
-          extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=mesh.hd$n), e=rep(0,mesh.hd$n))) +
-    Intercept
 
-fit.space.direction2 <- lgcp(cmp.space.direction2,
-                             data    = Y.spdf,
-                             ips     = W.ipoints.M1,
-                             domain  = list(firing_times = mesh1d),
-                             options = list( num.threads=8, verbose = FALSE, bru_max_iter=1) ) %>%
-    bru_rerun()
-bru_options_set(inla.mode = "classic")
+    cmp.space.direction2 <- firing_times ~
+        spde2(list(spatial=cbind(coords.x1, coords.x2), direction=hd), model=space.direction2.rgeneric,
+              mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
+              extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=mesh.hd$n), e=rep(0,mesh.hd$n))) +
+        Intercept
 
-fit.space.direction2 <- fit.space.direction2 %>% bru_rerun()
+    fit.space.direction2 <- lgcp(cmp.space.direction2,
+                                 data    = Y.spdf,
+                                 ips     = W.ipoints.M1,
+                                 domain  = list(firing_times = mesh1d),
+                                 options = list( num.threads=8, verbose = FALSE, bru_max_iter=1) ) %>%
+        bru_rerun()
+    bru_options_set(inla.mode = "classic")
+    fit.space.direction2 <- fit.space.direction2 %>% bru_rerun()
+}
 
 ## ----------------
 ## Fitting space-time model
@@ -656,12 +710,10 @@ bru_options_set(inla.mode = "experimental")
 fit.space.time <- lgcp(cmp.space.time, data = as.data.frame(Y.spdf),
                        ips=W.ipoints.M2.space.time,
                        domain = list(firing_times = mesh1d),
-                       options=list(
-                           num.threads=8,
-                           verbose = FALSE, bru_max_iter=1)) %>%
+                       options=list( num.threads=8, verbose = FALSE, bru_max_iter=1)) %>%
     bru_rerun()
 
-xbru_options_set(inla.mode = "classic")
+bru_options_set(inla.mode = "classic")
 fit.space.time <- fit.space.time %>% bru_rerun()
 
 bru_options_set(inla.mode = "experimental")
@@ -683,7 +735,7 @@ if(FALSE){
         time(firing_times, model=time.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept(1)
 
     fit.space.direction.time <- lgcp(cmp.space.direction.time, data = as.data.frame(Y.spdf),
-                                     ips=W.ipoints.M2,
+                                     ips=W.ipoints.M2.space.direction.time,
                                      domain = list(firing_times = mesh1d),
                                      options=list(
                                          num.threads=8,
@@ -742,7 +794,7 @@ obs.firings        <- sapply(1:length(clumps), function(i) nrow(Y.test %>% filte
 samp.M0.space           <- generate(object = fit.space, n.samples = 5000,num.threads=8)
 samp.M2.space.time      <- generate(object = fit.space.time,  n.samples = 5000, num.threads=8)
 samp.M1.space.direction <- generate(object = fit.space.direction,  n.samples = 5000, num.threads=8)
-samp.M1.space.direction2<- generate(object = fit.space.direction2,  n.samples = 5000, num.threads=8)
+## samp.M1.space.direction2<- generate(object = fit.space.direction2,  n.samples = 5000, num.threads=8)
 ## 
 clumps.mean.var.M0            <- lapply(1:length(clumps),
                                         function(i) {
@@ -759,33 +811,36 @@ clumps.mean.var.M1.space.direction <- lapply(1:length(clumps),
                                                  pred.mean.var(weights.mat=weights_test$df.W.M1$W.ipoints.M1[[i]]$W.M1,
                                                                post.sample=samp.M1.space.direction)
                                              })
-clumps.mean.var.M1.space.direction2 <- lapply(1:length(clumps),
-                                             function(i) {
-                                                 pred.mean.var(weights.mat=weights_test$df.W.M1$W.ipoints.M1[[i]]$W.M1,
-                                                               post.sample=samp.M1.space.direction2)
-                                             })
+## clumps.mean.var.M1.space.direction2 <- lapply(1:length(clumps),
+##                                              function(i) {
+##                                                  pred.mean.var(weights.mat=weights_test$df.W.M1$W.ipoints.M1[[i]]$W.M1,
+##                                                                post.sample=samp.M1.space.direction2)
+##                                              })
 ## 
 pred.means.M0                  <- sapply(clumps.mean.var.M0, function(i) i[[1]]) # predictive means on each segment/clump
 pred.means.M2.space.time       <- sapply(clumps.mean.var.M2.space.time, function(i) i[[1]]) # predictive means on each segment/clump
 pred.means.M1.space.direction  <- sapply(clumps.mean.var.M1.space.direction, function(i) i[[1]]) # predictive means on each segment/clump
-pred.means.M1.space.direction2 <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[1]]) # predictive means on each segment/clump
+## pred.means.M1.space.direction2 <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[1]]) # predictive means on each segment/clump
 ## 
 pred.vars.M0                   <- sapply(clumps.mean.var.M0, function(i) i[[2]]) # .......... variance ..........
 pred.vars.M2.space.time        <- sapply(clumps.mean.var.M2.space.time, function(i) i[[2]]) # .......... variance ..........
 pred.vars.M1.space.direction   <- sapply(clumps.mean.var.M1.space.direction, function(i) i[[2]])
-pred.vars.M1.space.direction2  <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[2]])
+## pred.vars.M1.space.direction2  <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[2]])
 
 out.list <- list(obs.firings=obs.firings,
                  pred.means.M0 = pred.means.M0,
                  pred.vars.M0  = pred.vars.M0,
                  pred.means.M1.space.direction  = pred.means.M1.space.direction,
-                 pred.means.M1.space.direction2 = pred.means.M1.space.direction2,
+                 ## pred.means.M1.space.direction2 = pred.means.M1.space.direction2,
                  pred.vars.M1.space.direction   = pred.vars.M1.space.direction,
-                 pred.vars.M1.space.direction2  = pred.vars.M1.space.direction2,
+                 ## pred.vars.M1.space.direction2  = pred.vars.M1.space.direction2,
                  pred.means.M2.space.time = pred.means.M2.space.time,
-                 pred.vars.M2.space.time  = pred.vars.M2.space.time
-                 )
+                 pred.vars.M2.space.time  = pred.vars.M2.space.time)
+## 
 save(out.list, file="/exports/eddie/scratch/ipapasta/CV_output_M0_M1_M2.RData")
+save(fit.space, file="/exports/eddie/scratch/ipapasta/CV_fit_space.RData")
+save(fit.space.time, file="/exports/eddie/scratch/ipapasta/CV_fit_space_time.RData")
+save(fit.space.direction, file="/exports/eddie/scratch/ipapasta/CV_fit_space_direction.RData")
 ## 
 ## save(obs.firings, file="/exports/eddie/scratch/ipapasta/obs.firings.RData")
 ## save(pred.means.M0, file="/exports/eddie/scratch/ipapasta/pred.means.M0.RData")
@@ -796,6 +851,11 @@ save(out.list, file="/exports/eddie/scratch/ipapasta/CV_output_M0_M1_M2.RData")
 ## save(pred.vars.M1.space.direction,  file="/exports/eddie/scratch/ipapasta/pred.vars.M1.space.direction.RData")
 ## save(out.list, file="/exports/eddie/scratch/ipapasta/CV_output_M0_M1_M2.RData")
 if(FALSE){
+    par(mfrow=c(1,2))
+    plot(cbind(pred.means.M0,obs.firings), xlim=c(0,200), ylim=c(0,200))
+    abline(a=0,b=1)
+    plot(cbind(pred.means.M2.space.time,obs.firings), xlim=c(0,200), ylim=c(0,200))
+    abline(a=0,b=1)
     ord.obs.spikes  <- order(obs.firings)
 
     rbind(obs.firings[ord.obs.spikes],
@@ -843,6 +903,8 @@ if(FALSE){
     ##
     S.se    <- se.score.M0-se.score.M1.space.direction
     S.ds    <- ds.score.M0-ds.score.M1.space.direction
+    S.se    <- se.score.M0-se.score.M2.space.time
+    S.ds    <- ds.score.M0-ds.score.M2.space.time
     Tobs.se <- mean(S.se)
     Tobs.ds <- mean(S.ds)
     randT.se <- NULL
@@ -860,8 +922,10 @@ if(FALSE){
     pval.ds <- mean(randT.ds > Tobs.ds)
     par(mfrow=c(1,2))
     plot(se.score.M0, se.score.M1)
+    plot(se.score.M0, se.score.M2.space.time)
     abline(a=0, b=1)
     plot(log(ds.score.M0), log(ds.score.M1))
+    plot(log(se.score.M0), log(se.score.M2.space.time))
     abline(a=0, b=1)
     ## 
     ##

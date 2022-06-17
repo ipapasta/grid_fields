@@ -68,7 +68,6 @@ if(experimental){
         dplyr::filter(synced_time <= quantile(dat$X$synced_time, quant))
     ## ------------------------------------
     ## SIMULATE HOMOGENEOUS Poisson Process
-    simulation.hpp <- TRUE
     ## ------------------------------------
     if(!simulation.hpp){
     dat$Y <- dat$Y %>% mutate(index.CV = rep(-1, nrow(dat$Y))) %>%
@@ -98,7 +97,7 @@ if(experimental){
         counter <- 0
         while(Z[length(Z)] < max(dat$X$synced_time)){
             print(counter)
-            Z <- c(Z, Z[length(Z)]+25)
+            Z <- c(Z, Z[length(Z)]+20)
             dat$X$index.CV[which(dat$X$synced_time < Z[counter+2] & dat$X$synced_time > Z[counter+1])] <- counter + 1
             dat$Y$index.CV[which(dat$Y$firing_times < Z[counter+2] & dat$Y$firing_times > Z[counter+1])] <- counter + 1
             counter <- counter + 1

@@ -1,8 +1,12 @@
 ## most recent implementation by Graeme
+args = commandArgs(trailingOnly=TRUE)
+## args[1] = 20
+time_splits = as.numeric(args[1])
 library(tidyverse)
 library(dplyr)
 ## library(readxl)
 library(sp)
+simulation.hpp <- FALSE
 ##
 ## load data
 ##
@@ -97,13 +101,14 @@ if(experimental){
         counter <- 0
         while(Z[length(Z)] < max(dat$X$synced_time)){
             print(counter)
-            Z <- c(Z, Z[length(Z)]+20)
+            Z <- c(Z, Z[length(Z)]+time_splits)
             dat$X$index.CV[which(dat$X$synced_time < Z[counter+2] & dat$X$synced_time > Z[counter+1])] <- counter + 1
             dat$Y$index.CV[which(dat$Y$firing_times < Z[counter+2] & dat$Y$firing_times > Z[counter+1])] <- counter + 1
             counter <- counter + 1
         }
         K <- max(dat$X$index.CV)
         train.index <- seq(1, K , by = 2)
+        char.to.save <- as.character(round(max(dat$X$synced_time)/K))
     }
     X.train <- dat$X %>% dplyr::filter(index.CV %in% train.index)
     Y.train <- dat$Y %>% dplyr::filter(index.CV %in% train.index)

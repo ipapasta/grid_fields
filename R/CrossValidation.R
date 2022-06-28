@@ -771,7 +771,8 @@ if(FALSE){
 ## now just labelled as 1 here etc..
 
 ## use split function to take unique(Y.test$index.CV) and returns a list of consecutive integers
-clumps             <- split(unique(Y.test$index.CV), cumsum(c(1, diff(unique(Y.test$index.CV)) != 1)))
+clumps             <- setdiff(1:K, train.index)
+    ## split(unique(Y.test$index.CV), cumsum(c(1, diff(unique(Y.test$index.CV)) != 1)))
 obs.firings        <- sapply(1:length(clumps), function(i) nrow(Y.test %>% filter(index.CV %in% clumps[[i]])))
 ## clumps.train       <- split(unique(Y.train$index.CV), cumsum(c(1, diff(unique(Y.train$index.CV)) != 1)))
 ## can get number of firing events in clump 1 (after grouping) of test

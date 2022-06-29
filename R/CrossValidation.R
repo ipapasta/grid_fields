@@ -372,16 +372,16 @@ W.ipoints.M1 <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1@i+1)[,
 
 ## test set
 df.W.M1.test <- df.prism.M1.test %>% group_by(index.CV) %>% nest() %>% 
-    mutate(W.M1.vector.test = map(data, function(x){
+    mutate(W.M1.vector = map(data, function(x){
         tol <- 0
         df.dGamma.sum.k.kplus1.M1 <-  rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
-              x %>% 
-              filter(tk!=min(tk)) %>%
-              mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
-                     group=tk-1,
-                     dGamma=0) %>%
-              dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
+                                            dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1),
+                                            x %>% 
+                                            filter(tk!=min(tk)) %>%
+                                            mutate(time=time.lag, direction=direction.lag, coords=coords.lag,
+                                                   group=tk-1,
+                                                   dGamma=0) %>%
+                                            dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, i, val.M1)) %>%
             arrange(group) %>%
             mutate(dGamma.trap = dGamma + dGamma.lag) %>%
             group_by(group, i) %>%
@@ -391,12 +391,21 @@ df.W.M1.test <- df.prism.M1.test %>% group_by(index.CV) %>% nest() %>%
                       coords=unique(coords))  %>%
             ungroup %>% group_by(i) %>%
             summarize(val = sum(val))
-        W.M1.test <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i, x=df.dGamma.sum.k.kplus1.M1$val, length=mesh$n * mesh.hd$n)
+        W.M1.test         <- sparseVector(i=df.dGamma.sum.k.kplus1.M1$i, x=df.dGamma.sum.k.kplus1.M1$val, length=mesh$n * mesh.hd$n)
         W.ipoints.M1.test <- as(W.M1.test, "sparseMatrix")
-        W.ipoints.M1.test <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,1],
-                                        coords.x1 =mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,2],
-                                        coords.x2 =mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,3],
-                                        weight=W.ipoints.M1.test@x)
+        ## IP 29/06/2022
+        W.ipoints.M1.test <- left_join(W.ipoints.M1,
+                                       data.frame(
+                                           hd        = mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,1],
+                                           coords.x1 = mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,2],
+                                           coords.x2 = mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,3],
+                                           weight=W.ipoints.M1.test@x), by = c("hd", "coords.x1", "coords.x2") ) %>%
+            dplyr::select(-weight.x) %>% rename(weight = weight.y) %>%
+            dplyr::mutate(weight = replace_na(weight, 0))
+        ## W.ipoints.M1.test <- data.frame(hd=mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,1],
+        ##                                 coords.x1 =mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,2],
+        ##                                 coords.x2 =mapindex2space.direction_basis(W.ipoints.M1.test@i+1)[,3],
+        ##                                 weight=W.ipoints.M1.test@x)
     }))
 
 ## space-time
@@ -815,7 +824,7 @@ clumps.mean.var.M0            <- lapply(1:length(clumps),
 ## space-direction
 clumps.mean.var.M1.space.direction <- lapply(1:length(clumps),
                                              function(i) {
-                                                 pred.mean.var(weights.mat=df.W.M1.test$W.M1.vector.test[[i]]$weight,
+                                                 pred.mean.var(weights.mat=df.W.M1.test$W.M1.vector[[i]]$weight,
                                                                ## weights_test$df.W.M1$W.ipoints.M1[[i]]$W.M1
                                                                post.sample=samp.M1.space.direction)
                                              })

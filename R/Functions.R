@@ -163,6 +163,10 @@ split.lines <- function(mesh, sp, ep, filter.zero.length = TRUE, tol= 1e-8, retu
     return(list(sp=sp,ep=ep,split.origin=origin,idx=idx,split.loc=splt$split.loc, filter.index=filter.index))
 }
 
+hd <- 0.01
+hd.lead <- 2*pi - 0.01
+debugonce(split.arcs)
+split.arcs(hd, hd.lead, mesh.hd)
 
 split.arcs <- function(hd, hd.lead, mesh.hd){
     ## counter <<- counter + 1
@@ -199,6 +203,107 @@ split.arcs <- function(hd, hd.lead, mesh.hd){
     }
 }
 
+split.arcs2 <- function(hd, hd.lead, mesh.hd){
+    ## counter <<- counter + 1
+    nodes              <- c(mesh.hd$loc, 2*pi)
+    intervals          <- head(cbind(nodes, lead(nodes)), -1)
+    intervals.wrapped  <- rbind(intervals, intervals)
+    ## print(paste("hd: ",hd, "hd.lead: ",hd))
+    hd.int      <- which(apply(intervals, 1, function(x) (x[1] < hd) & (hd <= x[2])))
+    hd.lead.int <- which(apply(intervals, 1, function(x) (x[1] < hd.lead) & (hd.lead <= x[2])))
+    ## hd.int.wrapped      <- which(apply(intervals.wrapped, 1, function(x) (x[1] < hd) & (hd <= x[2])))
+    ## hd.lead.int.wrapped <- which(apply(intervals.wrapped, 1, function(x) (x[1] < hd.lead) & (hd.lead <= x[2])))
+    ## nodes              <- c(mesh.hd$loc, 0)
+    ## intervals          <- head(cbind(nodes, lead(nodes)), -1)
+    ## intervals.wrapped  <- rbind(intervals, intervals) 
+    if(hd.int==hd.lead.int){
+        return(matrix(c(hd, hd.lead),nrow=1))
+    }else{
+        if(hd < hd.lead) {            
+            if(hd.lead.int-hd.int == 1){
+                rbind(c(hd, intervals[hd.int,2]),
+                      c(intervals[hd.lead.int,1], hd.lead))
+            }else{
+                if( (hd.lead - hd) < pi ){
+                    out <- rbind(c(hd, intervals[(hd.int+1),1]),
+                                 intervals[(hd.int+1):(hd.lead.int-1),],
+                                 c(intervals[(hd.lead.int-1),2], hd.lead))
+                }
+                else{ #! IP 1 July 2022
+                    intervals.wrapped   <- rbind(intervals[(hd.int+1):nrow(intervals),], intervals[1:hd.int,])
+                    hd.int.wrapped      <- which(apply(intervals.wrapped, 1, function(x) (x[1] < hd) & (hd <= x[2])))
+                    hd.lead.int.wrapped <- which(apply(intervals.wrapped, 1, function(x) (x[1] < hd.lead) & (hd.lead <= x[2])))
+                    if(2*pi - abs(hd.lead - hd) < 2*diff(mesh.hd$loc)[1]){
+                        out                 <- rbind(c(hd, intervals.wrapped[(hd.int.wrapped),1]),
+                                                     c(intervals.wrapped[(hd.lead.int.wrapped),2], hd.lead))
+                    }else{
+                        out                 <- rbind(c(hd, intervals.wrapped[(hd.int.wrapped),1]),
+                                                     intervals.wrapped[(hd.int.wrapped-1):(hd.lead.int.wrapped+1),2:1],                                 
+                                                     c(intervals.wrapped[(hd.lead.int.wrapped),2], hd.lead))                    
+                    }
+                    if(out[nrow(out),2]-out[nrow(out),1]==0) out <- out[-nrow(out),]
+                    out[out[,1]==2*pi,1] <- 0
+                    out[out[,1]==2*pi,2] <- 0
+                    duplicates <- which(apply(out, 2, function(x) x[1] == x[2]))
+                    if(length(duplicates)> 0) out <- out[-duplicates,]
+                    return(out)                    
+                }                
+            }
+        }
+        else{
+            tmp <- hd
+            hd <- hd.lead; hd.lead <- tmp
+            hd.int      <- which(apply(intervals, 1, function(x) (x[1] < hd) & (hd <= x[2])))
+            hd.lead.int <- which(apply(intervals, 1, function(x) (x[1] < hd.lead) & (hd.lead <= x[2])))
+            if(hd.lead.int-hd.int == 1){
+                rbind(c(hd, intervals[hd.int,2]),
+                      c(intervals[hd.lead.int,1], hd.lead))
+            }else{
+                intervals.wrapped   <- rbind(intervals[(hd.int+1):nrow(intervals),], intervals[1:hd.int,])
+                hd.int.wrapped      <- which(apply(intervals.wrapped, 1, function(x) (x[1] < hd) & (hd <= x[2])))
+                hd.lead.int.wrapped <- which(apply(intervals.wrapped, 1, function(x) (x[1] < hd.lead) & (hd.lead <= x[2])))
+                if( (hd.lead - hd) <= pi ) {
+                    out <- rbind(c(hd, intervals[(hd.int+1),1]),
+                             intervals[(hd.int+1):(hd.lead.int-1),],
+                             c(intervals[(hd.lead.int-1),2], hd.lead)) 
+                }
+                else{ #! IP 1 July 2022
+                    if(2*pi - abs(hd.lead - hd) < 2*diff(mesh.hd$loc)[1]){
+                        out                 <- rbind(c(hd, intervals.wrapped[(hd.int.wrapped),1]),
+                                                     c(intervals.wrapped[(hd.lead.int.wrapped),2], hd.lead))
+                    }else{
+                        out                 <- rbind(c(hd, intervals.wrapped[(hd.int.wrapped),1]),
+                                                     intervals.wrapped[(hd.int.wrapped-1):(hd.lead.int.wrapped+1),2:1],                                 
+                                                     c(intervals.wrapped[(hd.lead.int.wrapped),2], hd.lead))                    
+                    }
+                }
+                ## if(out[nrow(out),2]-out[nrow(out),1]==0) out <- out[-nrow(out),]                 
+                out[out[,1]==2*pi,1] <- 0
+                out[out[,1]==2*pi,2] <- 0
+                duplicates <- which(apply(out, 2, function(x) x[1] == x[2]))
+                if(length(duplicates)> 0) out <- out[-duplicates,]
+                return(unique(out[nrow(out):1,2:1]) )                    
+            }
+        }
+    }
+}
+## test cases
+
+## plot(c(cos(mesh.hd$loc), cos(0)), c(sin(mesh.hd$loc), sin(0)), type="b", asp=1,cex=.5, pch=16)
+## splits <- as.vector(split.arcs2(hd = pi/2-0.05, hd.lead = 3*pi/2 - 0.01,mesh.hd) )
+## points(cos(splits),sin(splits), col=2, pch = 1, cex=0.6)
+## ##
+
+## hd <- runif(1, 0, 2*pi)
+## hd.lead <- runif(1, 0, 2*pi)
+## plot(c(cos(mesh.hd$loc), cos(0)), c(sin(mesh.hd$loc), sin(0)), type="p", asp=1,cex=.7, pch=16, ylim=c(-1.2,1.2), xlim=c(-1.2,1.2))
+## lines(cos(seq(0, 2*pi, len=100)), sin(seq(0, 2*pi, len=100)), lty=1)
+## splits <- as.vector(split.arcs2(hd = hd, hd.lead = hd.lead, mesh.hd) )
+## points(cos(splits),sin(splits), col=2, pch = 1, cex=0.9)
+## text(1.1*cos(splits[1]),1.1*sin(splits[1]), "hd")
+## text(1.1*cos(splits[length(splits)]),1.1*sin(splits[length(splits)]), "hd.lead")
+
+
 
 split.segments.wrapper.function <- function(X, mesh, mesh.hd){
     Ypos.tmp <- data.frame(
@@ -210,7 +315,7 @@ split.segments.wrapper.function <- function(X, mesh, mesh.hd){
         mutate(time.lead   = lead(X$synced_time)) %>%
         mutate(hd.lead     = lead(X$hd)) %>%
         head(-1)
-    Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs(x,y, mesh.hd=mesh.hd)),
+    Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, function(x, y) split.arcs2(x,y, mesh.hd=mesh.hd)),
                                     L.arcs = lapply(HD.split,
                                                     function(x) apply(x, 1,
                                                                       function(y) abs(y[2]-y[1]))),
@@ -230,7 +335,7 @@ split.segments.wrapper.function <- function(X, mesh, mesh.hd){
                                     new.hd.lead = lapply(HD.split, function(x) x[,2, drop=FALSE]),
                                     new.coords = lapply(coords.split, function(x) x[,1:2, drop=FALSE]),
                                     new.coords.lead = lapply(coords.split, function(x) x[,3:4, drop=FALSE])
-                                    )
+                                    ) 
     ## Ypos.tmp <- Ypos.tmp %>% dplyr::select(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead)%>%
     ##     unnest(cols=c(new.time, new.time.lead, new.hd, new.hd.lead, new.coords, new.coords.lead))
     ## names(Ypos.tmp) <- c("time", "time.lead", "hd", "hd.lead", "coords", "coords.lead")    
@@ -829,7 +934,7 @@ if(FALSE){
             mutate(hd.lead = lead(X$hd)) %>%
             head(-1)
         ## 
-        Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs, mesh.hd=mesh.hd),
+        Ypos.tmp <- Ypos.tmp %>% mutate(HD.split = map2(hd, hd.lead, split.arcs2, mesh.hd=mesh.hd),
                                         L.arcs = lapply(HD.split,
                                                         function(x) apply(x, 1,
                                                                           function(y) abs(y[2]-y[1]))),

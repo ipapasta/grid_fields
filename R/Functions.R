@@ -163,10 +163,10 @@ split.lines <- function(mesh, sp, ep, filter.zero.length = TRUE, tol= 1e-8, retu
     return(list(sp=sp,ep=ep,split.origin=origin,idx=idx,split.loc=splt$split.loc, filter.index=filter.index))
 }
 
-hd <- 0.01
-hd.lead <- 2*pi - 0.01
-debugonce(split.arcs)
-split.arcs(hd, hd.lead, mesh.hd)
+## hd <- 0.01
+## hd.lead <- 2*pi - 0.01
+## debugonce(split.arcs)
+## split.arcs(hd, hd.lead, mesh.hd)
 
 split.arcs <- function(hd, hd.lead, mesh.hd){
     ## counter <<- counter + 1

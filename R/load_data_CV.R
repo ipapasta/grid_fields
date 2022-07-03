@@ -42,24 +42,22 @@ if(experimental){
     grid_cells_index.firing <- which(spatial_firing$grid_score>0.8)
     grid_cells_session.id   <- spatial_firing$session_id[grid_cells_index.firing]
     grid_cells_index.position <- which(trajectory_all_mice_hist$session_id %in% grid_cells_session.id)
-
     ## check they match
     cbind(grid_cells_session.id, trajectory_all_mice_hist$session_id[grid_cells_index.position])
-    
     df <- data.frame(session=(grid_cells_session.id),
-                    index.firing=(grid_cells_index.firing),
-                    index.position=(grid_cells_index.position))
+                     index.firing=(grid_cells_index.firing),
+                     index.position=(grid_cells_index.position))
     data_extract <- function(index.position, index.firing, trajectory, firing){
         ## X: trajectory
         X <- data.frame(synced_time=as.numeric(trajectory$synced_time[[index.position]]),
-                   position_x = trajectory$position_x[[index.position]],
-                   position_y = trajectory$position_y[[index.position]],
-                   hd = (trajectory$hd[[index.position]] + 180)*(pi/180))
+                        position_x = trajectory$position_x[[index.position]],
+                        position_y = trajectory$position_y[[index.position]],
+                        hd = (trajectory$hd[[index.position]] + 180)*(pi/180))
         ## Y: firing events
         Y <- data.frame(firing_times=as.numeric(firing$firing_times[[index.firing]])/(30*1000),
-                   position_x = firing$position_x[[index.firing]],
-                   position_y = firing$position_y[[index.firing]],
-                   hd = (firing$hd[[index.firing]] + 180)*(pi/180))
+                        position_x = firing$position_x[[index.firing]],
+                        position_y = firing$position_y[[index.firing]],
+                        hd = (firing$hd[[index.firing]] + 180)*(pi/180))
         list.data <- list(X=X, Y=Y)
     }
     dat <- data_extract(df$index.position[5], df$index.firing[5],
@@ -74,8 +72,8 @@ if(experimental){
     ## SIMULATE HOMOGENEOUS Poisson Process
     ## ------------------------------------
     if(!simulation.hpp){
-    dat$Y <- dat$Y %>% mutate(index.CV = rep(-1, nrow(dat$Y))) %>%
-        dplyr::filter(firing_times <= quantile(dat$X$synced_time, quant))
+        dat$Y <- dat$Y %>% mutate(index.CV = rep(-1, nrow(dat$Y))) %>%
+            dplyr::filter(firing_times <= quantile(dat$X$synced_time, quant))
     }else{
         dat$Y <- path.hpp(lambda=0.1, x=dat$X$position_x, y=dat$X$position_y, time=dat$X$synced_time, hd=dat$X$hd)
         dat$Y <- dat$Y %>% mutate(index.CV = rep(-1, nrow(dat$Y))) %>%
@@ -134,7 +132,7 @@ if(experimental){
     df   <- data.frame(value=1, row.names=ID)
     SPDF       <- SpatialPolygonsDataFrame(SPls, df)                                         # str(df)
     trajectory <- SpatialPolygonsDataFrame(SPls, df)
-    #plot(trajectory)
+                                        #plot(trajectory)
 }
 
 

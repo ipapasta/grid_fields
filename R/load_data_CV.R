@@ -1,5 +1,4 @@
 ## most recent implementation by Graeme
-args = commandArgs(trailingOnly=TRUE)
 ## args[1] = 20
 time_splits = as.numeric(args[1])
 library(tidyverse)

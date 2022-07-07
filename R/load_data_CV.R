@@ -27,7 +27,7 @@ if(FALSE) {
     if(FALSE){
         max_time <- 300
         Y <- Y %>% filter(firing_times < max_time)
-        X <- X %>% filter(synced_time < max_time)
+        X <- X %>% filter(synced_time  < max_time)
     }
     mycoords       <- SpatialPoints(cbind(Y$position_x, Y$position_y))
 }

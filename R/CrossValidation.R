@@ -765,6 +765,7 @@ fit.space.direction.time <- lgcp(cmp.space.direction.time, data = Y.spdf,
                                      num.threads=ncores,
                                      verbose = FALSE,
                                      bru_max_iter=1))
+
 bru_options_set(inla.mode = "classic")
 
 fit.space.direction.time <- fit.space.direction.time %>% bru_rerun()
@@ -819,10 +820,10 @@ obs.firings        <- sapply(1:length(clumps), function(i) nrow(Y.test %>% filte
 ##===============================================================================
 ## repeat test on all segments/clumps 
 ## posterior samples;
-samp.M0.space                <- generate(object = fit.space, n.samples = 5000,num.threads=ncores)
-samp.M2.space.time           <- generate(object = fit.space.time,  n.samples = 5000, num.threads=ncores)
-samp.M1.space.direction      <- generate(object = fit.space.direction,  n.samples = 5000, num.threads=ncores)
-samp.M2.space.direction.time <- generate(object = fit.space.direction.time,  n.samples = 5000, num.threads=ncores)
+samp.M0.space                <- generate(object = fit.space, n.samples = 10000, num.threads=ncores)
+samp.M2.space.time           <- generate(object = fit.space.time,  n.samples = 10000, num.threads=ncores)
+samp.M1.space.direction      <- generate(object = fit.space.direction,  n.samples = 10000, num.threads=ncores)
+samp.M2.space.direction.time <- generate(object = fit.space.direction.time,  n.samples = 10000, num.threads=ncores)
 ## samp.M1.space.direction2<- generate(object = fit.space.direction2,  n.samples = 5000, num.threads=8)
 ##
 ## space
@@ -875,12 +876,14 @@ out.list <- list(obs.firings   = obs.firings,
                  pred.vars.M1.space.direction   = pred.vars.M1.space.direction,
                  pred.means.M2.space.time = pred.means.M2.space.time,
                  pred.vars.M2.space.time  = pred.vars.M2.space.time,
+                 pred.means.M2.space.direction.time = pred.means.M2.space.direction.time,
+                 pred.vars.M2.space.direction.time  = pred.vars.M2.space.direction.time,
                  mesh    = mesh,
                  mesh.hd = mesh.hd,
                  mesh1d  = mesh1d,
-                 samp.M0.space                 =  samp.M0.space               
-                 samp.M2.space.time            =  samp.M2.space.time          
-                 samp.M1.space.direction       =  samp.M1.space.direction     
+                 samp.M0.space                 =  samp.M0.space,               
+                 samp.M2.space.time            =  samp.M2.space.time,          
+                 samp.M1.space.direction       =  samp.M1.space.direction,     
                  samp.M2.space.direction.time  =  samp.M2.space.direction.time)
 
 ## 
@@ -894,14 +897,6 @@ save(fit.space.time, file=paste0("/exports/eddie/scratch/ipapasta/CV_fit_space_t
 save(fit.space.direction, file=paste0("/exports/eddie/scratch/ipapasta/CV_fit_space_direction_", char.to.save,"_seconds_split.RData"))
 save(fit.space.direction.time, file=paste0("/exports/eddie/scratch/ipapasta/CV_fit_space_direction_time_", char.to.save,"_seconds_split.RData"))
 ## 
-## save(obs.firings, file="/exports/eddie/scratch/ipapasta/obs.firings.RData")
-## save(pred.means.M0, file="/exports/eddie/scratch/ipapasta/pred.means.M0.RData")
-## save(pred.vars.M0, file="/exports/eddie/scratch/ipapasta/pred.vars.M0.RData")
-## save(pred.means.M2.space.time, file="/exports/eddie/scratch/ipapasta/pred.means.M2.space.time.RData")
-## save(pred.vars.M2.space.time, file="/exports/eddie/scratch/ipapasta/pred.vars.M2.space.time.RData")
-## save(pred.means.M1.space.direction, file="/exports/eddie/scratch/ipapasta/pred.means.M1.space.direction.RData")
-## save(pred.vars.M1.space.direction,  file="/exports/eddie/scratch/ipapasta/pred.vars.M1.space.direction.RData")
-## save(out.list, file="/exports/eddie/scratch/ipapasta/CV_output_M0_M1_M2.RData")
 if(FALSE){
 ## space - direction, oscillating directional field
 space.direction2.rgeneric <- inla.rgeneric.define(space.direction2.model,

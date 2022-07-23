@@ -745,16 +745,19 @@ predictive.M2 <- function(seq, weights.mat, post.sample){
 
 
 ##
+
 perm.test.scores <- function(x, y){
     stopifnot(length(x)==length(y))
     N <- length(x)
-    M <- 100000
+    M <- 10000
     S <- sign(mean(x-y)) * x-y
     T <- mean(S)
     T_rand <- unlist(lapply(as.list(1:M), function(k) mean((2*rbinom(N,1,0.5)-1)*S) ))
     pval_se_M1_M0_2 <- sum(T_rand > T)/M
     pval_se_M1_M0_2
 }
+
+
 
 ## precision matrix of oscillating field
 ##

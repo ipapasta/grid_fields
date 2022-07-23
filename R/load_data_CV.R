@@ -1,6 +1,7 @@
 ## most recent implementation by Graeme
 ## args[1] = 20
 time_splits = as.numeric(args[1])
+swap        = as.numeric(args[3])
 library(tidyverse)
 library(dplyr)
 ## library(readxl)
@@ -104,8 +105,9 @@ if(experimental){
             counter <- counter + 1
         }
         K <- max(dat$X$index.CV)
-        train.index <- seq(1, K , by = 2)
-        char.to.save <- as.character(round(max(dat$X$synced_time)/K))
+        ## swap <- 0 #1
+        train.index <- seq(1+swap, K , by = 2)
+        char.to.save <- paste0(as.character(time_splits),"_swap_",as.character(swap) )
     }
     X.train <- dat$X %>% dplyr::filter(index.CV %in% train.index)
     Y.train <- dat$Y %>% dplyr::filter(index.CV %in% train.index)

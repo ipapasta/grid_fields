@@ -442,6 +442,7 @@ df.W.M2.space.time.test <- df.prism.M2.space.time.test %>% group_by(index.CV) %>
                           j=df.dGamma.sum.k.kplus1.M2.space.time$i,
                           x=df.dGamma.sum.k.kplus1.M2.space.time$val/2,
                           dims = c(mesh1d$n, mesh$n))
+        W
     }))
 
 
@@ -484,7 +485,7 @@ W.ipoints.M2.space.direction.time <- data.frame(firing_times = mesh1d$loc[W.ipoi
 df.W.M2.space.direction.time.test <- df.prism.M2.space.direction.time.test %>% group_by(index.CV) %>% nest() %>%
     mutate(W.M2.matrix = map(data, function(x){
         tol <- 0
-        rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
+        df.dGamma.sum.k.kplus1.M2.space.time <- rbind(x %>% mutate(group=tk, dGamma.lag=0) %>%
               dplyr::select(group, time, direction, coords, dGamma, dGamma.lag, l, i, val.M2),
               x %>% 
               filter(tk!=min(tk)) %>%
@@ -498,11 +499,12 @@ df.W.M2.space.direction.time.test <- df.prism.M2.space.direction.time.test %>% g
                       time = unique(time),
                       direction=unique(direction),
                       coords=unique(coords))
-        mat.tmp.space.direction.time.test <- (do.call("rbind",df.W.M2.space.direction.time$W.M2.vector))
-        W.space.direction.time       <- sparseMatrix(i=mat.tmp.space.direction.time.test$l,
-                                                     j=mat.tmp.space.direction.time.test$i,
-                                                     x=mat.tmp.space.direction.time.test$val/2,
+        ## mat.tmp.space.direction.time.test <- (do.call("rbind",df.W.M2.space.direction.time$W.M2.vector))
+        W.space.direction.time       <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2.space.time$l,
+                                                     j=df.dGamma.sum.k.kplus1.M2.space.time$i,
+                                                     x=df.dGamma.sum.k.kplus1.M2.space.time$val/2,
                                                      dims=c(mesh1d$n, mesh$n * mesh.hd$n))
+        W.space.direction.time
     }))
 
 B.phi0.matern = matrix(c(0,1,0), nrow=1)
@@ -851,31 +853,28 @@ clumps.mean.var.M2.space.direction.time <- lapply(1:length(clumps),
                                                                        post.sample = samp.M2.space.direction.time)
                                                   })
 
-## clumps.mean.var.M1.space.direction2 <- lapply(1:length(clumps),
-##                                              function(i) {
-##                                                  pred.mean.var(weights.mat=weights_test$df.W.M1$W.ipoints.M1[[i]]$W.M1,
-##                                                                post.sample=samp.M1.space.direction2)
-##                                              })
-## 
-pred.means.M0                       <- sapply(clumps.mean.var.M0, function(i) i[[1]]) # predictive means on each segment/clump
-pred.means.M2.space.time            <- sapply(clumps.mean.var.M2.space.time, function(i) i[[1]]) # predictive means on each segment/clump
-pred.means.M1.space.direction       <- sapply(clumps.mean.var.M1.space.direction, function(i) i[[1]]) # predictive means on each segment/clump
-pred.means.M1.space.direction.time  <- sapply(clumps.mean.var.M2.space.direction.time, function(i) i[[1]]) # predictive means on each segment/clump
-## pred.means.M1.space.direction2 <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[1]]) # predictive means on each segment/clump
-## 
-pred.vars.M0                        <- sapply(clumps.mean.var.M0, function(i) i[[2]]) # .......... variance ..........
-pred.vars.M2.space.time             <- sapply(clumps.mean.var.M2.space.time, function(i) i[[2]]) # .......... variance ..........
+
+# predictive means on each segment/clump
+pred.means.M0                       <- sapply(clumps.mean.var.M0, function(i) i[[1]]) 
+pred.means.M1.space.direction       <- sapply(clumps.mean.var.M1.space.direction, function(i) i[[1]])
+pred.means.M2.space.time            <- sapply(clumps.mean.var.M2.space.time, function(i) i[[1]]) 
+pred.means.M2.space.direction.time  <- sapply(clumps.mean.var.M2.space.direction.time, function(i) i[[1]])
+
+##
+# predictive variance on each segment/clump
+pred.vars.M0                        <- sapply(clumps.mean.var.M0, function(i) i[[2]])
 pred.vars.M1.space.direction        <- sapply(clumps.mean.var.M1.space.direction, function(i) i[[2]])
-pred.vars.M1.space.direction.time   <- sapply(clumps.mean.var.M2.space.direction.time, function(i) i[[2]])
-## pred.vars.M1.space.direction2       <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[2]])
+pred.vars.M2.space.time             <- sapply(clumps.mean.var.M2.space.time, function(i) i[[2]])
+pred.vars.M2.space.direction.time   <- sapply(clumps.mean.var.M2.space.direction.time, function(i) i[[2]])
+
 
 out.list <- list(obs.firings   = obs.firings,
                  pred.means.M0 = pred.means.M0,
                  pred.vars.M0  = pred.vars.M0,
-                 pred.means.M1.space.direction  = pred.means.M1.space.direction,
-                 pred.vars.M1.space.direction   = pred.vars.M1.space.direction,
-                 pred.means.M2.space.time = pred.means.M2.space.time,
-                 pred.vars.M2.space.time  = pred.vars.M2.space.time,
+                 pred.means.M1.space.direction      = pred.means.M1.space.direction,
+                 pred.vars.M1.space.direction       = pred.vars.M1.space.direction,
+                 pred.means.M2.space.time           = pred.means.M2.space.time,
+                 pred.vars.M2.space.time            = pred.vars.M2.space.time,
                  pred.means.M2.space.direction.time = pred.means.M2.space.direction.time,
                  pred.vars.M2.space.direction.time  = pred.vars.M2.space.direction.time,
                  mesh    = mesh,
@@ -886,10 +885,9 @@ out.list <- list(obs.firings   = obs.firings,
                  samp.M1.space.direction       =  samp.M1.space.direction,     
                  samp.M2.space.direction.time  =  samp.M2.space.direction.time)
 
-## 
-## pred.vars.M1.space.direction2  = pred.vars.M1.space.direction2,
-## pred.means.M1.space.direction2 = pred.means.M1.space.direction2,
-##
+
+
+
 
 save(out.list,  file=paste0("/exports/eddie/scratch/ipapasta/CV_output_M0_M1_M2_", char.to.save, "_seconds_split.RData"))
 save(fit.space, file=paste0("/exports/eddie/scratch/ipapasta/CV_fit_space_", char.to.save, "_seconds_split.RData"))
@@ -946,5 +944,11 @@ if(FALSE){
     predictive.M0.space.total.no.events      <- predictive.M0(seq=seq.N, weights.mat = W.M0.vector, post.sample = samp.space)
     predictive.M2.space.time.total.no.events <- predictive.M2(seq=seq.N, weights.mat = W.M2.space.time, post.sample = samp.space.time)
     predictive.M1.space.total.no.events      <- predictive.M1(seq=seq.N, weights.mat = W.M1.vector, post.sample = samp.space)
+    ## 
+    ## pred.vars.M1.space.direction2  = pred.vars.M1.space.direction2,
+    ## pred.means.M1.space.direction2 = pred.means.M1.space.direction2,
+    ##
+    ## pred.means.M1.space.direction2 <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[1]]) 
+    ## pred.vars.M1.space.direction2       <- sapply(clumps.mean.var.M1.space.direction2, function(i) i[[2]])
 }
 

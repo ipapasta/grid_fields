@@ -1,6 +1,7 @@
 setwd("/home/ipapasta/grid_fields/")
 args = commandArgs(trailingOnly=TRUE)
 ncores = as.numeric(args[2])
+for_haavard <- FALSE
 set.seed(111086) 
 library(tidyverse)
 library(purrr)
@@ -42,6 +43,12 @@ p           <- mesh$n
 ## circular mesh
 mesh.hd     <- inla.mesh.1d(seq(0, 2*pi, len=21), boundary="cyclic", degree=1)
 p.hd        <- mesh.hd$n
+
+if(for_haavard){
+    k         <- 10
+    mesh      <- inla.mesh.2d(mycoords.mesh2d, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
+    mesh.hd   <- inla.mesh.1d(seq(0, 2*pi, len=14), boundary="cyclic", degree=1)
+}
 
 ## line splits
 Ypos.ls         <- split.segments.wrapper.function(X=X, mesh=mesh, mesh.hd =mesh.hd)
@@ -109,6 +116,10 @@ index.CV.test    <- df.int.points.test$rawindex.CV
 ## mesh for temporal process
 ## print(paste("mesh1d:", head(diff(mesh1d$loc))))
 mesh1d       <- inla.mesh.1d(loc=c(Traw.data[seq(1, length(Traw.data), by = 25)], Traw.data[length(Traw.data)]), order=2)
+
+if(for_haavard){
+    mesh1d       <- inla.mesh.1d(loc=c(Traw.data[seq(1, length(Traw.data), by = 100)], Traw.data[length(Traw.data)]), order=2)
+}
 
 
 ## Matrix of basis function evaluations for positional data (INTEGRAL term of Poisson likelihood)
@@ -570,10 +581,11 @@ locs             <- weights.domain@coords
 rownames(locs)   <- NULL
 
 
+source("rgeneric_models.R")
+
 ## ----------------
 ## Fitting M0 model
 ## ---------------- 
-source("rgeneric_models.R")
 space.rgeneric  <- inla.rgeneric.define(oscillating.model,
                                         M = list(M0=M0, M1=M1, M2=M2),
                                         theta.functions = list(theta.2.phi   = theta.2.phi,
@@ -606,6 +618,7 @@ fit.space <- lgcp(cmp.space,
                   options = list(num.threads=ncores,verbose = FALSE, bru_max_iter=1) )
 bru_options_set(inla.mode = "classic")
 
+## bru_options_set(keep = TRUE)
 fit.space <- fit.space %>% bru_rerun()
 
 ## cbind(fit.space.experimental$summary.hyperpar$mean, fit.space$summary.hyperpar$mean)
@@ -718,6 +731,13 @@ fit.space.time <- fit.space.time %>% bru_rerun()
 ## ----------------------------------
 ## Fitting space-direction-time model
 ## ----------------------------------
+
+if(for_haavard){
+    load("cluster_data/ipapasta/CV_fit_space_20_seconds_split.RData")
+    load("cluster_data/ipapasta/CV_fit_space_time_20_seconds_split.RData")
+    load("cluster_data/ipapasta/CV_fit_space_direction_20_seconds_split.RData")
+}
+
 space.direction.rgeneric <- inla.rgeneric.define(space.direction.model,
                                                  M=list(M0.space=M0, M1.space=M1, M2.space=M2,
                                                         M0.direction=M0.hd, M1.direction=M1.hd, M2.direction=M2.hd),
@@ -760,6 +780,11 @@ cmp.space.direction.time <- firing_times ~
           extraconstr=list(A=matrix(A.temporal.field_constr,nrow=1), e=0)) + Intercept(1)
 
 bru_options_set(inla.mode = "experimental")
+bru_options_set(keep = TRUE)
+bru_options_set(inla.call="")
+
+
+
 fit.space.direction.time <- lgcp(cmp.space.direction.time, data = Y.spdf,
                                  ips=W.ipoints.M2.space.direction.time %>% dplyr::filter(weight!=0),
                                  domain = list(firing_times = mesh1d),

@@ -1,39 +1,24 @@
+## 
 N <- 100
 coords.dir   <- expand.grid(seq(0, 100, len=N), seq(0, 100, len=100), seq(0,2*pi,len=50)) %>% unname
 predict.data.space.direction.full  <- data.frame(hd=coords.dir[,3], coords.x1=coords.dir[,1], coords.x2=coords.dir[,2])
 lambda.space.direction.full        <- predict(fit.space.direction, predict.data.space.direction.full, ~ Intercept + spde2)
-
 df.animation.varying.direction <- lambda.space.direction.full %>% mutate(hd=as.factor(hd))
 df.animation.varying.coordinates <- lambda.space.direction.full %>%
-    mutate(coord.diag = (coords.x1==coords.x2)) %>% dplyr::filter(coord.diag==TRUE) %>%
-    mutate(coords.x1  = as.factor(coords.x1))
+    mutate(coord.diag = (coords.x1==coords.x2)) %>% dplyr::filter(coord.diag==TRUE) %>% mutate(coords.x1  = as.factor(coords.x1))
+
+
+
+
+
 
 
 
 ## animations side by side
 ## animation of a path
-
-
-p.space.direction.varying.direction  <- ggplot(df.animation.varying.direction %>% group_by(coords.x1, coords.x2) %>%
-                                               summarize(mean=mean(mean)), aes(coords.x1,coords.x2)) +
-    geom_raster(aes(fill=mean), interpolate=TRUE) +
-    guides(fill = guide_colourbar(title="log firing rate"))+
-    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
-                         limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
-    coord_fixed()+ 
-    theme_classic() + theme(legend.text=element_text(size=11))
-
-
-p.space.direction.varying.direction + geom_path(data = df.animation.varying.coordinates, aes(x=as.numeric(coords.x1), y=coords.x2))
-
-transition_states(hd, transition_length = 1, state_length = 1)
-
-
 ## 
 ## code for animation
 ## 
-
-
 p.space.direction.varying.direction  <- ggplot(df.animation.varying.direction, aes(coords.x1,coords.x2)) +
     geom_raster(aes(fill=mean), interpolate=TRUE) +
     guides(fill = guide_colourbar(title="log firing rate"))+
@@ -41,6 +26,9 @@ p.space.direction.varying.direction  <- ggplot(df.animation.varying.direction, a
                          limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
     coord_fixed()+ 
     theme_classic() + theme(legend.text=element_text(size=11)) + transition_states(hd, transition_length = 1, state_length = 1)
+
+## p.space.direction.varying.coord <- ggplot(df.animation.varying.coordinates %>% dplyr::filter(coords.x1==0 & coords.x2==0)) +
+##     geom_line(aes(hd, mean))
 
 p.space.direction.varying.coord <- ggplot(df.animation.varying.coordinates) + 
     geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+
@@ -53,17 +41,6 @@ p.space.direction.varying.coord <- ggplot(df.animation.varying.coordinates) +
     coord_polar(start = pi, direction=1) + theme_minimal()  +
     transition_states(coords.x1, transition_length = 1, state_length = 1)
 
-## ggplot(df.animation, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
-##     scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
-##                          limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
-##     coord_fixed()+ 
-##     theme_classic() + theme(legend.text=element_text(size=11)) + transition_states(hd, transition_length = 2, state_length = 1)
-
-## p.space.direction  <- ggplot(df.animation, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
-##     scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
-##                          limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
-##     coord_fixed()+ 
-##     theme_classic() + theme(legend.text=element_text(size=11)) + transition_states(hd, transition_length = 2, state_length = 1)
 
 
 
@@ -80,10 +57,51 @@ for(i in 2:50){
 }
 plot(new_gif)
 
+new_bgif <- image_append(c(b_mgif[1]))
+for(i in 2:50){
+  combined <- image_append(c(b_mgif[i]))
+  new_bgif <- c(new_bgif, combined)
+}
+
 anim_save("anim_space_direction.varying.direction.gif", p.space.direction.varying.direction)
 anim_save("anim_space_direction.varying.coord.gif", p.space.direction.varying.coord)
-anim_save("anim_space_direction.varying.direction.test.gif", new_gif)
+anim_save("anim_space_direction.varying.direction.combined.gif", new_gif)
+anim_save("test.gif", new_bgif)
 
+
+
+
+
+## -------------------------------
+## varying coordinates full domain
+## -------------------------------
+df.animation.varying.coordinates <- lambda.space.direction.full %>% arrange(coords.x1, coords.x2)
+
+p.space.direction.varying.coord <- ggplot(df.animation.varying.coordinates) + 
+    geom_ribbon(aes(x= hd, ymin=q0.025, ymax=q0.975), alpha=0.4, colour="grey70")+
+    scale_x_continuous(breaks=seq(0,2*pi - pi/2,pi/2),
+                       labels=paste0(0:3,expression("pi"),"/",2)) +
+    xlab("head direction") +
+    ylab("log firing rate")+
+    geom_line(aes(x=hd, y=mean)) +
+    geom_hline(yintercept=0, colour="grey")+
+    ## coord_polar(start = pi, direction=1) + theme_minimal()  +
+    transition_time(coords.x1)
+    
+
+p.space.direction.varying.direction  <- ggplot(df.animation.varying.direction %>% group_by(coords.x1, coords.x2) %>%
+                                               summarize(mean=mean(mean)), aes(coords.x1,coords.x2)) +
+    geom_raster(aes(fill=mean), interpolate=TRUE) +
+    guides(fill = guide_colourbar(title="log firing rate"))+
+    scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
+                         limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
+    coord_fixed()+ 
+    theme_classic() + theme(legend.text=element_text(size=11))
+
+
+p.space.direction.varying.direction + geom_path(data = df.animation.varying.coordinates, aes(x=as.numeric(coords.x1), y=coords.x2))
+
+transition_states(hd, transition_length = 1, state_length = 1)
 
 
 
@@ -157,3 +175,17 @@ p.M1.path.time.anim  <- ggplot(lambda.M1.path_copied) +
 
 animate(p.M0.path.time.anim, nframes = frames)
 anim_save("anim_temporal_intensity.M0.gif", p.M0.path.time.anim)
+
+
+## ggplot(df.animation, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
+##     scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
+##                          limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
+##     coord_fixed()+ 
+##     theme_classic() + theme(legend.text=element_text(size=11)) + transition_states(hd, transition_length = 2, state_length = 1)
+
+## p.space.direction  <- ggplot(df.animation, aes(coords.x1,coords.x2)) + geom_raster(aes(fill=mean), interpolate=TRUE) +
+##     scale_fill_gradientn(colours=ocean.balance(100), guide = "colourbar",
+##                          limits=c(min(lambda.space.direction.full$mean),max(lambda.space.direction.full$mean)))+
+##     coord_fixed()+ 
+##     theme_classic() + theme(legend.text=element_text(size=11)) + transition_states(hd, transition_length = 2, state_length = 1)
+

@@ -565,6 +565,7 @@ theta.2.rho <- function(theta){
 theta.2.kappa.1d <- function(theta){
     sqrt(8*(3/2))/exp(theta)       
 }
+## test
 
 ##
 theta.2.rho.direction <- function(theta){
@@ -747,15 +748,16 @@ predictive.M2 <- function(seq, weights.mat, post.sample){
 ##
 
 perm.test.scores <- function(x, y){
+    ## x would be have to be the scores from the baseline model
+    ## for a one sided test
     stopifnot(length(x)==length(y))
     N <- length(x)
     M <- 10000
-    S <- sign(mean(x-y)) * x-y
+    S <- (x-y)
     T <- mean(S)
     T_rand <- unlist(lapply(as.list(1:M), function(k) mean((2*rbinom(N,1,0.5)-1)*S) ))
-    pval_se_M1_M0_2 <- sum(T_rand > T)/M
-    pval_se_M1_M0_2
-}
+    sum(T_rand > T)/M
+} #1 sided test
 
 
 

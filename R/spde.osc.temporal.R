@@ -231,6 +231,8 @@ W <- sparseMatrix(i=df.dGamma.sum.k.kplus1.M2.space.time$l,
 
 W <- W %>% cbind(Matrix(0, nrow=nrow(W), ncol=ncol(Aosc)-ncol(W)))
 W <- W %>% rbind(Matrix(0, nrow=ncol(Attmp)-nrow(W), ncol=ncol(W)))                
+W.M2.space.time <- W
+
 
 ## 
 ## Finally, the W.ipoints.M2.space.direction matrix is created below which a format appropriate to be used in inlabru
@@ -356,6 +358,12 @@ Ypos.sldf <- SpatialLinesDataFrame(sl   = SpatialLines(lapply(as.list(1:nrow(Ypo
 
 data <- list(Ypos=Ypos, Y=Y, Yspdf=Y.spdf, Ypos.sldf = Ypos.sldf)
 
+
+## check weights for M0 are equal to those computed from inlabru::ipoints function
+ips.inlabru <- ipoints(samplers = Ypos.sldf, domain = mesh)
+plot(ips.inlabru$weight - W.ipoints.M0$weight)
+
+
 ## ------------------------------------------------------
 ## specification of prior distribution of hyperparameters
 ## ------------------------------------------------------
@@ -371,11 +379,13 @@ sigma.directional <- 1
 ## 
 rho.temporal      <- 1/100
 sigma.temporal    <- 1/3
+## rho.temporal      <- 1/100
+## sigma.temporal    <- 1/3
 rho.prior.rate.time   <- 1/100
 sigma.prior.rate.time <- 1/3
 initial.space     <- list(theta1=2.6,theta2=0.5, theta3=-1.4)
 initial.direction <- list(theta4=log(pi), theta5=0)
-initial.time      <- list(theta1=log(100), theta2=log(3))
+initial.time      <- list(theta1=log(20), theta2=log(1))
 l = -0.98
 u = 1
 
@@ -383,9 +393,9 @@ Pl.Omega       <- Polygon(expand.grid(c(min(X$position_x),max(X$position_x)), c(
 ID.Omega       <- "Omega"
 Pls.Omega      <- Polygons(list(Pl.Omega), ID=ID.Omega)
 SPls.Omega     <- SpatialPolygons(list(Pls.Omega))
-weights.domain <- ipoints(domain=mesh, samplers=SPls.Omega)
+weights.domain   <- ipoints(domain=mesh, samplers=SPls.Omega)
 weights.domain1d <- ipoints(domain=mesh1d, samplers=c(0,max(dat$X$synced_time)))
-locs           <- weights.domain@coords
+locs             <- weights.domain@coords
 rownames(locs) <- NULL
 
 
@@ -423,6 +433,8 @@ fit.space <- lgcp(cmp.space,
                   options = list(num.threads=8,verbose = TRUE, bru_max_iter=1) ) %>% bru_rerun()
 
 
+sum(as.matrix(A.spatial.field_constr,nrow=1) * fit.space$summary.random$spde2$mean)
+
 ## ----------------
 ## Fitting space-time model
 ## ----------------
@@ -443,6 +455,10 @@ space.rgeneric     <- inla.rgeneric.define(oscillating.model,
                                                               theta2 = fit.space$summary.hyperpar$mean[2],
                                                               theta3 = fit.space$summary.hyperpar$mean[3]))
 
+A.temporal.field_constr <- weights.domain1d$weight## inla.spde.make.A(mesh=mesh1d, loc=weights.domain1d$x,
+                           ##                 weights=weights.domain1d$data,
+                           ##                 block=rep(1, mesh1d$n))
+
 time.rgeneric            <- inla.rgeneric.define(temporal.model,
                                                  M=list(M0.temporal=M0.temporal, M1.temporal=M1.temporal, M2.temporal=M2.temporal),
                                                  theta.functions = list(theta.2.rho.time        = theta.2.rho.time,
@@ -462,9 +478,10 @@ time.rgeneric            <- inla.rgeneric.define(temporal.model,
 
 cmp.space.time <- firing_times ~
     spde2(cbind(coords.x1, coords.x2), model=space.rgeneric, mapper=bru_mapper(mesh,indexed=TRUE),
-          extraconstr=list(A=as.matrix(A.spatial.field_constr,nrow=1), e=0)
+          extraconstr=list(A=matrix(A.spatial.field_constr,nrow=1), e=0)
           ) + 
-    spde1(firing_times, model=time.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE)) + Intercept
+    spde1(firing_times, model=time.rgeneric, mapper=bru_mapper(mesh1d, indexed=TRUE),
+          extraconstr=list(A=matrix(A.temporal.field_constr,nrow=1), e=0)) + Intercept
 
 fit.space.time <- lgcp(cmp.space.time, data = as.data.frame(Y.spdf),
                        ips=W.ipoints.M2.space.time,
@@ -475,9 +492,42 @@ fit.space.time <- lgcp(cmp.space.time, data = as.data.frame(Y.spdf),
     bru_rerun()
 
 
+## ggplot(data=fit.space.time$summary.random$spde1)  +
+
+
 ## tests
-samp.space      <- generate(object = fit.space, n.samples = 1000)
-samp.space.time <- generate(object = fit.space.time, n.samples = 1000)
+## W.M0.vector
+## W.M2.space.time
+##
+
+samp.space                         <- generate(object = fit.space, n.samples = 2000)
+samp.space.time                    <- generate(object = fit.space.time, n.samples = 2000)
+observed.total.no.events           <- nrow(as.data.frame(Y.spdf))
+seq.N                              <- seq(round(observed.total.no.events-700), round(observed.total.no.events+700), by=1)
+## 
+post.M0.space.total.no.events      <- pred.mean.var(weights.mat = W.M0.vector, post.sample = samp.space,sample = TRUE)
+post.M2.space.time.total.no.events <- pred.mean.var.M2(weights.mat = W.M2.space.time, post.sample = samp.space.time, sample=TRUE)
+## 
+
+predictive.M0.space.total.no.events      <- predictive.M0(seq=seq.N, weights.mat = W.M0.vector, post.sample = samp.space)
+predictive.M2.space.time.total.no.events <- predictive.M2(seq=seq.N, weights.mat = W.M2.space.time, post.sample = samp.space.time)
+
+par(mfrow=c(1,2))
+plot(seq.N, apply(predictive.M0.space.total.no.events$predictive,2,mean), main="M0.space.total.no.events", type="l",col=1,
+     ylab="predictive")
+abline(v=observed.total.no.events)
+plot(seq.N, apply(predictive.M2.space.time.total.no.events$predictive,2,mean), main="M2.space.time.total.no.events", type="l",col=1,
+     ylab="predictive")
+abline(v=observed.total.no.events)
+
+par(mfrow=c(1,2))
+hist(post.M0.space.total.no.events, main="M0.space.total.no.events", breaks=100, freq=FALSE)
+abline(v=observed.total.no.events)
+hist(post.M2.space.time.total.no.events, main="M2.space.time.total.no.events", breaks=100, freq=FALSE)
+abline(v=observed.total.no.events)
+
+
+
 
 ## ----------------
 ## Fitting M1 model

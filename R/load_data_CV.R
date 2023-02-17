@@ -1,12 +1,13 @@
 ## most recent implementation by Graeme
 ## args[1] = 20
-time_splits = as.numeric(args[1])
-swap        = as.numeric(args[3])
+## time_splits = as.numeric(args[1])
+## swap        = as.numeric(args[3])
 library(tidyverse)
 library(dplyr)
 ## library(readxl)
 library(sp)
 simulation.hpp <- FALSE
+for_haavard <- FALSE
 ##
 ## load data
 ##
@@ -107,6 +108,9 @@ if(experimental){
         K <- max(dat$X$index.CV)
         ## swap <- 0 #1
         train.index <- seq(1+swap, K , by = 2)
+        if(for_haavard){
+            train.index <- seq(1+swap, K , by = 6)
+        }
         char.to.save <- paste0(as.character(time_splits),"_swap_",as.character(swap) )
     }
     X.train <- dat$X %>% dplyr::filter(index.CV %in% train.index)

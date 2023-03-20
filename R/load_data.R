@@ -4,7 +4,7 @@ library(dplyr)
 library(purrr)
 library(readxl)
 library(sp)
-load("/data/spatial_firing_all_mice_hist.Rda")
+load("data/spatial_firing_all_mice_hist.Rda")
 load("data/trajectory_all_mice_hist(1).Rda")
 ## 
 grid_cells_index.firing <- which(spatial_firing$grid_score>0.8)

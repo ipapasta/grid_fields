@@ -57,7 +57,7 @@ Ypos            <- Ypos.ls$Ypos
 Yposraw         <- Yposraw.ls$Ypos
 filter.index    <- Ypos.ls$filter.index
 filterraw.index <- Yposraw.ls$filter.index
-
+ 
 ## ------------------
 ## Integration points
 ## ------------------
@@ -615,7 +615,7 @@ fit.space <- lgcp(cmp.space,
                   data = Y.spdf,
                   ips     = W.ipoints.M0 %>% dplyr::filter(weight!=0),
                   domain  = list(firing_times = mesh1d),
-                  options = list(num.threads=ncores,verbose = FALSE, bru_max_iter=1) )
+                  options = list(num.threads=ncores, verbose = FALSE, bru_max_iter=1) )
 bru_options_set(inla.mode = "classic")
 
 ## bru_options_set(keep = TRUE)

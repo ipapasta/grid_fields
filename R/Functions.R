@@ -797,7 +797,7 @@ osc.precision <- function(theta, mesh){
     ## 
 }
 
-## precision matrix of oscillating field with cyclic B-splines
+## precision matrix of cyclic field with B-splines
 hd.bsp.precision <- function(theta, mesh){
     theta1 <- theta[1]
     theta2 <- theta[2]
@@ -811,6 +811,26 @@ hd.bsp.precision <- function(theta, mesh){
         ((sigma^2)*(2*kappa)^2*sinh(pi*kappa)^2)
     fem       <- inla.mesh.fem(mesh=mesh, order = 2)
     tausq*((kappa^4)*(fem$c0) + (2*(kappa^2)*(fem$g1)) + fem$g2)
+}
+
+## ---------------
+## Cyclic B-splines, cyclic oscillatory GP 
+## ---------------
+hd.bsp.precision.oscillatory <- function(theta, mesh){
+    rho.direction        <- theta.2.rho.direction(theta[1])
+    kappa.direction      <- sqrt(8*(3/2))/rho.direction
+    sigma.direction      <- theta.2.sigma.direction(theta[2])
+    phi.direction        <- theta.2.phi(theta[3], l=-1, u=1)
+    a                    <- -phi.direction
+    b                    <- -(1-phi.direction^2)^(1/2)        
+    x                    <- cos(atan2(y=b, x=a)/2)
+    y                    <- sin(atan2(y=b, x=a)/2)
+    tausq.direction      <- ((y*sin(2*kappa.direction*pi*x)+x*sinh(2*kappa.direction*pi*y)))/
+        (2*b*(kappa.direction^3)*sigma.direction*(cosh(2*kappa.direction*pi*y)-cos(2*kappa.direction*pi*x)))             
+    fem       <- inla.mesh.fem(mesh=mesh, order = 2)  
+    tausq.direction*(kappa.direction^4 * (fem$c0) +
+                     2 * phi.direction * kappa.direction^2 * (fem$g1) +
+                     fem$g2)
 }
 
 ## theta <- seq(0, 2*pi, len=10)
@@ -850,6 +870,17 @@ temp.precision <- function(theta, mesh, o=2){
     ## 
     tausq*((kappa^4)*(o$c0) + (2*(kappa^2)*(o$g1)) + o$g2)
     ## 
+}
+
+
+temp.precision.oscillatory <- function(theta, mesh){
+    rho.time     <- theta.2.rho.direction(theta[1])
+    kappa.time   <- sqrt(8*(3/2))/rho.time
+    sigma.time   <- theta.2.sigma.direction(theta[2])
+    phi.time     <- theta.2.phi(theta[3], l=-1, u=1)
+    tausq.time   <- sqrt(2/(1+phi.time))/(4 * sigma.time * kappa.time^3)
+    fem          <- inla.mesh.fem(mesh=mesh, order = 2)  
+    tausq.time*(kappa.time^4 * (fem$c0) + 2 * phi.time * kappa.time^2 * (fem$g1) + fem$g2)
 }
 
 

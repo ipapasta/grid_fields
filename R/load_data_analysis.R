@@ -7,7 +7,7 @@ library(dplyr)
 ## library(readxl)
 library(sp)
 simulation.hpp <- FALSE
-for_haavard <- FALSE
+for_haavard    <- FALSE
 ##
 ## load data
 ##
@@ -180,6 +180,8 @@ if(FALSE){
 
     experimental <- TRUE
     if(experimental){
+        ## session_id
+        ## cluster_id
         load("data/spatial_firing_all_mice_hist.Rda")
         load("data/trajectory_all_mice_hist(1).Rda")
         grid_cells_index.firing <- which(spatial_firing$grid_score>0.8)

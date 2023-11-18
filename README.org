@@ -1,17 +1,22 @@
 * Hierarchical Poisson point process models for grid cells 
 #+html: <p align="center"><img src="/R/animations/anim_space_direction.varying.direction.combined.gif" /></p>
-** Brief code instructions
-- load_data.R (do not print any object from this script in the console)
-- spde.osc.temporal is the main script for manipulating data and
-  fiting models M0, M1 and M2. Models M0 and M1 may be fit
-  "reasonably" fast on a standard computer. Model M2 is
-  computationally intensive.
-- predictions_M0.M1.M2.R contains code for plotting fitted intensity functions for models M0, M1 and M2
 
-** An illustrative example
+** Guide
+Coming up soon..
+** Brief code instructions :noexport:
+- load_data.R
+- =spde.osc.temporal= contains main code for processing data into a
+  pipeline for computing integration weights and fiting Poisson point
+  process models with latent Gaussian effects (M0, M1 and M2). Models
+  M0 and M1 may be fit fast on a standard computer. Model M2 demands
+  memory.
+- =predictions_M0.M1.M2.R= contains code used in plotting fitted
+  intensity functions.
 
+** An illustrative example :noexport:
 *** Loading data
-Load packages and helper functions, and set default options for optimization with =INLA=.
+Packages and helper functions, and setting of options for optimization
+in =INLA= software.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
   library(tidyverse)
   library(dplyr)
@@ -110,7 +115,6 @@ effects are tightly linked to the design of the meshes. See Section (REF)
   dev.off()
 #+end_src
 #+html: <p align="center"><img src="/R/animations/meshes.svg" /></p>
-
 
 *** Boxing line segments
 To facilitate a stable numerical integration for the integral in the
@@ -215,7 +219,6 @@ domain in the left panel of the Figure below and by black dots on the
 time axis in the right panel.
 #+html: <p align="center"><img src="/R/animations/temporal_mesh.svg" /></p>
 
-
 *** Matrices of basis function evaluations
 
 **** Matrix of basis function evaluations for positional data
@@ -252,7 +255,6 @@ time axis in the right panel.
   abline(h=0)
   dev.off()
 #+end_src
-
 
 *** Data preprocessing associated with integration weights
 Firstly, for each line segment of the path, we need to know how much

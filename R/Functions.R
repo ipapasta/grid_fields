@@ -664,14 +664,14 @@ posterior.directional.kappa <- function(inlabru.fitted.object){
 
 
 posterior.temporal.standard.deviation <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.sigma, inlabru.fitted.object$marginals.hyperpar[["Theta6 for spde2"]])
+    marg                  <- inla.tmarginal(theta.2.sigma.time, inlabru.fitted.object$marginals.hyperpar[["Theta2 for spde1"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)
     return(marg)
 }
 posterior.temporal.range <- function(inlabru.fitted.object){
-    marg                  <- inla.tmarginal(theta.2.rho, inlabru.fitted.object$marginals.hyperpar[["Theta7 for spde4"]])
+    marg                  <- inla.tmarginal(theta.2.rho.time, inlabru.fitted.object$marginals.hyperpar[["Theta1 for spde1"]])
     summaries             <- inla.zmarginal(marg, silent=TRUE)
     hpd.interval          <- inla.hpdmarginal(0.95, marg)
     attr(marg, "summary") <- list(interval.estimate.hpd = hpd.interval, point.estimates = summaries)

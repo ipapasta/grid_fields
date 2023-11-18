@@ -11,10 +11,11 @@ library(fields)
 simulation.hpp <- FALSE
 source("load_data_analysis.R")
 source("Functions.R")
-bru_options_set(inla.mode = "experimental")
-bru_options_set(control.compute = list(openmp.strategy="huge"))
+bru_options_set(inla.mode = "classic")
+bru_options_set(control.compute = list(openmp.strategy="pardiso"))
+## bru_options_set(control.compute = list(openmp.strategy="huge"))
 ##}else{
-##  bru_options_set(control.compute = list(openmp.strategy="pardiso"))
+
 ## }
 ## ===============================================================================
 mycoords.mesh2d <- cbind(runif(65*65, 0, 100), runif(65*65, 0, 100))
@@ -33,12 +34,6 @@ p           <- mesh$n
 mesh.hd     <- inla.mesh.1d(seq(0, 2*pi, len=21), boundary="cyclic", degree=1)
 p.hd        <- mesh.hd$n
 
-if(for_haavard){
-    k         <- 10
-    mesh      <- inla.mesh.2d(mycoords.mesh2d, max.edge=c(k, 25*k), offset=c(0.03, 120), cutoff=k/2)
-    mesh.hd   <- inla.mesh.1d(seq(0, 2*pi, len=14), boundary="cyclic", degree=1)
-}
-
 ## line splits
 Ypos.ls         <- split.segments.wrapper.function(X=X, mesh=mesh, mesh.hd =mesh.hd)
 Yposraw.ls      <- split.segments.wrapper.function(X=dat$X, mesh=mesh, mesh.hd =mesh.hd)
@@ -47,7 +42,6 @@ Yposraw         <- Yposraw.ls$Ypos
 filter.index    <- Ypos.ls$filter.index
 filterraw.index <- Yposraw.ls$filter.index
 
- 
 ## ------------------
 ## Integration points
 ## ------------------
@@ -393,7 +387,7 @@ locs             <- weights.domain@coords
 rownames(locs)   <- NULL
 source("rgeneric_models.R")
 
-save(list=ls(), file="/exports/eddie/scratch/ipapasta/info.RData")
+save(list=ls(), file="/exports/eddie/scratch/ipapasta/info_ls.RData")
 
 ## ----------------
 ## Fitting M0 model
@@ -426,7 +420,7 @@ fit.space <- lgcp(cmp.space,
                   data = Y.spdf,
                   ips     = W.ipoints.M0 %>% dplyr::filter(weight!=0),
                   domain  = list(firing_times = mesh1d),
-                  options = list(num.threads=8, verbose = TRUE, bru_max_iter=1) )
+                  options = list(num.threads=10, verbose = FALSE, bru_max_iter=1) )
 
 save(fit.space, file="/exports/eddie/scratch/ipapasta/fit.space.RData")
 
@@ -467,12 +461,18 @@ cmp.space.direction <- firing_times ~
           extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=mesh.hd$n), e=rep(0,mesh.hd$n))) +
     Intercept(1)
 
+cmp.space.direction <- firing_times ~
+    spde2(list(spatial=coordinates(.data.), direction=hd), model=space.direction.rgeneric,
+          mapper=bru_mapper_multi(list(spatial=bru_mapper(mesh,indexed=TRUE), direction=bru_mapper(mesh.hd, indexed=TRUE))),
+          extraconstr=list(A=as.matrix(A.spatial.field_constr_along.directions,nrow=mesh.hd$n), e=rep(0,mesh.hd$n))) +
+    Intercept(1)
+
 
 fit.space.direction <- lgcp(cmp.space.direction,
                             data    = Y.spdf,
                             ips     = W.ipoints.M1 %>% dplyr::filter(weight!=0),
                             domain  = list(firing_times = mesh1d),
-                            options = list(num.threads=8, verbose = FALSE, bru_max_iter=1))
+                            options = list(num.threads=10, verbose = FALSE, bru_max_iter=1))
 
 save(fit.space.direction, file="/exports/eddie/scratch/ipapasta/fit.space.direction.RData")
 
@@ -517,13 +517,13 @@ cmp.space.time <- firing_times ~
 fit.space.time <- lgcp(cmp.space.time, data = Y.spdf,
                        ips=W.ipoints.M2.space.time %>% dplyr::filter(weight!=0),
                        domain = list(firing_times = mesh1d),
-                       options=list( num.threads=8, verbose = FALSE, bru_max_iter=1))
+                       options=list( num.threads=10, verbose = FALSE, bru_max_iter=1))
 
 save(fit.space.time, file="/exports/eddie/scratch/ipapasta/fit.space.time.RData")
 
 
 
-
+if(FALSE){
 ## ----------------------------------
 ## Fitting space-direction-time model
 ## ----------------------------------
@@ -574,8 +574,9 @@ fit.space.direction.time <- lgcp(cmp.space.direction.time, data = Y.spdf,
                                  ips=W.ipoints.M2.space.direction.time %>% dplyr::filter(weight!=0),
                                  domain = list(firing_times = mesh1d),
                                  options=list(
-                                     num.threads=8,
-                                     verbose = FALSE,
+                                     num.threads=10,
+                                     verbose = TRUE,
                                      bru_max_iter=1))
 
 save(fit.space.direction.time, file="/exports/eddie/scratch/ipapasta/fit.space.direction.time.RData")
+}

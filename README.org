@@ -96,9 +96,8 @@ above.
   abline(h=0);  abline(v=0)
   text(-.05,1, paste("1")); text(1,-.05, paste("1"))
 #+end_src
-The constructions of the latent spatial and latent head-directional
-effects are tightly linked to the design of the meshes. See Section (REF)
-
+Illustrated next are the meshes used for the constructions of the
+latent spatial and latent head-directional processes
 #+begin_src R :results output latex :exports none :session *R:grid_fields* 
   ## svglite(file="R/animations/trajectory.svg", bg="transparent")
   svglite(file="R/animations/meshes.svg", bg="white")
@@ -123,7 +122,7 @@ precisely
   mesh.
 
 The code below uses the wrapper function
-=split.segments.wrapper.function=. Firstly, this function uses
+=split.segments.wrapper.function=. First, this function uses
 =split.arcs= to split the path segments so that each new segment is
 boxed by an arc on the circular mesh. Then, the function
 =inlabru::split_lines= is used to split again the segments obtained
@@ -254,7 +253,7 @@ time axis in the right panel.
 #+end_src
 
 *** Data preprocessing associated with integration weights
-Firstly, for each line segment of the path, we need to know how much
+First, for each line segment of the path, we need to know how much
 distance was traveled and how much time it took for the animal to
 traverse the segment. 
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
@@ -262,7 +261,7 @@ traverse the segment.
   dT  <- diff(T.data)
 #+end_src
 
-Secondly, to compute the integration weights, we need to store all
+Second, to compute the integration weights, we need to store all
 basis function evaluations (i.e., spatial, spatial-directional and
 temporal basis functions) at starting points of each line segment of
 the path. 
@@ -511,10 +510,6 @@ M0.hd = fem.mesh.hd$c0
 M1.hd = fem.mesh.hd$g1
 M2.hd = fem.mesh.hd$g2
 #+end_src
-For syntax on how to write new models see "git-books" or even better
-vignette("rgeneric", package="INLA") if you can't open the vignette
-then you probably have an older version of INLA.  Install most recent
-development version
 **** Specifying the prior distribution of hyperparameters
 Below we assign a prior distribution to each hyperparameter of models
 =M0, M1= and =M2=.  The priors are defined in the

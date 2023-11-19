@@ -1,4 +1,12 @@
-* Hierarchical Poisson point process models for grid cells 
+* Hierarchical Poisson point process models for grid cells
+Bayesian inference of grid-cell firing patterns using hierarchical
+Poisson point process models, based on arXiv 2303.17217 preprint:
+
+Papastathopoulos, I., Auld, G., Lindgren, F., Gerlei, K. and Nolan,
+N, (2023). 'Bayesian inference of grid cell firing patterns using
+Poisson point process models with latent oscillatory Gaussian random
+fields'.
+
 #+html: <p align="center"><img src="/R/animations/anim_space_direction.varying.direction.combined.gif" /></p>
 
 ** Brief code instructions :noexport:
@@ -11,7 +19,7 @@
 - =predictions_M0.M1.M2.R= contains code used in plotting summaries of the posterior
   of intensity functions.
   
-** Worked example                                                 :noexport:
+** Example                                                        :noexport:
 *** Loading data
 Packages and helper functions, and setting of options for optimization
 in =INLA= software.

@@ -3,13 +3,13 @@
 
 ** Brief code instructions :noexport:
 - load_data.R
-- =spde.osc.temporal= contains main code for processing data into a
+- =spde.osc.temporal= contains the main code for processing data into a
   pipeline for computing integration weights and fiting Poisson point
   process models with latent Gaussian effects (M0, M1 and M2). Models
   M0 and M1 may be fit fast on a standard computer. Model M2 demands
   memory.
-- =predictions_M0.M1.M2.R= contains code used in plotting fitted
-  intensity functions.
+- =predictions_M0.M1.M2.R= contains code used in plotting summaries of the posterior
+  of intensity functions.
   
 ** Worked example                                                 :noexport:
 *** Loading data
@@ -22,18 +22,6 @@ in =INLA= software.
   library(sp)
   library(INLA)
   library(inlabru)
-  bru_options_set(inla.mode = "experimental")
-  ## option "experimental" implements Variational Bayes correction this
-  ## is useful for Poisson point process likelihoods.
-  ## This option is implemented in latest INLA testing version
-  if(inla.pardiso.check() != "SUCCESS: PARDISO IS INSTALLED AND WORKING"){
-    ## enable openmp for parallel computing using strategy "huge".
-    ## this is going to engage all RAM and core resources of the
-    ## computer needs some care when setting this up on Eddie.
-    bru_options_set(control.compute = list(openmp.strategy="huge"))
-  }else{
-    bru_options_set(control.compute = list(openmp.strategy="pardiso"))
-  }
   source("R/Functions.R")
 #+end_src
 We load the raw data (session id =M14_2018-05-16_11-29-05=, gridness score 0.913)
@@ -42,116 +30,7 @@ We load the raw data (session id =M14_2018-05-16_11-29-05=, gridness score 0.913
   ls()
 #+end_src
 
-#+RESULTS:
-#+begin_src R
-  [1] "a.par.phi.prior.spatial.oscillating"     
-  [2] "b.par.phi.prior.spatial.oscillating"     
-  [3] "B.phi0.matern"                           
-  [4] "B.phi0.oscillating"                      
-  [5] "B.phi1.matern"                           
-  [6] "B.phi1.oscillating"                      
-  [7] "B.phi2.oscillating"                      
-  [8] "circular1D.model"                        
-  [9] "df.indices"                              
- [10] "df.prism.M0.wrapper"                     
- [11] "df.prism.M0.wrapper_CV"                  
- [12] "df.prism.M1.M2.wrapper"                  
- [13] "df.prism.M1.M2.wrapper2"                 
- [14] "df.prism.M1.M2.wrapper2_CV"              
- [15] "direction"                               
- [16] "fem.mesh"                                
- [17] "fem.mesh.hd"                             
- [18] "hd.bsp.precision"                        
- [19] "hd.bsp.precision.oscillatory"            
- [20] "ID"                                      
- [21] "ID.Omega"                                
- [22] "initial.direction"                       
- [23] "initial.space"                           
- [24] "interpolate"                             
- [25] "interpolate2"                            
- [26] "k"                                       
- [27] "l"                                       
- [28] "ldmvnorm"                                
- [29] "locs"                                    
- [30] "M0"                                      
- [31] "M0.hd"                                   
- [32] "M1"                                      
- [33] "M1.hd"                                   
- [34] "M2"                                      
- [35] "M2.hd"                                   
- [36] "mapindex2space.direction_basis"          
- [37] "mapindex2space.direction_index"          
- [38] "mesh"                                    
- [39] "mesh.hd"                                 
- [40] "mu.range.spatial.oscillating"            
- [41] "mycoords"                                
- [42] "osc.precision"                           
- [43] "oscillating.model"                       
- [44] "oscillating.model_fixed.phi"             
- [45] "p"                                       
- [46] "p.theta"                                 
- [47] "path.hpp"                                
- [48] "perm.test.scores"                        
- [49] "Pl"                                      
- [50] "Pl.Omega"                                
- [51] "Pls"                                     
- [52] "Pls.Omega"                               
- [53] "posterior.directional.gridness.score"    
- [54] "posterior.directional.kappa"             
- [55] "posterior.directional.range"             
- [56] "posterior.directional.standard.deviation"
- [57] "posterior.spatial.gridness.score"        
- [58] "posterior.spatial.range"                 
- [59] "posterior.spatial.standard.deviation"    
- [60] "posterior.temporal.range"                
- [61] "posterior.temporal.standard.deviation"   
- [62] "pred.mean.var"                           
- [63] "pred.mean.var.M2"                        
- [64] "predictive.M0"                           
- [65] "predictive.M2"                           
- [66] "prior.phi_osc"                           
- [67] "rho.directional"                         
- [68] "rho.temporal"                            
- [69] "sigma.directional"                       
- [70] "sigma.range.spatial.oscillating"         
- [71] "sigma.spatial.oscillating"               
- [72] "sigma.temporal"                          
- [73] "space"                                   
- [74] "space.direction.model"                   
- [75] "space.direction.rgeneric"                
- [76] "space.direction2.model"                  
- [77] "space.rgeneric"                          
- [78] "split.arcs"                              
- [79] "split.arcs2"                             
- [80] "split.lines"                             
- [81] "split.segments.wrapper.function"         
- [82] "SPls"                                    
- [83] "SPls.Omega"                              
- [84] "temp.precision"                          
- [85] "temp.precision.oscillatory"              
- [86] "temporal.model"                          
- [87] "temporal.model2"                         
- [88] "theta.2.kappa.1d"                        
- [89] "theta.2.phi"                             
- [90] "theta.2.phi.time"                        
- [91] "theta.2.rho"                             
- [92] "theta.2.rho.direction"                   
- [93] "theta.2.rho.time"                        
- [94] "theta.2.sigma"                           
- [95] "theta.2.sigma.direction"                 
- [96] "theta.2.sigma.time"                      
- [97] "theta.nodes"                             
- [98] "tol"                                     
- [99] "trajectory"                              
-[100] "trajectory.length"                       
-[101] "u"                                       
-[102] "weights.domain"                          
-[103] "X"                                       
-[104] "x1"                                      
-[105] "Y"                                       
-[106] "Y.spdf"                                  
-[107] "y1"
-#+end_src
+
 
 The firing events are stored in data frame =Y= and the positional data in data frame =X=.
 #+begin_src R :results output code :exports code :session *R:grid_fields*  :tangle yes
